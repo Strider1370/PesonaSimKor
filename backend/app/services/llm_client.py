@@ -29,6 +29,13 @@ def ollama_model() -> str:
     return os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
 
 
+def get_openai_api_key() -> str:
+    api_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is required for OpenAI simulations")
+    return api_key
+
+
 def parse_json_object(text: str) -> dict[str, Any]:
     stripped = text.strip()
     if stripped.startswith("```"):
@@ -80,19 +87,32 @@ def parse_agent_response(text: str) -> dict:
     return {"stance": stance, "rationale": rationale.strip()}
 
 
-def build_agent_prompt(persona: dict, policy: str, prior: dict | None = None) -> str:
+def build_agent_prompt(
+    persona: dict,
+    policy: str,
+    prior: dict | None = None,
+    persona_depth: str = "standard",
+) -> str:
     prior_text = json.dumps(prior, ensure_ascii=False) if prior else "none"
-    structured_profile = persona.get(
-        "structured_profile",
-        {
+    if persona_depth == "minimal":
+        structured_profile = {
             "age": persona.get("age"),
             "gender": persona.get("gender"),
-            "district": persona.get("region"),
-            "education_level": persona.get("education"),
-            "occupation": persona.get("job"),
-        },
-    )
-    narrative_context = persona.get("narrative_context", {"persona": persona.get("background", "")})
+            "region": persona.get("region"),
+        }
+        narrative_context = {}
+    else:
+        structured_profile = persona.get(
+            "structured_profile",
+            {
+                "age": persona.get("age"),
+                "gender": persona.get("gender"),
+                "district": persona.get("region"),
+                "education_level": persona.get("education"),
+                "occupation": persona.get("job"),
+            },
+        )
+        narrative_context = persona.get("narrative_context", {"persona": persona.get("background", "")})
     structured_text = "\n".join(f"{key}: {value}" for key, value in structured_profile.items() if value not in ("", None))
     narrative_text = "\n".join(f"{key}: {value}" for key, value in narrative_context.items() if value not in ("", None))
     return f"""[Structured Profile]
@@ -112,7 +132,12 @@ Answer from this citizen's lived perspective. Reflect their age, family situatio
 Do not give a generic policy analysis."""
 
 
-def build_agent_messages(persona: dict, policy: str, prior: dict | None = None) -> list[dict[str, str]]:
+def build_agent_messages(
+    persona: dict,
+    policy: str,
+    prior: dict | None = None,
+    persona_depth: str = "standard",
+) -> list[dict[str, str]]:
     return [
         {
             "role": "system",
@@ -124,7 +149,7 @@ def build_agent_messages(persona: dict, policy: str, prior: dict | None = None) 
                 "rationale must be one natural Korean sentence from that citizen's lived perspective."
             ),
         },
-        {"role": "user", "content": build_agent_prompt(persona, policy, prior)},
+        {"role": "user", "content": build_agent_prompt(persona, policy, prior, persona_depth)},
     ]
 
 
@@ -150,21 +175,28 @@ def summarize_options() -> dict:
     }
 
 
-def build_agent_llm_payload(persona: dict, policy: str, prior: dict | None = None) -> dict:
+def build_agent_llm_payload(
+    persona: dict,
+    policy: str,
+    prior: dict | None = None,
+    model_name: str | None = None,
+    thinking: bool = False,
+    persona_depth: str = "standard",
+) -> dict:
     return {
         "agent_id": persona["agent_id"],
-        "model": ollama_model(),
+        "model": model_name or ollama_model(),
         "format": "json",
-        "messages": build_agent_messages(persona, policy, prior),
+        "messages": build_agent_messages(persona, policy, prior, persona_depth),
         "options": agent_options(),
-        "think": False,
+        "think": thinking,
     }
 
 
-def build_summary_llm_payload(policy: str, responses: list[dict]) -> dict:
+def build_summary_llm_payload(policy: str, responses: list[dict], model_name: str | None = None) -> dict:
     payload = json.dumps(responses, ensure_ascii=False)
     return {
-        "model": ollama_model(),
+        "model": model_name or ollama_model(),
         "format": "json",
         "messages": [
             {
@@ -200,31 +232,45 @@ def has_repeated_tail(text: str, window: int = 80, repeats: int = 3) -> bool:
     return prior.count(tail) >= repeats - 1
 
 
-def get_agent_response(persona: dict, policy: str, prior: dict | None = None) -> dict:
+def get_agent_response(
+    persona: dict,
+    policy: str,
+    prior: dict | None = None,
+    model_name: str | None = None,
+    thinking: bool = False,
+    persona_depth: str = "standard",
+) -> dict:
     try:
         client = ollama.Client(host=ollama_host(), timeout=60)
         response = client.chat(
-            model=ollama_model(),
+            model=model_name or ollama_model(),
             format="json",
-            messages=build_agent_messages(persona, policy, prior),
+            messages=build_agent_messages(persona, policy, prior, persona_depth),
             options=agent_options(),
-            think=False,
+            think=thinking,
         )
         return parse_agent_response(response["message"]["content"])
     except Exception:
         return dict(FAILURE_FALLBACK)
 
 
-def stream_agent_response(persona: dict, policy: str, prior: dict | None = None):
+def stream_agent_response(
+    persona: dict,
+    policy: str,
+    prior: dict | None = None,
+    model_name: str | None = None,
+    thinking: bool = False,
+    persona_depth: str = "standard",
+):
     raw_output = ""
     try:
         client = ollama.Client(host=ollama_host(), timeout=60)
         stream = client.chat(
-            model=ollama_model(),
+            model=model_name or ollama_model(),
             format="json",
-            messages=build_agent_messages(persona, policy, prior),
+            messages=build_agent_messages(persona, policy, prior, persona_depth),
             options=agent_options(),
-            think=False,
+            think=thinking,
             stream=True,
         )
         thinking_output = ""
@@ -269,6 +315,82 @@ def stream_agent_response(persona: dict, policy: str, prior: dict | None = None)
         }
 
 
+def stream_openai_agent_response(
+    persona: dict,
+    policy: str,
+    prior: dict | None = None,
+    model_name: str = "gpt-4o-mini",
+    persona_depth: str = "standard",
+    thinking: bool = False,
+):
+    raw_output = ""
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=get_openai_api_key())
+        stream = client.chat.completions.create(
+            model=model_name,
+            response_format={"type": "json_object"},
+            messages=build_agent_messages(persona, policy, prior, persona_depth),
+            **openai_reasoning_options(thinking),
+            stream=True,
+        )
+        for chunk in stream:
+            content = chunk.choices[0].delta.content or ""
+            if content:
+                raw_output += content
+                yield {"type": "token", "content": content}
+        yield {"type": "final", "response": parse_agent_response(raw_output)}
+    except Exception as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        yield {"type": "error", "message": message}
+        yield {
+            "type": "final",
+            "response": {
+                "stance": "neutral",
+                "rationale": f"LLM ?몄텧 ?ㅽ뙣: {message}",
+            },
+        }
+
+
+def stream_openai_summary_clusters(
+    policy: str,
+    responses: list[dict],
+    model_name: str = "gpt-4o-mini",
+    thinking: bool = False,
+):
+    raw_output = ""
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=get_openai_api_key())
+        payload = build_summary_llm_payload(policy, responses, model_name)
+        stream = client.chat.completions.create(
+            model=model_name,
+            response_format={"type": "json_object"},
+            messages=payload["messages"],
+            **openai_reasoning_options(thinking),
+            stream=True,
+        )
+        for chunk in stream:
+            content = chunk.choices[0].delta.content or ""
+            if content:
+                raw_output += content
+                yield {"type": "token", "content": content}
+        if not raw_output.strip():
+            yield {"type": "final", "summary": failed_summary("Summary model returned no JSON output.", raw_output)}
+            return
+        yield {"type": "final", "summary": summary_from_text(raw_output)}
+    except Exception as exc:
+        message = f"{type(exc).__name__}: {exc}"
+        yield {"type": "error", "message": message}
+        yield {"type": "final", "summary": failed_summary(message, raw_output)}
+
+
+def openai_reasoning_options(thinking: bool) -> dict:
+    return {"reasoning_effort": "medium"} if thinking else {}
+
+
 def summary_from_text(raw_output: str) -> dict:
     parsed = parse_json_object(raw_output)
     concerns = parsed.get("concern_clusters", [])
@@ -295,12 +417,12 @@ def failed_summary(message: str, raw_output: str = "") -> dict:
     }
 
 
-def stream_summary_clusters(policy: str, responses: list[dict]):
+def stream_summary_clusters(policy: str, responses: list[dict], model_name: str | None = None):
     raw_output = ""
     thinking_output = ""
     try:
         client = ollama.Client(host=ollama_host(), timeout=90)
-        payload = build_summary_llm_payload(policy, responses)
+        payload = build_summary_llm_payload(policy, responses, model_name)
         stream = client.chat(
             model=payload["model"],
             format=payload["format"],

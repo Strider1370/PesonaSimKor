@@ -1,5 +1,7 @@
 backend/.venv/
-data/
+.env
+backend/.env
+/data/
 frontend/node_modules/
 node_modules/
 frontend/dist/

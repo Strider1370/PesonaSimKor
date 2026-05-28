@@ -1,19 +1,26 @@
 import json
+from types import SimpleNamespace
 import time
 
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from app.main import app
+from app.models.schemas import SimulateRequest
 from app.services.llm_client import (
     agent_options,
+    build_agent_llm_payload,
     build_agent_prompt,
     build_summary_llm_payload,
+    get_openai_api_key,
     ollama_host,
     parse_agent_response,
     parse_json_object,
     summarize_clusters,
     summarize_options,
     stream_agent_response,
+    stream_openai_agent_response,
+    stream_openai_summary_clusters,
 )
 
 
@@ -293,6 +300,57 @@ def test_agent_prompt_includes_structured_profile_and_selected_narratives():
     assert "cultural_background: Local community context." in prompt
 
 
+def test_build_agent_prompt_minimal_depth_excludes_job_and_narrative():
+    persona = {
+        "agent_id": 1,
+        "age": 35,
+        "gender": "female",
+        "region": "Seoul",
+        "job": "teacher",
+        "education": "college",
+        "structured_profile": {
+            "age": 35,
+            "gender": "female",
+            "district": "Seoul",
+            "education_level": "college",
+            "occupation": "teacher",
+        },
+        "narrative_context": {"persona": "A teacher with a housing loan."},
+    }
+
+    prompt = build_agent_prompt(persona, "policy", persona_depth="minimal")
+
+    assert "age: 35" in prompt
+    assert "gender: female" in prompt
+    assert "region: Seoul" in prompt
+    assert "teacher" not in prompt
+    assert "housing loan" not in prompt
+
+
+def test_build_agent_llm_payload_uses_requested_model_thinking_and_depth():
+    persona = {
+        "agent_id": 1,
+        "age": 35,
+        "gender": "female",
+        "region": "Seoul",
+        "job": "teacher",
+        "age_group": "30s",
+        "region_group": "capital",
+    }
+
+    payload = build_agent_llm_payload(
+        persona,
+        "policy",
+        model_name="qwen3:14b",
+        thinking=True,
+        persona_depth="minimal",
+    )
+
+    assert payload["model"] == "qwen3:14b"
+    assert payload["think"] is True
+    assert "occupation:" not in payload["messages"][1]["content"]
+
+
 def test_healthz_returns_model_and_dataset_status(monkeypatch):
     monkeypatch.setenv("OLLAMA_MODEL", "qwen3.5:9b")
 
@@ -320,6 +378,112 @@ def test_simulate_preflight_allows_127_frontend_origin():
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
 
 
+def test_simulate_request_accepts_experiment_options():
+    req = SimulateRequest(
+        policy="policy",
+        n_agents=12,
+        model_provider="ollama",
+        model_name="qwen3:14b",
+        thinking=True,
+        persona_depth="full",
+    )
+
+    assert req.model_provider == "ollama"
+    assert req.model_name == "qwen3:14b"
+    assert req.thinking is True
+    assert req.persona_depth == "full"
+
+
+def test_simulate_request_rejects_invalid_provider_and_depth():
+    try:
+        SimulateRequest(policy="policy", model_provider="bad", persona_depth="huge")
+    except ValidationError as exc:
+        errors = str(exc)
+        assert "model_provider" in errors
+        assert "persona_depth" in errors
+    else:
+        raise AssertionError("Expected validation error")
+
+
+def test_get_openai_api_key_requires_env(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    try:
+        get_openai_api_key()
+    except RuntimeError as exc:
+        assert "OPENAI_API_KEY" in str(exc)
+    else:
+        raise AssertionError("Expected RuntimeError")
+
+
+def test_get_openai_api_key_reads_env(monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+
+    assert get_openai_api_key() == "sk-test"
+
+
+def test_openai_agent_response_uses_reasoning_effort_when_thinking_enabled(monkeypatch):
+    import openai
+    import app.services.llm_client as llm_client
+
+    captured = {}
+
+    class CapturingCompletions:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return iter([SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content='{"stance":"support","rationale":"ok"}'))])])
+
+    class CapturingOpenAI:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        chat = SimpleNamespace(completions=CapturingCompletions())
+
+    monkeypatch.setattr(llm_client, "get_openai_api_key", lambda: "sk-test")
+    monkeypatch.setattr(openai, "OpenAI", CapturingOpenAI)
+
+    events = list(stream_openai_agent_response({"agent_id": 1}, "policy", model_name="gpt-5-mini", thinking=True))
+
+    assert captured["reasoning_effort"] == "medium"
+    assert events[-1]["response"]["stance"] == "support"
+
+
+def test_openai_summary_uses_reasoning_effort_when_thinking_enabled(monkeypatch):
+    import openai
+    import app.services.llm_client as llm_client
+
+    captured = {}
+
+    class CapturingCompletions:
+        def create(self, **kwargs):
+            captured.update(kwargs)
+            return iter(
+                [
+                    SimpleNamespace(
+                        choices=[
+                            SimpleNamespace(
+                                delta=SimpleNamespace(content='{"concern_clusters":[],"support_clusters":[]}')
+                            )
+                        ]
+                    )
+                ]
+            )
+
+    class CapturingOpenAI:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        chat = SimpleNamespace(completions=CapturingCompletions())
+
+    monkeypatch.setattr(llm_client, "get_openai_api_key", lambda: "sk-test")
+    monkeypatch.setattr(openai, "OpenAI", CapturingOpenAI)
+
+    events = list(stream_openai_summary_clusters("policy", [], model_name="gpt-5-mini", thinking=True))
+
+    assert captured["reasoning_effort"] == "medium"
+    assert events[-1]["summary"]["status"] == "empty"
+
+
 def sample_personas(n: int):
     personas = [
         {
@@ -344,9 +508,13 @@ def patch_fast_simulation(monkeypatch, simulate_api, agent_stream=None, summary=
         simulate_api,
         "stream_agent_response",
         agent_stream
-        or (lambda persona, policy, prior=None: iter([{"type": "token", "content": "raw"}, {"type": "final", "response": {"stance": "support", "rationale": "ok"}}])),
+        or (
+            lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard": iter(
+                [{"type": "token", "content": "raw"}, {"type": "final", "response": {"stance": "support", "rationale": "ok"}}]
+            )
+        ),
     )
-    monkeypatch.setattr(simulate_api, "stream_summary_clusters", lambda policy, responses: summary or summary_stream())
+    monkeypatch.setattr(simulate_api, "stream_summary_clusters", lambda policy, responses, model_name=None: summary or summary_stream())
 
 
 def test_simulate_stream_event_order_with_summary_stream(monkeypatch):
@@ -410,13 +578,41 @@ def test_simulate_stream_includes_summary_tokens(monkeypatch):
     assert summary_tokens[1] == {"content": '{"concern_clusters":[],"support_clusters":[]}'}
 
 
+def test_simulate_stream_uses_openai_for_summary_when_provider_is_openai(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    called = {"ollama": 0, "openai": 0}
+
+    def ollama_summary(policy, responses, model_name=None):
+        called["ollama"] += 1
+        return summary_stream()
+
+    def openai_summary(policy, responses, model_name="gpt-4o-mini", thinking=False):
+        called["openai"] += 1
+        assert model_name == "gpt-4o-mini"
+        return summary_stream()
+
+    patch_fast_simulation(monkeypatch, simulate_api)
+    monkeypatch.setattr(simulate_api, "stream_summary_clusters", ollama_summary)
+    monkeypatch.setattr(simulate_api, "stream_openai_summary_clusters", openai_summary, raising=False)
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/simulate",
+        json={"policy": "policy", "n_agents": 5, "model_provider": "openai", "model_name": "gpt-4o-mini"},
+    )
+
+    assert response.status_code == 200
+    assert called == {"ollama": 0, "openai": 1}
+
+
 def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
     from app.api import simulate as simulate_api
 
     patch_fast_simulation(
         monkeypatch,
         simulate_api,
-        agent_stream=lambda persona, policy, prior=None: iter(
+        agent_stream=lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard": iter(
             [
                 {"type": "error", "message": "ollama unavailable"},
                 {"type": "final", "response": {"stance": "neutral", "rationale": "ollama unavailable"}},
@@ -445,7 +641,7 @@ def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
 def test_simulate_stream_emits_llm_heartbeat_while_waiting(monkeypatch):
     from app.api import simulate as simulate_api
 
-    def slow_stream(persona, policy, prior=None):
+    def slow_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard"):
         time.sleep(0.05)
         yield {"type": "token", "content": "raw"}
         yield {"type": "final", "response": {"stance": "support", "rationale": "ok"}}

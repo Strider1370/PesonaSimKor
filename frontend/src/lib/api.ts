@@ -139,6 +139,10 @@ export type SimulateEvent =
 export type SimulateRequest = {
   policy: string
   n_agents: number
+  model_provider?: "ollama" | "openai"
+  model_name?: string
+  thinking?: boolean
+  persona_depth?: "minimal" | "standard" | "full"
 }
 
 export type HealthStatus = {

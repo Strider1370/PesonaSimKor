@@ -9,7 +9,14 @@ from fastapi.responses import StreamingResponse
 
 from app.models.schemas import SimulateRequest
 from app.services.aggregation import compute_aggregate
-from app.services.llm_client import build_agent_llm_payload, build_summary_llm_payload, stream_agent_response, stream_summary_clusters
+from app.services.llm_client import (
+    build_agent_llm_payload,
+    build_summary_llm_payload,
+    stream_agent_response,
+    stream_openai_agent_response,
+    stream_openai_summary_clusters,
+    stream_summary_clusters,
+)
 from app.services.persona_sampler import sample_personas_with_plan
 from app.services.prior_service import get_prior
 
@@ -59,17 +66,68 @@ async def stream_with_heartbeat(source, *args):
         yield event
 
 
-async def stream_agent_response_with_heartbeat(persona: dict, policy: str, prior: dict | None = None):
-    async for event in stream_with_heartbeat(stream_agent_response, persona, policy, prior):
+async def stream_agent_response_with_heartbeat(
+    persona: dict,
+    policy: str,
+    prior: dict | None = None,
+    model_name: str | None = None,
+    thinking: bool = False,
+    persona_depth: str = "standard",
+):
+    async for event in stream_with_heartbeat(stream_agent_response, persona, policy, prior, model_name, thinking, persona_depth):
         yield event
 
 
-async def stream_summary_clusters_with_heartbeat(policy: str, responses: list[dict]):
-    async for event in stream_with_heartbeat(stream_summary_clusters, policy, responses):
+async def stream_configured_agent_response_with_heartbeat(
+    provider: str,
+    persona: dict,
+    policy: str,
+    prior: dict | None,
+    model_name: str,
+    thinking: bool,
+    persona_depth: str,
+):
+    if provider == "openai":
+        async for event in stream_with_heartbeat(
+            stream_openai_agent_response,
+            persona,
+            policy,
+            prior,
+            model_name,
+            persona_depth,
+            thinking,
+        ):
+            yield event
+        return
+
+    async for event in stream_with_heartbeat(stream_agent_response, persona, policy, prior, model_name, thinking, persona_depth):
         yield event
 
 
-async def simulation_stream(policy: str, n_agents: int):
+async def stream_summary_clusters_with_heartbeat(policy: str, responses: list[dict], model_name: str | None = None):
+    async for event in stream_with_heartbeat(stream_summary_clusters, policy, responses, model_name):
+        yield event
+
+
+async def stream_configured_summary_clusters_with_heartbeat(
+    provider: str,
+    policy: str,
+    responses: list[dict],
+    model_name: str,
+    thinking: bool,
+):
+    if provider == "openai":
+        async for event in stream_with_heartbeat(stream_openai_summary_clusters, policy, responses, model_name, thinking):
+            yield event
+        return
+
+    async for event in stream_with_heartbeat(stream_summary_clusters, policy, responses, model_name):
+        yield event
+
+
+async def simulation_stream(req: SimulateRequest):
+    policy = req.policy
+    n_agents = req.n_agents
     responses: list[dict] = []
     try:
         personas, sampling_plan = sample_personas_with_plan(n_agents)
@@ -94,11 +152,29 @@ async def simulation_stream(policy: str, n_agents: int):
                     "gender": persona["gender"],
                 },
             )
-            yield sse_event("llm_prompt", build_agent_llm_payload(persona, policy, prior))
+            yield sse_event(
+                "llm_prompt",
+                build_agent_llm_payload(
+                    persona,
+                    policy,
+                    prior,
+                    model_name=req.model_name,
+                    thinking=req.thinking,
+                    persona_depth=req.persona_depth,
+                ),
+            )
             yield sse_event("llm_status", {"agent_id": persona["agent_id"], "status": "started"})
             result = {"stance": "neutral", "rationale": "Response generation failed."}
             llm_failed = False
-            async for llm_event in stream_agent_response_with_heartbeat(persona, policy, prior):
+            async for llm_event in stream_configured_agent_response_with_heartbeat(
+                req.model_provider,
+                persona,
+                policy,
+                prior,
+                req.model_name,
+                req.thinking,
+                req.persona_depth,
+            ):
                 if llm_event["type"] in {"token", "thinking"}:
                     yield sse_event(
                         "llm_token",
@@ -137,7 +213,7 @@ async def simulation_stream(policy: str, n_agents: int):
             responses.append(response_event)
             yield sse_event("agent_responded", response_event)
 
-        yield sse_event("summary_prompt", build_summary_llm_payload(policy, responses))
+        yield sse_event("summary_prompt", build_summary_llm_payload(policy, responses, req.model_name))
         yield sse_event(
             "summary_status",
             {"status": "started", "message": f"{len(responses)}개 응답을 취합 요약하는 중입니다."},
@@ -152,7 +228,13 @@ async def simulation_stream(policy: str, n_agents: int):
             "raw_output": "",
         }
         summary_failed = False
-        async for summary_event in stream_summary_clusters_with_heartbeat(policy, responses):
+        async for summary_event in stream_configured_summary_clusters_with_heartbeat(
+            req.model_provider,
+            policy,
+            responses,
+            req.model_name,
+            req.thinking,
+        ):
             if summary_event["type"] in {"token", "thinking"}:
                 yield sse_event("summary_token", {"content": summary_event["content"]})
             elif summary_event["type"] == "heartbeat":
@@ -191,7 +273,7 @@ async def simulation_stream(policy: str, n_agents: int):
 @router.post("/simulate")
 async def simulate(req: SimulateRequest):
     return StreamingResponse(
-        simulation_stream(req.policy, req.n_agents),
+        simulation_stream(req),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

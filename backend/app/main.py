@@ -7,7 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.api.simulate import router as simulate_router
+from app.config.env import load_backend_environment
 from app.services.persona_repository import parquet_row_groups
+
+load_backend_environment()
 
 
 def _cors_origins() -> list[str]:

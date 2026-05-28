@@ -1,11 +1,25 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { getHealth, parseSseChunk } from "./api"
+import type { SimulateRequest } from "./api"
 
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe("parseSseChunk", () => {
+  it("allows experiment options in simulate request type", () => {
+    const request: SimulateRequest = {
+      policy: "policy",
+      n_agents: 30,
+      model_provider: "ollama",
+      model_name: "qwen3:14b",
+      thinking: true,
+      persona_depth: "full",
+    }
+
+    expect(request.model_name).toBe("qwen3:14b")
+  })
+
   it("parses events split across chunks", () => {
     let buffer = ""
     const first = parseSseChunk('event: agent_responded\ndata: {"agent_id":', buffer)

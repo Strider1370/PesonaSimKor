@@ -4,5 +4,7 @@ pydantic
 pandas
 pyarrow
 ollama
+openai>=1.0.0
+python-dotenv
 pytest
 httpx
