@@ -34,6 +34,7 @@ def empty_summary():
         "message": "empty summary",
         "concern_clusters": [],
         "support_clusters": [],
+        "blind_spot_clusters": [],
         "raw_output": '{"concern_clusters":[],"support_clusters":[]}',
     }
 
@@ -679,7 +680,7 @@ def patch_fast_simulation(monkeypatch, simulate_api, agent_stream=None, summary=
         "stream_agent_response",
         agent_stream
         or (
-            lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard": iter(
+            lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="ollama": iter(
                 [{"type": "token", "content": "raw"}, {"type": "final", "response": {"stance": "support", "rationale": "ok"}}]
             )
         ),
@@ -726,6 +727,174 @@ def test_simulate_stream_includes_llm_input_payload(monkeypatch):
     assert llm_payloads[0]["model"] == "qwen3.5:9b"
     assert llm_payloads[0]["messages"][0]["role"] == "system"
     assert "policy" in llm_payloads[0]["messages"][1]["content"]
+
+
+def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    def agent_stream(
+        persona,
+        policy,
+        prior=None,
+        model_name=None,
+        thinking=False,
+        persona_depth="standard",
+        model_provider="ollama",
+    ):
+        yield {"type": "token", "content": "raw"}
+        yield {
+            "type": "final",
+            "response": {
+                "stance": "oppose",
+                "rationale": "부담이 큽니다.",
+                "blind_spot": "월세 전환 때 보증금 흐름 불안",
+                "affected_group": "수도권 맞벌이 가구",
+                "reframing": "월세 지원보다 금융 안정성이 먼저입니다.",
+                "persona_link": {"direct": "자녀 등교", "inferred": "주거비 민감"},
+            },
+        }
+
+    def custom_summary_stream():
+        yield {
+            "type": "final",
+            "summary": {
+                "status": "completed",
+                "message": "ok",
+                "concern_clusters": [],
+                "support_clusters": [],
+                "blind_spot_clusters": [
+                    {
+                        "affected_group": "수도권 맞벌이 가구",
+                        "count": 5,
+                        "blind_spot_examples": ["월세 전환 때 보증금 흐름 불안"],
+                    }
+                ],
+                "raw_output": "{}",
+            },
+        }
+
+    patch_fast_simulation(monkeypatch, simulate_api, agent_stream=agent_stream, summary=custom_summary_stream())
+
+    client = TestClient(app)
+    response = client.post("/api/simulate", json={"policy": "policy", "n_agents": 5})
+
+    agent_payloads = []
+    aggregate_payloads = []
+    prompt_payloads = []
+    current_event = None
+    for line in response.text.splitlines():
+        if line.startswith("event: "):
+            current_event = line.removeprefix("event: ")
+        elif line.startswith("data: "):
+            payload = json.loads(line.removeprefix("data: "))
+            if current_event == "agent_responded":
+                agent_payloads.append(payload)
+            elif current_event == "aggregate":
+                aggregate_payloads.append(payload)
+            elif current_event == "llm_prompt":
+                prompt_payloads.append(payload)
+
+    assert agent_payloads[0]["blind_spot"] == "월세 전환 때 보증금 흐름 불안"
+    assert agent_payloads[0]["affected_group"] == "수도권 맞벌이 가구"
+    assert agent_payloads[0]["reframing"] == "월세 지원보다 금융 안정성이 먼저입니다."
+    assert agent_payloads[0]["persona_link"] == {"direct": "자녀 등교", "inferred": "주거비 민감"}
+    assert aggregate_payloads[-1]["blind_spot_clusters"] == [
+        {
+            "affected_group": "수도권 맞벌이 가구",
+            "count": 5,
+            "blind_spot_examples": ["월세 전환 때 보증금 흐름 불안"],
+        }
+    ]
+    assert "blind_spot" in prompt_payloads[0]["messages"][0]["content"]
+
+
+def test_simulate_stream_handles_partial_summary_payload_defensively(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    def partial_summary_stream():
+        yield {
+            "type": "final",
+            "summary": {
+                "concern_clusters": [],
+                "support_clusters": [],
+                "blind_spot_clusters": [],
+            },
+        }
+
+    patch_fast_simulation(monkeypatch, simulate_api, summary=partial_summary_stream())
+
+    client = TestClient(app)
+    response = client.post("/api/simulate", json={"policy": "policy", "n_agents": 5})
+
+    events = [line.removeprefix("event: ") for line in response.text.splitlines() if line.startswith("event: ")]
+
+    assert events[-2:] == ["aggregate", "done"]
+    assert "error" not in events
+
+
+def test_simulate_stream_keeps_legacy_agent_stream_replacements_working(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    def legacy_agent_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard"):
+        yield {"type": "token", "content": "legacy"}
+        yield {"type": "final", "response": {"stance": "support", "rationale": "legacy ok"}}
+
+    patch_fast_simulation(monkeypatch, simulate_api, agent_stream=legacy_agent_stream)
+
+    client = TestClient(app)
+    response = client.post("/api/simulate", json={"policy": "policy", "n_agents": 5})
+
+    statuses = []
+    tokens = []
+    current_event = None
+    for line in response.text.splitlines():
+        if line.startswith("event: "):
+            current_event = line.removeprefix("event: ")
+        elif line.startswith("data: "):
+            payload = json.loads(line.removeprefix("data: "))
+            if current_event == "llm_status":
+                statuses.append(payload)
+            elif current_event == "llm_token":
+                tokens.append(payload)
+
+    assert {"agent_id": 0, "status": "completed"} in statuses
+    assert tokens[0] == {"agent_id": 0, "content": "legacy"}
+
+
+def test_simulate_stream_supports_keyword_only_model_provider_streams(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    captured = []
+
+    def keyword_only_agent_stream(
+        persona,
+        policy,
+        prior=None,
+        model_name=None,
+        thinking=False,
+        persona_depth="standard",
+        *,
+        model_provider="ollama",
+    ):
+        captured.append(model_provider)
+        yield {"type": "token", "content": "keyword"}
+        yield {"type": "final", "response": {"stance": "support", "rationale": "keyword ok"}}
+
+    patch_fast_simulation(monkeypatch, simulate_api, agent_stream=keyword_only_agent_stream)
+
+    client = TestClient(app)
+    response = client.post("/api/simulate", json={"policy": "policy", "n_agents": 5})
+
+    tokens = []
+    current_event = None
+    for line in response.text.splitlines():
+        if line.startswith("event: "):
+            current_event = line.removeprefix("event: ")
+        elif current_event == "llm_token" and line.startswith("data: "):
+            tokens.append(json.loads(line.removeprefix("data: ")))
+
+    assert captured == ["ollama"] * 5
+    assert tokens[0] == {"agent_id": 0, "content": "keyword"}
 
 
 def test_simulate_stream_includes_summary_tokens(monkeypatch):
@@ -782,7 +951,7 @@ def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
     patch_fast_simulation(
         monkeypatch,
         simulate_api,
-        agent_stream=lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard": iter(
+        agent_stream=lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="ollama": iter(
             [
                 {"type": "error", "message": "ollama unavailable"},
                 {"type": "final", "response": {"stance": "neutral", "rationale": "ollama unavailable"}},
@@ -811,7 +980,7 @@ def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
 def test_simulate_stream_emits_llm_heartbeat_while_waiting(monkeypatch):
     from app.api import simulate as simulate_api
 
-    def slow_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard"):
+    def slow_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="ollama"):
         time.sleep(0.05)
         yield {"type": "token", "content": "raw"}
         yield {"type": "final", "response": {"stance": "support", "rationale": "ok"}}

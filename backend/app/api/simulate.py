@@ -1,3 +1,4 @@
+import inspect
 import json
 import queue
 import threading
@@ -24,17 +25,27 @@ router = APIRouter()
 HEARTBEAT_INTERVAL_SECONDS = 2.0
 
 
+def accepts_model_provider(source) -> bool:
+    try:
+        signature = inspect.signature(source)
+    except (TypeError, ValueError):
+        return True
+    return "model_provider" in signature.parameters or any(
+        parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in signature.parameters.values()
+    )
+
+
 def sse_event(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-async def stream_with_heartbeat(source, *args):
+async def stream_with_heartbeat(source, *args, **kwargs):
     events: queue.Queue[dict | object] = queue.Queue()
     done = object()
 
     def worker() -> None:
         try:
-            for event in source(*args):
+            for event in source(*args, **kwargs):
                 events.put(event)
         finally:
             events.put(done)
@@ -88,19 +99,23 @@ async def stream_configured_agent_response_with_heartbeat(
     persona_depth: str,
 ):
     if provider == "openai":
+        args = [persona, policy, prior, model_name, persona_depth, thinking]
+        kwargs = {}
+        if accepts_model_provider(stream_openai_agent_response):
+            kwargs["model_provider"] = provider
         async for event in stream_with_heartbeat(
             stream_openai_agent_response,
-            persona,
-            policy,
-            prior,
-            model_name,
-            persona_depth,
-            thinking,
+            *args,
+            **kwargs,
         ):
             yield event
         return
 
-    async for event in stream_with_heartbeat(stream_agent_response, persona, policy, prior, model_name, thinking, persona_depth):
+    args = [persona, policy, prior, model_name, thinking, persona_depth]
+    kwargs = {}
+    if accepts_model_provider(stream_agent_response):
+        kwargs["model_provider"] = provider
+    async for event in stream_with_heartbeat(stream_agent_response, *args, **kwargs):
         yield event
 
 
@@ -161,6 +176,7 @@ async def simulation_stream(req: SimulateRequest):
                     model_name=req.model_name,
                     thinking=req.thinking,
                     persona_depth=req.persona_depth,
+                    model_provider=req.model_provider,
                 ),
             )
             yield sse_event("llm_status", {"agent_id": persona["agent_id"], "status": "started"})
@@ -209,6 +225,10 @@ async def simulation_stream(req: SimulateRequest):
                 "region_group": persona["region_group"],
                 "stance": result.get("stance", "neutral"),
                 "rationale": result.get("rationale", ""),
+                "blind_spot": result.get("blind_spot"),
+                "affected_group": result.get("affected_group"),
+                "reframing": result.get("reframing"),
+                "persona_link": result.get("persona_link"),
             }
             responses.append(response_event)
             yield sse_event("agent_responded", response_event)
@@ -225,6 +245,7 @@ async def simulation_stream(req: SimulateRequest):
             "message": "Summary generation failed.",
             "concern_clusters": [],
             "support_clusters": [],
+            "blind_spot_clusters": [],
             "raw_output": "",
         }
         summary_failed = False
@@ -251,17 +272,18 @@ async def simulation_stream(req: SimulateRequest):
                 yield sse_event("summary_error", {"message": summary_event["message"]})
             elif summary_event["type"] == "final":
                 summary = summary_event["summary"]
-                if summary_failed and summary["status"] != "failed":
+                if summary_failed and summary.get("status") != "failed":
                     summary["status"] = "failed"
 
-        aggregate["concern_clusters"] = summary["concern_clusters"]
-        aggregate["support_clusters"] = summary["support_clusters"]
+        aggregate["concern_clusters"] = summary.get("concern_clusters", [])
+        aggregate["support_clusters"] = summary.get("support_clusters", [])
+        aggregate["blind_spot_clusters"] = summary.get("blind_spot_clusters", [])
         yield sse_event(
             "summary_status",
             {
-                "status": summary["status"],
-                "message": summary["message"],
-                "raw_output": summary["raw_output"],
+                "status": summary.get("status", "empty"),
+                "message": summary.get("message", "Summary generation returned no status message."),
+                "raw_output": summary.get("raw_output", ""),
             },
         )
         yield sse_event("aggregate", aggregate)
