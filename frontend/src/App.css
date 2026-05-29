@@ -107,6 +107,50 @@ h1 {
   color: #ffffff;
 }
 
+.level-panel {
+  border: 1px solid #d5dde5;
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.level-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.level-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 150px;
+  border: 1px solid #d5dde5;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  color: #52616f;
+}
+
+.level-tab.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.level-notes {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.level-notes p {
+  margin-bottom: 0;
+  color: #627d98;
+  font-size: 13px;
+}
+
 .ollama-badge {
   min-width: 128px;
   border: 1px solid #d5dde5;
@@ -757,6 +801,40 @@ button:disabled {
 .cluster-item p {
   margin-bottom: 0;
   line-height: 1.5;
+}
+
+.response-insights,
+.persona-link {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  border-top: 1px solid #e5eaf0;
+  padding-top: 10px;
+}
+
+.response-insights p,
+.persona-link p {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 0;
+}
+
+.response-insights strong,
+.persona-link strong {
+  color: #334e68;
+  font-size: 13px;
+}
+
+.response-insights span,
+.persona-link span {
+  color: #52616f;
+  line-height: 1.45;
+}
+
+.persona-link summary {
+  cursor: pointer;
+  color: #334e68;
+  font-weight: 800;
 }
 
 .aggregate {

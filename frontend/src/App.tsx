@@ -121,6 +121,7 @@ export default function App() {
   const abortControllerRef = useRef<AbortController | null>(null)
 
   const progress = useMemo(() => Math.round((responses.length / nAgents) * 100), [responses.length, nAgents])
+  const sampledById = useMemo(() => new Map(sampled.map((agent) => [agent.agent_id, agent])), [sampled])
   const llmAgentIds = useMemo(() => {
     const ids = new Set<number>()
     llmPrompts.forEach((prompt) => ids.add(prompt.agent_id))
@@ -397,15 +398,7 @@ export default function App() {
             <div className="live-list">
               {responses.length === 0 && <p className="empty">아직 응답이 없습니다.</p>}
               {responses.slice().reverse().map((response) => (
-                <article key={response.agent_id} className={`response-item ${response.stance}`}>
-                  <div className="response-head">
-                    <strong>{STANCE_LABELS[response.stance]}</strong>
-                    <span>
-                      {AGE_LABELS[response.age_group]} · {GENDER_LABELS[response.gender]} · {REGION_LABELS[response.region_group]}
-                    </span>
-                  </div>
-                  <p>{response.rationale}</p>
-                </article>
+                <ResponseCard key={response.agent_id} response={response} sampledAgent={sampledById.get(response.agent_id)} />
               ))}
             </div>
           </section>
@@ -502,6 +495,39 @@ function PageTabs({ page, onNavigate }: { page: Page; onNavigate: (page: Page) =
         실험실
       </button>
     </nav>
+  )
+}
+
+function ExperimentLevels({ modelProvider }: { modelProvider: "ollama" | "openai" }) {
+  const activeLevels = getActiveLevels(modelProvider, false)
+  const levels = [
+    { id: 1, label: "다양성", note: "페르소나마다 다른 이유로 다른 반응" },
+    { id: 2, label: "Prior 대응", note: "Prior 데이터 미수집 - 갤럽 여론만 파이프라인 구분 예정" },
+    { id: 3, label: "반문", note: "OpenAI 모델 선택 시 정책 전제에 대한 반문 생성" },
+    { id: 4, label: "대안", note: "미구현 - 장기 목표" },
+  ]
+
+  return (
+    <section className="level-panel" aria-label="검증 Level">
+      <div className="level-tabs">
+        {levels.map((level) => {
+          const active = activeLevels.includes(level.id)
+          return (
+            <div key={level.id} className={`level-tab ${active ? "active" : ""}`}>
+              <strong>
+                L{level.id}: {level.label}
+              </strong>
+              <span>{active ? "ON" : "OFF"}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="level-notes">
+        {levels.map((level) => (
+          <p key={level.id}>{level.note}</p>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -762,6 +788,7 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
 
   return (
     <div className="experiment-layout">
+      <ExperimentLevels modelProvider={modelProvider} />
       <section className="control-panel experiment-settings">
         <div className="settings-grid">
           <label className="field compact-field">
@@ -1193,8 +1220,64 @@ function ExperimentResults({
   )
 }
 
+function ResponseCard({
+  response,
+  sampledAgent,
+}: {
+  response: AgentRespondedEvent
+  sampledAgent?: AgentSampledEvent
+}) {
+  return (
+    <article className={`response-item ${response.stance}`}>
+      <div className="response-head">
+        <strong>{STANCE_LABELS[response.stance]}</strong>
+        <span>
+          {sampledAgent ? `${sampledAgent.age}세` : AGE_LABELS[response.age_group]} · {GENDER_LABELS[response.gender]} ·{" "}
+          {REGION_LABELS[response.region_group]}
+          {sampledAgent?.job ? ` · ${sampledAgent.job}` : ""}
+        </span>
+      </div>
+      <p>{response.rationale}</p>
+      {(response.blind_spot || response.affected_group) && (
+        <div className="response-insights">
+          {response.blind_spot && (
+            <p>
+              <strong>사각지대</strong>
+              <span>{response.blind_spot}</span>
+            </p>
+          )}
+          {response.affected_group && (
+            <p>
+              <strong>타격 집단</strong>
+              <span>{response.affected_group}</span>
+            </p>
+          )}
+        </div>
+      )}
+      {response.persona_link && (
+        <details className="persona-link">
+          <summary>맥락 추적</summary>
+          {response.persona_link.direct && (
+            <p>
+              <strong>직접 근거</strong>
+              <span>{response.persona_link.direct}</span>
+            </p>
+          )}
+          {response.persona_link.inferred && (
+            <p>
+              <strong>추론</strong>
+              <span>{response.persona_link.inferred}</span>
+            </p>
+          )}
+        </details>
+      )}
+    </article>
+  )
+}
+
 function ExperimentTrace({ run, nAgents }: { run: ExperimentRunState; nAgents: number }) {
   const progress = Math.round((run.responses.length / nAgents) * 100)
+  const sampledById = new Map(run.sampledAgents.map((agent) => [agent.agent_id, agent]))
   const llmAgentIds = Array.from(
     new Set([
       ...run.llmPrompts.map((prompt) => prompt.agent_id),
@@ -1251,15 +1334,7 @@ function ExperimentTrace({ run, nAgents }: { run: ExperimentRunState; nAgents: n
           <div className="live-list">
             {run.responses.length === 0 && <p className="empty">아직 응답이 없습니다.</p>}
             {run.responses.slice().reverse().map((response) => (
-              <article key={response.agent_id} className={`response-item ${response.stance}`}>
-                <div className="response-head">
-                  <strong>{STANCE_LABELS[response.stance]}</strong>
-                  <span>
-                    {AGE_LABELS[response.age_group]} · {GENDER_LABELS[response.gender]} · {REGION_LABELS[response.region_group]}
-                  </span>
-                </div>
-                <p>{response.rationale}</p>
-              </article>
+              <ResponseCard key={response.agent_id} response={response} sampledAgent={sampledById.get(response.agent_id)} />
             ))}
           </div>
         </section>
