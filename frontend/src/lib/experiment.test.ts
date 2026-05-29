@@ -147,15 +147,19 @@ describe("experiment slots", () => {
       },
     )
 
-    expect(results).toEqual([
-      {
-        slotId: "A",
-        presetId: "preset-a",
-        total: { support: 6, oppose: 3, neutral: 1 },
-        runs: [{ support: 6, oppose: 3, neutral: 1 }],
-        stability: null,
-        realOpinion: null,
-      },
-    ])
+    expect(results).toHaveLength(1)
+    expect(results[0]).toMatchObject({
+      slotId: "A",
+      presetId: "preset-a",
+      total: { support: 6, oppose: 3, neutral: 1 },
+      runs: [{ support: 6, oppose: 3, neutral: 1 }],
+      stability: null,
+      realOpinion: null,
+      sampledAgents: [],
+      responses: [],
+      llmPrompts: [],
+      aggregate: { total: { support: 6, oppose: 3, neutral: 1 } },
+      aggregateRuns: [{ total: { support: 6, oppose: 3, neutral: 1 } }],
+    })
   })
 })

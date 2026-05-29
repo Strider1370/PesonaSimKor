@@ -1,4 +1,18 @@
 import type { ExperimentSnapshotResult, ExperimentSnapshotSlot } from "./experimentStorage"
+import type {
+  AggregateEvent,
+  AgentRespondedEvent,
+  AgentSampledEvent,
+  LlmErrorEvent,
+  LlmHeartbeatEvent,
+  LlmPromptEvent,
+  LlmStatusEvent,
+  SamplingPlanEvent,
+  SummaryErrorEvent,
+  SummaryHeartbeatEvent,
+  SummaryPromptEvent,
+  SummaryStatusEvent,
+} from "./api"
 
 export type ExperimentPreset = {
   id: string
@@ -238,6 +252,19 @@ export function compareWithRealOpinion(aggregate: MinimalAggregate | null, realO
 type SnapshotRunInput = {
   aggregate?: MinimalAggregate | null
   aggregateRuns?: MinimalAggregate[]
+  samplingPlan?: SamplingPlanEvent | null
+  sampledAgents?: AgentSampledEvent[]
+  llmPrompts?: LlmPromptEvent[]
+  llmOutputs?: Record<number, string>
+  llmStatuses?: Record<number, LlmStatusEvent["status"]>
+  llmHeartbeats?: Record<number, LlmHeartbeatEvent>
+  llmErrors?: Record<number, LlmErrorEvent>
+  responses?: AgentRespondedEvent[]
+  summaryPrompt?: SummaryPromptEvent | null
+  summaryStatus?: SummaryStatusEvent | null
+  summaryOutput?: string
+  summaryHeartbeat?: SummaryHeartbeatEvent | null
+  summaryError?: SummaryErrorEvent | null
 }
 
 export function buildSnapshotResults(
@@ -257,6 +284,21 @@ export function buildSnapshotResults(
         runs: aggregateRuns.map((item) => item.total),
         stability,
         realOpinion: null,
+        samplingPlan: run.samplingPlan ?? null,
+        sampledAgents: run.sampledAgents ?? [],
+        llmPrompts: run.llmPrompts ?? [],
+        llmOutputs: run.llmOutputs ?? {},
+        llmStatuses: run.llmStatuses ?? {},
+        llmHeartbeats: run.llmHeartbeats ?? {},
+        llmErrors: run.llmErrors ?? {},
+        responses: run.responses ?? [],
+        summaryPrompt: run.summaryPrompt ?? null,
+        summaryStatus: run.summaryStatus ?? null,
+        summaryOutput: run.summaryOutput ?? "",
+        summaryHeartbeat: run.summaryHeartbeat ?? null,
+        summaryError: run.summaryError ?? null,
+        aggregate: run.aggregate as AggregateEvent,
+        aggregateRuns: aggregateRuns as AggregateEvent[],
       },
     ]
   })

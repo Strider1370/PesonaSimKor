@@ -129,6 +129,11 @@ export type ReframingItem = {
   region_group: string
 }
 
+export type BlindSpotRawItem = {
+  blind_spot: string
+  affected_group: string
+}
+
 export type AggregateEvent = {
   total: StanceCounts
   by_age: Record<string, StanceCounts>
@@ -136,6 +141,7 @@ export type AggregateEvent = {
   by_region: Record<string, StanceCounts>
   concern_clusters: Cluster[]
   support_clusters: Cluster[]
+  blind_spot_raw?: BlindSpotRawItem[]
   blind_spot_clusters: BlindSpotCluster[]
   reframing_list: ReframingItem[]
 }

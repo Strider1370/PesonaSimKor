@@ -1,3 +1,18 @@
+import type {
+  AggregateEvent,
+  AgentRespondedEvent,
+  AgentSampledEvent,
+  LlmErrorEvent,
+  LlmHeartbeatEvent,
+  LlmPromptEvent,
+  LlmStatusEvent,
+  SamplingPlanEvent,
+  SummaryErrorEvent,
+  SummaryHeartbeatEvent,
+  SummaryPromptEvent,
+  SummaryStatusEvent,
+} from "./api"
+
 export type ExperimentSnapshotSlot = {
   id: "A" | "B" | "C"
   presetId: string
@@ -45,6 +60,21 @@ export type ExperimentSnapshotResult = {
     opposeDiff: number
     note: string
   } | null
+  samplingPlan?: SamplingPlanEvent | null
+  sampledAgents?: AgentSampledEvent[]
+  llmPrompts?: LlmPromptEvent[]
+  llmOutputs?: Record<number, string>
+  llmStatuses?: Record<number, LlmStatusEvent["status"]>
+  llmHeartbeats?: Record<number, LlmHeartbeatEvent>
+  llmErrors?: Record<number, LlmErrorEvent>
+  responses?: AgentRespondedEvent[]
+  summaryPrompt?: SummaryPromptEvent | null
+  summaryStatus?: SummaryStatusEvent | null
+  summaryOutput?: string
+  summaryHeartbeat?: SummaryHeartbeatEvent | null
+  summaryError?: SummaryErrorEvent | null
+  aggregate?: AggregateEvent | null
+  aggregateRuns?: AggregateEvent[]
 }
 
 export type ExperimentSnapshotInput = {
