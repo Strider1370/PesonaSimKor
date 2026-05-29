@@ -7,16 +7,19 @@ from pydantic import ValidationError
 
 from app.main import app
 from app.models.schemas import SimulateRequest
+from app.services.aggregation import compute_aggregate
 from app.services.llm_client import (
     agent_options,
     build_agent_llm_payload,
     build_agent_messages,
     build_agent_prompt,
     build_summary_llm_payload,
+    failed_summary,
     get_openai_api_key,
     ollama_host,
     parse_agent_response,
     parse_json_object,
+    summary_from_text,
     summarize_clusters,
     summarize_options,
     stream_agent_response,
@@ -289,6 +292,103 @@ def test_summary_prompt_explicitly_limits_recheck_loops():
 
     assert "at most 3 short reasoning bullets" in system_prompt
     assert "Do not restart, re-check, say wait" in system_prompt
+
+
+def test_compute_aggregate_collects_blind_spots_and_reframing():
+    aggregate = compute_aggregate(
+        [
+            {
+                "stance": "oppose",
+                "age_group": "40s",
+                "gender": "female",
+                "region_group": "capital",
+                "blind_spot": "월세 전환 때 보증금 흐름이 불안정합니다.",
+                "affected_group": "수도권 맞벌이 가구",
+                "reframing": "월세 지원보다 금융 안정성이 먼저입니다.",
+            },
+            {
+                "stance": "support",
+                "age_group": "70_plus",
+                "gender": "male",
+                "region_group": "honam",
+                "blind_spot": "온라인 신청만 있으면 접근이 어렵습니다.",
+            },
+        ]
+    )
+
+    assert aggregate["blind_spot_raw"] == [
+        {
+            "blind_spot": "월세 전환 때 보증금 흐름이 불안정합니다.",
+            "affected_group": "수도권 맞벌이 가구",
+        },
+        {
+            "blind_spot": "온라인 신청만 있으면 접근이 어렵습니다.",
+            "affected_group": "",
+        },
+    ]
+    assert aggregate["reframing_list"] == [
+        {
+            "text": "월세 지원보다 금융 안정성이 먼저입니다.",
+            "age_group": "40s",
+            "gender": "female",
+            "region_group": "capital",
+        }
+    ]
+    assert aggregate["blind_spot_clusters"] == []
+
+
+def test_summary_from_text_parses_blind_spot_clusters_and_completed_status():
+    raw_output = json.dumps(
+        {
+            "concern_clusters": [],
+            "support_clusters": [],
+            "blind_spot_clusters": [
+                {
+                    "affected_group": "수도권 맞벌이 가구",
+                    "count": 2,
+                    "blind_spot_examples": ["보증금 흐름 불안"],
+                }
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+    summary = summary_from_text(raw_output)
+
+    assert summary["status"] == "completed"
+    assert summary["blind_spot_clusters"] == [
+        {
+            "affected_group": "수도권 맞벌이 가구",
+            "count": 2,
+            "blind_spot_examples": ["보증금 흐름 불안"],
+        }
+    ]
+
+
+def test_failed_summary_includes_blind_spot_clusters_default():
+    summary = failed_summary("no output")
+
+    assert summary["blind_spot_clusters"] == []
+
+
+def test_summary_prompt_requests_blind_spot_clusters_schema():
+    payload = build_summary_llm_payload(
+        "월세 지원",
+        [
+            {
+                "stance": "oppose",
+                "rationale": "불안정합니다.",
+                "blind_spot": "월세 전환 때 보증금 흐름 불안",
+                "affected_group": "수도권 맞벌이 가구",
+            }
+        ],
+    )
+    full_prompt = "\n".join(message["content"] for message in payload["messages"])
+
+    assert "blind_spot_clusters" in full_prompt
+    assert "affected_group" in full_prompt
+    assert "blind_spot_examples" in full_prompt
+    assert "exactly three arrays" in full_prompt
 
 
 def test_summarize_clusters_does_not_parse_json_from_thinking_only(monkeypatch):

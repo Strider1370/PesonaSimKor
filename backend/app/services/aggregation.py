@@ -38,7 +38,7 @@ def compute_aggregate(responses: list[dict]) -> dict:
             target.setdefault(str(key), empty_counts())
             target[str(key)][stance] += 1
 
-    return {
+    result = {
         "total": total,
         "by_age": by_age,
         "by_gender": by_gender,
@@ -46,3 +46,24 @@ def compute_aggregate(responses: list[dict]) -> dict:
         "concern_clusters": [],
         "support_clusters": [],
     }
+
+    result["blind_spot_raw"] = [
+        {
+            "blind_spot": response["blind_spot"],
+            "affected_group": response.get("affected_group", ""),
+        }
+        for response in responses
+        if response.get("blind_spot")
+    ]
+    result["reframing_list"] = [
+        {
+            "text": response["reframing"],
+            "age_group": response.get("age_group", ""),
+            "gender": response.get("gender", ""),
+            "region_group": response.get("region_group", ""),
+        }
+        for response in responses
+        if response.get("reframing")
+    ]
+    result["blind_spot_clusters"] = []
+    return result

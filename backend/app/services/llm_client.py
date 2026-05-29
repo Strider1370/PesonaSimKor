@@ -252,8 +252,11 @@ def build_summary_llm_payload(policy: str, responses: list[dict], model_name: st
                 "role": "system",
                 "content": (
                     "Summarize Korean policy reaction rationales. "
-                    "Return only a valid JSON object with exactly two arrays: concern_clusters and support_clusters. "
-                    "Each cluster must have label, count, and examples. Do not use markdown. "
+                    "Return only a valid JSON object with exactly three arrays: "
+                    "concern_clusters, support_clusters, and blind_spot_clusters. "
+                    "Concern and support clusters must have label, count, and examples. "
+                    "Blind spot clusters must have affected_group, count, and blind_spot_examples. "
+                    "Do not use markdown. "
                     "In thinking mode, use at most 3 short reasoning bullets, then stop thinking and produce the final JSON. "
                     "Do not restart, re-check, say wait, say actually, or run another final review."
                 ),
@@ -263,7 +266,8 @@ def build_summary_llm_payload(policy: str, responses: list[dict], model_name: st
                 "content": (
                     f"Policy: {policy}\nResponses: {payload}\n\n"
                     'Return schema: {"concern_clusters":[{"label":"string","count":1,"examples":["string"]}],'
-                    '"support_clusters":[{"label":"string","count":1,"examples":["string"]}]}'
+                    '"support_clusters":[{"label":"string","count":1,"examples":["string"]}],'
+                    '"blind_spot_clusters":[{"affected_group":"string","count":1,"blind_spot_examples":["string"]}]}'
                 ),
             },
         ],
@@ -447,14 +451,17 @@ def summary_from_text(raw_output: str) -> dict:
     parsed = parse_json_object(raw_output)
     concerns = parsed.get("concern_clusters", [])
     support = parsed.get("support_clusters", [])
+    blind_spots = parsed.get("blind_spot_clusters", [])
     concern_clusters = concerns if isinstance(concerns, list) else []
     support_clusters = support if isinstance(support, list) else []
-    has_clusters = bool(concern_clusters or support_clusters)
+    blind_spot_clusters = blind_spots if isinstance(blind_spots, list) else []
+    has_clusters = bool(concern_clusters or support_clusters or blind_spot_clusters)
     return {
         "status": "completed" if has_clusters else "empty",
         "message": "요약이 생성되었습니다." if has_clusters else "요약 모델이 빈 cluster 배열을 반환했습니다.",
         "concern_clusters": concern_clusters,
         "support_clusters": support_clusters,
+        "blind_spot_clusters": blind_spot_clusters,
         "raw_output": raw_output,
     }
 
@@ -465,6 +472,7 @@ def failed_summary(message: str, raw_output: str = "") -> dict:
         "message": message,
         "concern_clusters": [],
         "support_clusters": [],
+        "blind_spot_clusters": [],
         "raw_output": raw_output,
     }
 
