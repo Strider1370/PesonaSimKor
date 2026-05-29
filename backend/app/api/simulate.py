@@ -224,7 +224,9 @@ async def simulation_stream(req: SimulateRequest):
                 "gender": persona["gender"],
                 "region_group": persona["region_group"],
                 "stance": result.get("stance", "neutral"),
+                "stance_strength": result.get("stance_strength"),
                 "rationale": result.get("rationale", ""),
+                "caveat": result.get("caveat"),
                 "blind_spot": result.get("blind_spot"),
                 "affected_group": result.get("affected_group"),
                 "reframing": result.get("reframing"),
@@ -277,7 +279,7 @@ async def simulation_stream(req: SimulateRequest):
 
         aggregate["concern_clusters"] = summary.get("concern_clusters", [])
         aggregate["support_clusters"] = summary.get("support_clusters", [])
-        aggregate["blind_spot_clusters"] = summary.get("blind_spot_clusters", [])
+        aggregate["blind_spot_clusters"] = summary.get("blind_spot_clusters", []) if aggregate["blind_spot_raw"] else []
         yield sse_event(
             "summary_status",
             {

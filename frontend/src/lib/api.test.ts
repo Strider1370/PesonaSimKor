@@ -27,7 +27,9 @@ describe("parseSseChunk", () => {
       gender: "female",
       region_group: "capital",
       stance: "oppose",
+      stance_strength: "기울어짐",
       rationale: "부담이 큽니다.",
+      caveat: "보완책은 별도로 필요합니다.",
       blind_spot: "월세 전환 때 보증금 흐름 불안",
       affected_group: "수도권 맞벌이 가구",
       reframing: "월세 지원보다 금융 안정성이 먼저입니다.",
@@ -52,6 +54,8 @@ describe("parseSseChunk", () => {
     } satisfies import("./api").AggregateEvent
 
     expect(response.blind_spot).toBe("월세 전환 때 보증금 흐름 불안")
+    expect(response.stance_strength).toBe("기울어짐")
+    expect(response.caveat).toBe("보완책은 별도로 필요합니다.")
     expect(aggregate.blind_spot_clusters[0].count).toBe(1)
   })
 

@@ -43,7 +43,9 @@ const HEADERS = [
   "category",
   "label",
   "stance",
+  "stance_strength",
   "rationale",
+  "caveat",
   "blind_spot",
   "affected_group",
   "reframing",
@@ -130,7 +132,9 @@ function buildResultRows(snapshot: ExperimentSnapshot, result: ExperimentSnapsho
         gender: response.gender,
         region_group: response.region_group,
         stance: response.stance,
+        stance_strength: response.stance_strength,
         rationale: response.rationale,
+        caveat: response.caveat,
         blind_spot: response.blind_spot,
         affected_group: response.affected_group,
         reframing: response.reframing,
@@ -205,7 +209,8 @@ function buildResultRows(snapshot: ExperimentSnapshot, result: ExperimentSnapsho
     rows.push(...aggregateRows(snapshot, result, result.aggregate, "aggregate"))
   }
 
-  result.aggregateRuns?.forEach((aggregate, index) => {
+  const aggregateRuns = snapshot.settings.repeatCount === 1 ? [] : (result.aggregateRuns ?? [])
+  aggregateRuns.forEach((aggregate, index) => {
     rows.push(...aggregateRows(snapshot, result, aggregate, "aggregate_run", index + 1))
   })
 

@@ -148,6 +148,76 @@ def test_agent_messages_use_provider_specific_system_prompt_and_user_prompt_not_
     assert "exactly two keys" not in ollama_messages[1]["content"]
 
 
+def test_parse_agent_response_keeps_caveat_and_stance_strength():
+    parsed = parse_agent_response(
+        '{"stance":"찬성","stance_strength":"기울어짐","rationale":"정책 방향은 받아들입니다.",'
+        '"caveat":"다만 보완책은 필요합니다."}'
+    )
+
+    assert parsed == {
+        "stance": "support",
+        "stance_strength": "기울어짐",
+        "rationale": "정책 방향은 받아들입니다.",
+        "caveat": "다만 보완책은 필요합니다.",
+    }
+
+
+def test_parse_agent_response_drops_null_optional_blind_spot_fields():
+    parsed = parse_agent_response(
+        '{"stance":"찬성","rationale":"정책 방향은 받아들입니다.",'
+        '"blind_spot":null,"affected_group":"null","caveat":"null"}'
+    )
+
+    assert parsed == {"stance": "support", "rationale": "정책 방향은 받아들입니다."}
+
+
+def test_agent_messages_explain_general_stance_and_blind_spot_rules():
+    persona = {
+        "agent_id": 1,
+        "age": 42,
+        "gender": "female",
+        "region": "Gyeonggi",
+        "job": "driver",
+    }
+
+    messages = build_agent_messages(persona, "정책 방향", model_provider="openai")
+    full_prompt = "\n".join(message["content"] for message in messages)
+
+    assert "최종 선택 방향" in full_prompt
+    assert "조건부 동의" in full_prompt
+    assert "caveat" in full_prompt
+    assert "직접성" in full_prompt
+    assert "특수성" in full_prompt
+    assert "비중복성" in full_prompt
+    assert "세 조건 중 하나라도 부족하면 blind_spot은 null" in full_prompt
+
+
+def test_agent_messages_limit_policy_expert_style_and_caveat_scope():
+    messages = build_agent_messages(
+        {
+            "agent_id": 1,
+            "age": 52,
+            "gender": "male",
+            "region": "Seoul",
+            "job": "store owner",
+            "structured_profile": {"occupation": "store owner"},
+            "narrative_context": {"persona": "작은 가게를 운영한다."},
+        },
+        "원전 확대",
+        model_provider="openai",
+    )
+    full_prompt = "\n".join(message["content"] for message in messages)
+
+    assert "정책 전문가가 아닙니다" in full_prompt
+    assert "포괄적인 조건 목록" in full_prompt
+    assert "1~2개 이유" in full_prompt
+    assert "전문용어" in full_prompt
+    assert "유보점 하나" in full_prompt
+    assert "정책 보완책 묶음" in full_prompt
+    assert "전문가적 정책 분석이 아닙니다" in full_prompt
+    assert "정책 구조 전체를 분석해야만 보이는 문제" in full_prompt
+
+
 def test_parse_json_object_handles_nested_json():
     parsed = parse_json_object('noise {"a": {"b": 1}, "c": 2} tail')
 
@@ -390,6 +460,8 @@ def test_summary_prompt_requests_blind_spot_clusters_schema():
     assert "affected_group" in full_prompt
     assert "blind_spot_examples" in full_prompt
     assert "exactly three arrays" in full_prompt
+    assert "non-null blind_spot" in full_prompt
+    assert "blind_spot_clusters must be []" in full_prompt
 
 
 def test_summarize_clusters_does_not_parse_json_from_thinking_only(monkeypatch):
@@ -746,7 +818,9 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
             "type": "final",
             "response": {
                 "stance": "oppose",
+                "stance_strength": "기울어짐",
                 "rationale": "부담이 큽니다.",
+                "caveat": "보완책은 별도로 필요합니다.",
                 "blind_spot": "월세 전환 때 보증금 흐름 불안",
                 "affected_group": "수도권 맞벌이 가구",
                 "reframing": "월세 지원보다 금융 안정성이 먼저입니다.",
@@ -795,6 +869,8 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
                 prompt_payloads.append(payload)
 
     assert agent_payloads[0]["blind_spot"] == "월세 전환 때 보증금 흐름 불안"
+    assert agent_payloads[0]["stance_strength"] == "기울어짐"
+    assert agent_payloads[0]["caveat"] == "보완책은 별도로 필요합니다."
     assert agent_payloads[0]["affected_group"] == "수도권 맞벌이 가구"
     assert agent_payloads[0]["reframing"] == "월세 지원보다 금융 안정성이 먼저입니다."
     assert agent_payloads[0]["persona_link"] == {"direct": "자녀 등교", "inferred": "주거비 민감"}
@@ -806,6 +882,63 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
         }
     ]
     assert "blind_spot" in prompt_payloads[0]["messages"][0]["content"]
+
+
+def test_simulate_stream_drops_fabricated_summary_blind_spots_without_raw_blind_spots(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    def agent_stream(
+        persona,
+        policy,
+        prior=None,
+        model_name=None,
+        thinking=False,
+        persona_depth="standard",
+        model_provider="ollama",
+    ):
+        yield {
+            "type": "final",
+            "response": {
+                "stance": "support",
+                "rationale": "정책 방향에는 동의하지만 신중해야 합니다.",
+                "caveat": "오판 방지 장치가 필요합니다.",
+            },
+        }
+
+    def fabricated_summary_stream():
+        yield {
+            "type": "final",
+            "summary": {
+                "status": "completed",
+                "message": "ok",
+                "concern_clusters": [],
+                "support_clusters": [],
+                "blind_spot_clusters": [
+                    {
+                        "affected_group": "일반 사형제 논점",
+                        "count": 5,
+                        "blind_spot_examples": ["요약 모델이 새로 만든 사각지대"],
+                    }
+                ],
+                "raw_output": "{}",
+            },
+        }
+
+    patch_fast_simulation(monkeypatch, simulate_api, agent_stream=agent_stream, summary=fabricated_summary_stream())
+
+    client = TestClient(app)
+    response = client.post("/api/simulate", json={"policy": "policy", "n_agents": 5})
+
+    aggregate_payloads = []
+    current_event = None
+    for line in response.text.splitlines():
+        if line.startswith("event: "):
+            current_event = line.removeprefix("event: ")
+        elif current_event == "aggregate" and line.startswith("data: "):
+            aggregate_payloads.append(json.loads(line.removeprefix("data: ")))
+
+    assert aggregate_payloads[-1]["blind_spot_raw"] == []
+    assert aggregate_payloads[-1]["blind_spot_clusters"] == []
 
 
 def test_simulate_stream_handles_partial_summary_payload_defensively(monkeypatch):

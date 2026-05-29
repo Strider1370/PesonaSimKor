@@ -26,7 +26,9 @@ export type AgentRespondedEvent = {
   gender: Gender
   region_group: RegionGroup
   stance: Stance
+  stance_strength?: string
   rationale: string
+  caveat?: string
   blind_spot?: string
   affected_group?: string
   reframing?: string

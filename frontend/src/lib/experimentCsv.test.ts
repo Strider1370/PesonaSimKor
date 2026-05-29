@@ -93,7 +93,9 @@ describe("experiment CSV", () => {
               gender: "female",
               region_group: "capital",
               stance: "oppose",
+              stance_strength: "기울어짐",
               rationale: "rationale",
+              caveat: "caveat",
               blind_spot: "blind spot",
               affected_group: "affected group",
               reframing: "reframing",
@@ -128,6 +130,8 @@ describe("experiment CSV", () => {
     expect(csv).toContain("row_type")
     expect(csv).toContain("sampled_agent")
     expect(csv).toContain("agent_response")
+    expect(csv).toContain("stance_strength")
+    expect(csv).toContain("caveat")
     expect(csv).toContain("blind spot")
     expect(csv).toContain("affected group")
     expect(csv).toContain("persona_link_direct")
@@ -135,5 +139,51 @@ describe("experiment CSV", () => {
     expect(csv).toContain("summary_status")
     expect(csv).toContain("blind_spot_cluster")
     expect(csv).toContain("reframing")
+  })
+
+  it("does not duplicate aggregate run rows for a single run export", () => {
+    const snapshot: ExperimentSnapshot = {
+      id: "snapshot-1",
+      createdAt: "2026-05-28T10:00:00.000Z",
+      name: "single-run",
+      settings: { nAgents: 1, repeatCount: 1, modelProvider: "openai", modelName: "gpt-5-mini" },
+      slots: [{ id: "A", presetId: "preset-a", policy: "policy A" }],
+      results: [
+        {
+          slotId: "A",
+          presetId: "preset-a",
+          total: { support: 1, oppose: 0, neutral: 0 },
+          aggregate: {
+            total: { support: 1, oppose: 0, neutral: 0 },
+            by_age: {},
+            by_gender: {},
+            by_region: {},
+            concern_clusters: [],
+            support_clusters: [],
+            blind_spot_clusters: [],
+            reframing_list: [],
+            blind_spot_raw: [],
+          },
+          aggregateRuns: [
+            {
+              total: { support: 1, oppose: 0, neutral: 0 },
+              by_age: {},
+              by_gender: {},
+              by_region: {},
+              concern_clusters: [],
+              support_clusters: [],
+              blind_spot_clusters: [],
+              reframing_list: [],
+              blind_spot_raw: [],
+            },
+          ],
+        },
+      ],
+    }
+
+    const csv = buildExperimentCsv(snapshot)
+
+    expect(csv).toContain("aggregate_total")
+    expect(csv).not.toContain("aggregate_run_total")
   })
 })
