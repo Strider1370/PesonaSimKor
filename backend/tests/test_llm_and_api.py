@@ -10,6 +10,7 @@ from app.models.schemas import SimulateRequest
 from app.services.llm_client import (
     agent_options,
     build_agent_llm_payload,
+    build_agent_messages,
     build_agent_prompt,
     build_summary_llm_payload,
     get_openai_api_key,
@@ -72,6 +73,75 @@ def test_parse_agent_response_trims_output_key_names():
     parsed = parse_agent_response('{"stance":"neutral"," rationale":"watch carefully"}')
 
     assert parsed == {"stance": "neutral", "rationale": "watch carefully"}
+
+
+def test_parse_agent_response_keeps_common_blind_spot_fields():
+    parsed = parse_agent_response(
+        '{"stance":"반대","rationale":"부담이 큽니다.",'
+        '"blind_spot":"야간 근무자는 요금 변화에 취약합니다.",'
+        '"affected_group":"수도권 야간 이전 노동자"}'
+    )
+
+    assert parsed == {
+        "stance": "oppose",
+        "rationale": "부담이 큽니다.",
+        "blind_spot": "야간 근무자는 요금 변화에 취약합니다.",
+        "affected_group": "수도권 야간 이전 노동자",
+    }
+
+
+def test_parse_agent_response_keeps_openai_only_fields_for_openai():
+    parsed = parse_agent_response(
+        '{"stance":"중립","rationale":"조건에 따라 다릅니다.",'
+        '"blind_spot":"지역 신청 시간이 근무시간과 겹칩니다.",'
+        '"affected_group":"교대 근무 맞벌이 노동자",'
+        '"reframing":"지원 금액보다 신청 접근성이 먼저입니다.",'
+        '"persona_link":{"direct":"교대 근무, 자녀 등교","inferred":"근무시간 때문에 행정 접근성이 낮음"}}',
+        model_provider="openai",
+    )
+
+    assert parsed["stance"] == "neutral"
+    assert parsed["reframing"] == "지원 금액보다 신청 접근성이 먼저입니다."
+    assert parsed["persona_link"] == {
+        "direct": "교대 근무, 자녀 등교",
+        "inferred": "근무시간 때문에 행정 접근성이 낮음",
+    }
+
+
+def test_parse_agent_response_drops_openai_only_fields_for_ollama():
+    parsed = parse_agent_response(
+        '{"stance":"찬성","rationale":"필요합니다.",'
+        '"reframing":"정책 전제가 좁습니다.",'
+        '"persona_link":{"direct":"직접","inferred":"추론"}}',
+        model_provider="ollama",
+    )
+
+    assert parsed == {"stance": "support", "rationale": "필요합니다."}
+
+
+def test_agent_messages_use_provider_specific_system_prompt_and_user_prompt_not_two_keys():
+    persona = {
+        "agent_id": 1,
+        "age": 42,
+        "gender": "female",
+        "region": "Gyeonggi",
+        "job": "driver",
+        "structured_profile": {"occupation": "driver", "housing_type": "apartment"},
+        "narrative_context": {"persona": "자녀를 키우는 운전자"},
+    }
+
+    ollama_messages = build_agent_messages(persona, "전세 지원", model_provider="ollama")
+    openai_messages = build_agent_messages(persona, "전세 지원", model_provider="openai")
+
+    assert "blind_spot" in ollama_messages[0]["content"]
+    assert "affected_group" in ollama_messages[0]["content"]
+    assert "reframing" not in ollama_messages[0]["content"]
+    assert "reframing" in openai_messages[0]["content"]
+    assert "persona_link" in openai_messages[0]["content"]
+    assert "어느 쪽에 가깝습니까" in ollama_messages[1]["content"]
+    assert "예상치 못한 문제" in ollama_messages[1]["content"]
+    assert "Return only JSON with keys stance and rationale" not in ollama_messages[1]["content"]
+    assert "exactly two keys" not in ollama_messages[1]["content"]
 
 
 def test_parse_json_object_handles_nested_json():
