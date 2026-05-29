@@ -1651,6 +1651,45 @@ function safeClusters(value: unknown): { label: string; count: number; examples:
     })
 }
 
+function getActiveLevels(modelProvider: string, hasPrior: boolean): number[] {
+  const levels = [1]
+  if (hasPrior) levels.push(2)
+  if (modelProvider === "openai") levels.push(3)
+  return levels
+}
+
+function safeBlindSpotClusters(value: unknown): { affected_group: string; count: number; blind_spot_examples: string[] }[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((cluster) => cluster && typeof cluster === "object")
+    .map((cluster) => {
+      const item = cluster as { affected_group?: unknown; count?: unknown; blind_spot_examples?: unknown }
+      return {
+        affected_group: typeof item.affected_group === "string" && item.affected_group.trim() ? item.affected_group : "기타",
+        count: Number(item.count) || 0,
+        blind_spot_examples: Array.isArray(item.blind_spot_examples) ? item.blind_spot_examples.map(String) : [],
+      }
+    })
+}
+
+function safeReframingList(value: unknown): { text: string; age_group: string; gender: string; region_group: string }[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((item) => item && typeof item === "object")
+    .flatMap((value) => {
+      const reframing = value as { text?: unknown; age_group?: unknown; gender?: unknown; region_group?: unknown }
+      if (typeof reframing.text !== "string" || !reframing.text.trim()) return []
+      return [
+        {
+          text: reframing.text.trim(),
+          age_group: typeof reframing.age_group === "string" ? reframing.age_group : "",
+          gender: typeof reframing.gender === "string" ? reframing.gender : "",
+          region_group: typeof reframing.region_group === "string" ? reframing.region_group : "",
+        },
+      ]
+    })
+}
+
 function phaseLabel(phase: Phase, progress: number) {
   if (phase === "running") return `실행 중 ${progress}%`
   if (phase === "done") return "완료"

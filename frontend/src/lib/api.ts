@@ -27,6 +27,13 @@ export type AgentRespondedEvent = {
   region_group: RegionGroup
   stance: Stance
   rationale: string
+  blind_spot?: string
+  affected_group?: string
+  reframing?: string
+  persona_link?: {
+    direct: string
+    inferred: string
+  }
 }
 
 export type LlmPromptEvent = {
@@ -109,6 +116,19 @@ export type Cluster = {
   examples: string[]
 }
 
+export type BlindSpotCluster = {
+  affected_group: string
+  count: number
+  blind_spot_examples: string[]
+}
+
+export type ReframingItem = {
+  text: string
+  age_group: string
+  gender: string
+  region_group: string
+}
+
 export type AggregateEvent = {
   total: StanceCounts
   by_age: Record<string, StanceCounts>
@@ -116,6 +136,8 @@ export type AggregateEvent = {
   by_region: Record<string, StanceCounts>
   concern_clusters: Cluster[]
   support_clusters: Cluster[]
+  blind_spot_clusters: BlindSpotCluster[]
+  reframing_list: ReframingItem[]
 }
 
 export type SimulateEvent =
