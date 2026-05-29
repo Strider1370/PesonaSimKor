@@ -267,6 +267,28 @@ type SnapshotRunInput = {
   summaryError?: SummaryErrorEvent | null
 }
 
+export type RestoredSnapshotRun = {
+  phase: "idle" | "done"
+  sampled: number
+  samplingPlan: SamplingPlanEvent | null
+  sampledAgents: AgentSampledEvent[]
+  llmPrompts: LlmPromptEvent[]
+  llmOutputs: Record<number, string>
+  llmStatuses: Record<number, LlmStatusEvent["status"]>
+  llmHeartbeats: Record<number, LlmHeartbeatEvent>
+  llmErrors: Record<number, LlmErrorEvent>
+  responses: AgentRespondedEvent[]
+  summaryPrompt: SummaryPromptEvent | null
+  summaryStatus: SummaryStatusEvent | null
+  summaryOutput: string
+  summaryHeartbeat: SummaryHeartbeatEvent | null
+  summaryError: SummaryErrorEvent | null
+  aggregate: AggregateEvent | null
+  aggregateRuns: AggregateEvent[]
+  currentRunIndex: number
+  error: string | null
+}
+
 export function buildSnapshotResults(
   slots: ExperimentSnapshotSlot[],
   runs: Partial<Record<"A" | "B" | "C", SnapshotRunInput>>,
@@ -302,6 +324,56 @@ export function buildSnapshotResults(
       },
     ]
   })
+}
+
+export function restoreSnapshotRuns(results: ExperimentSnapshotResult[]): Partial<Record<PolicySlotId, RestoredSnapshotRun>> {
+  return Object.fromEntries(
+    results.map((result) => {
+      const aggregate = result.aggregate ?? aggregateFromTotal(result.total)
+      const aggregateRuns = result.aggregateRuns ?? result.runs?.map(aggregateFromCounts) ?? []
+      return [
+        result.slotId,
+        {
+          phase: aggregate ? "done" : "idle",
+          sampled: result.sampledAgents?.length ?? 0,
+          samplingPlan: result.samplingPlan ?? null,
+          sampledAgents: result.sampledAgents ?? [],
+          llmPrompts: result.llmPrompts ?? [],
+          llmOutputs: result.llmOutputs ?? {},
+          llmStatuses: result.llmStatuses ?? {},
+          llmHeartbeats: result.llmHeartbeats ?? {},
+          llmErrors: result.llmErrors ?? {},
+          responses: result.responses ?? [],
+          summaryPrompt: result.summaryPrompt ?? null,
+          summaryStatus: result.summaryStatus ?? null,
+          summaryOutput: result.summaryOutput ?? "",
+          summaryHeartbeat: result.summaryHeartbeat ?? null,
+          summaryError: result.summaryError ?? null,
+          aggregate,
+          aggregateRuns,
+          currentRunIndex: Math.max(0, aggregateRuns.length - 1),
+          error: null,
+        },
+      ]
+    }),
+  )
+}
+
+function aggregateFromTotal(total: MinimalAggregate["total"] | null): AggregateEvent | null {
+  return total ? aggregateFromCounts(total) : null
+}
+
+function aggregateFromCounts(total: MinimalAggregate["total"]): AggregateEvent {
+  return {
+    total,
+    by_age: {},
+    by_gender: {},
+    by_region: {},
+    concern_clusters: [],
+    support_clusters: [],
+    blind_spot_clusters: [],
+    reframing_list: [],
+  }
 }
 
 function stabilitySnapshot(runs: MinimalAggregate[]) {

@@ -41,6 +41,7 @@ import {
   createInitialSlots,
   getPresetOptions,
   removePolicySlot,
+  restoreSnapshotRuns,
   resolveVisibleSlotId,
   resolvePresetSelection,
   selectionFromPreset,
@@ -768,7 +769,7 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
     }
     setThinking(Boolean(snapshot.settings.thinking))
     if (snapshot.settings.personaDepth) setPersonaDepth(snapshot.settings.personaDepth)
-    setRuns({})
+    setRuns(restoreSnapshotRuns(snapshot.results))
     setSelectedTraceSlot(snapshot.slots[0]?.id ?? null)
   }
 

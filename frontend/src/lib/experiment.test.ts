@@ -8,6 +8,7 @@ import {
   createInitialSlots,
   getPresetOptions,
   removePolicySlot,
+  restoreSnapshotRuns,
   resolvePresetSelection,
   resolveVisibleSlotId,
   updateSlotFromPreset,
@@ -161,5 +162,85 @@ describe("experiment slots", () => {
       aggregate: { total: { support: 6, oppose: 3, neutral: 1 } },
       aggregateRuns: [{ total: { support: 6, oppose: 3, neutral: 1 } }],
     })
+  })
+
+  it("restores saved snapshot details into run state", () => {
+    const runs = restoreSnapshotRuns([
+      {
+        slotId: "A",
+        presetId: "preset-a",
+        total: { support: 0, oppose: 1, neutral: 0 },
+        sampledAgents: [
+          {
+            agent_id: 3,
+            age: 41,
+            gender: "female",
+            region: "Seoul",
+            job: "driver",
+            age_group: "40s",
+            region_group: "capital",
+          },
+        ],
+        responses: [
+          {
+            agent_id: 3,
+            age_group: "40s",
+            gender: "female",
+            region_group: "capital",
+            stance: "oppose",
+            rationale: "rationale",
+            blind_spot: "blind spot",
+          },
+        ],
+        llmOutputs: { 3: "raw" },
+        aggregate: {
+          total: { support: 0, oppose: 1, neutral: 0 },
+          by_age: { "40s": { support: 0, oppose: 1, neutral: 0 } },
+          by_gender: {},
+          by_region: {},
+          concern_clusters: [],
+          support_clusters: [],
+          blind_spot_clusters: [{ affected_group: "workers", count: 1, blind_spot_examples: ["blind spot"] }],
+          reframing_list: [],
+        },
+        aggregateRuns: [
+          {
+            total: { support: 0, oppose: 1, neutral: 0 },
+            by_age: {},
+            by_gender: {},
+            by_region: {},
+            concern_clusters: [],
+            support_clusters: [],
+            blind_spot_clusters: [],
+            reframing_list: [],
+          },
+        ],
+      },
+    ])
+
+    expect(runs.A?.phase).toBe("done")
+    expect(runs.A?.sampled).toBe(1)
+    expect(runs.A?.responses[0].blind_spot).toBe("blind spot")
+    expect(runs.A?.llmOutputs[3]).toBe("raw")
+    expect(runs.A?.aggregate?.blind_spot_clusters[0].affected_group).toBe("workers")
+    expect(runs.A?.aggregateRuns).toHaveLength(1)
+  })
+
+  it("restores old summary-only snapshots with fallback aggregates", () => {
+    const runs = restoreSnapshotRuns([
+      {
+        slotId: "A",
+        presetId: "preset-a",
+        total: { support: 6, oppose: 3, neutral: 1 },
+        runs: [{ support: 6, oppose: 3, neutral: 1 }],
+        stability: null,
+        realOpinion: null,
+      },
+    ])
+
+    expect(runs.A?.phase).toBe("done")
+    expect(runs.A?.aggregate?.total).toEqual({ support: 6, oppose: 3, neutral: 1 })
+    expect(runs.A?.aggregateRuns[0].total).toEqual({ support: 6, oppose: 3, neutral: 1 })
+    expect(runs.A?.responses).toEqual([])
   })
 })
