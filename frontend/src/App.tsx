@@ -1523,6 +1523,8 @@ function AggregateView({ aggregate }: { aggregate: AggregateEvent }) {
       <Breakdown title="지역별" data={safeBreakdown(aggregate.by_region)} labelMap={REGION_LABELS} />
       <ClusterList title="주요 우려사항" clusters={safeClusters(aggregate.concern_clusters)} />
       <ClusterList title="주요 지지 이유" clusters={safeClusters(aggregate.support_clusters)} />
+      <BlindSpotMap clusters={safeBlindSpotClusters(aggregate.blind_spot_clusters)} />
+      <ReframingList items={safeReframingList(aggregate.reframing_list)} />
     </div>
   )
 }
@@ -1691,6 +1693,50 @@ function ClusterList({ title, clusters }: { title: string; clusters: { label: st
           </article>
         ))
       )}
+    </div>
+  )
+}
+
+function BlindSpotMap({ clusters }: { clusters: { affected_group: string; count: number; blind_spot_examples: string[] }[] }) {
+  if (clusters.length === 0) return null
+  return (
+    <div className="blind-spot-map">
+      <h3>정책 사각지대</h3>
+      <p>예상치 못한 피해 집단</p>
+      <div className="blind-spot-list">
+        {clusters.map((cluster, index) => (
+          <article key={`${cluster.affected_group}-${index}`} className="blind-spot-item">
+            <div>
+              <strong>
+                {index + 1}. {cluster.affected_group}
+              </strong>
+              <span>{cluster.count}명</span>
+            </div>
+            {cluster.blind_spot_examples.map((example, exampleIndex) => (
+              <p key={`${cluster.affected_group}-${exampleIndex}`}>"{example}"</p>
+            ))}
+          </article>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ReframingList({ items }: { items: { text: string; age_group: string; gender: string; region_group: string }[] }) {
+  if (items.length === 0) return null
+  return (
+    <div className="reframing-list">
+      <h3>정책 전제에 대한 반문 (L3)</h3>
+      {items.map((item, index) => (
+        <article key={`${item.text}-${index}`} className="reframing-item">
+          <p>"{item.text}"</p>
+          <span>
+            {(AGE_LABELS[item.age_group as AgeGroup] ?? item.age_group) || "연령 미상"} ·{" "}
+            {(GENDER_LABELS[item.gender as Gender] ?? item.gender) || "성별 미상"} ·{" "}
+            {(REGION_LABELS[item.region_group as RegionGroup] ?? item.region_group) || "지역 미상"}
+          </span>
+        </article>
+      ))}
     </div>
   )
 }
