@@ -1,4 +1,5 @@
 import json
+import threading
 from types import SimpleNamespace
 import time
 
@@ -1076,6 +1077,46 @@ def test_simulate_stream_uses_openai_for_summary_when_provider_is_openai(monkeyp
 
     assert response.status_code == 200
     assert called == {"ollama": 0, "openai": 1}
+
+
+def test_simulate_stream_runs_openai_agent_calls_in_parallel(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    active = 0
+    max_active = 0
+    lock = threading.Lock()
+
+    def openai_agent_stream(
+        persona,
+        policy,
+        prior=None,
+        model_name="gpt-4o-mini",
+        persona_depth="standard",
+        thinking=False,
+        model_provider="openai",
+    ):
+        nonlocal active, max_active
+        with lock:
+            active += 1
+            max_active = max(max_active, active)
+        time.sleep(0.05)
+        yield {"type": "token", "content": f"agent-{persona['agent_id']}"}
+        yield {"type": "final", "response": {"stance": "support", "rationale": "ok"}}
+        with lock:
+            active -= 1
+
+    patch_fast_simulation(monkeypatch, simulate_api)
+    monkeypatch.setattr(simulate_api, "stream_openai_agent_response", openai_agent_stream, raising=False)
+    monkeypatch.setattr(simulate_api, "stream_openai_summary_clusters", lambda policy, responses, model_name, thinking: summary_stream(), raising=False)
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/simulate",
+        json={"policy": "policy", "n_agents": 5, "model_provider": "openai", "model_name": "gpt-4o-mini"},
+    )
+
+    assert response.status_code == 200
+    assert max_active > 1
 
 
 def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
