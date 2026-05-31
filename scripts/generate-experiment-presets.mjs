@@ -103,13 +103,13 @@ const topics = [
     quadrant: "universal_less_biased",
     realOpinion: {
       support: 54,
-      oppose: 35,
-      neutral: 11,
-      source: "한국갤럽",
+      oppose: 25,
+      neutral: 21,
+      source: "한국갤럽 데일리 오피니언 제648호",
       year: 2026,
-      question: "원자력 발전 확대에 대한 찬반",
-      url: null,
-      note: commonSourceNote,
+      question: "신규 원전 2기 건설 찬반",
+      url: "https://www.gallup.co.kr/dir/GallupKoreaDaily/GallupKoreaDailyOpinion_648(20260116).pdf",
+      note: "한국갤럽 648호(2026.1.13~15, n=1000) 교차집계표 기준.",
     },
     variants: [
       {
