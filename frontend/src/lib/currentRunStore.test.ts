@@ -23,8 +23,8 @@ describe("currentRunStore", () => {
     saveCurrentRun({
       policy: "정책",
       n_agents: 5,
-      model_name: "qwen3.5:9b",
-      model_provider: "ollama",
+      model_name: "gpt-5-mini",
+      model_provider: "openai",
       aggregate: {
         total: { support: 1, oppose: 0, neutral: 0 },
         by_age: {},

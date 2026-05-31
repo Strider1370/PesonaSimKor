@@ -22,7 +22,7 @@ export type ExperimentSnapshotSlot = {
 export type ExperimentSnapshotSettings = {
   nAgents: number
   repeatCount?: number
-  modelProvider?: "ollama" | "openai"
+  modelProvider?: string
   modelName?: string
   thinking?: boolean
   personaDepth?: "minimal" | "standard" | "full"

@@ -10,7 +10,6 @@ from app.main import app
 from app.models.schemas import SimulateRequest
 from app.services.aggregation import compute_aggregate
 from app.services.llm_client import (
-    agent_options,
     build_agent_llm_payload,
     build_agent_messages,
     build_agent_prompt,
@@ -18,14 +17,10 @@ from app.services.llm_client import (
     failed_summary,
     get_openai_api_key,
     normalize_summary,
-    ollama_host,
     parse_agent_response,
     parse_json_object,
     render_prior_text,
     summary_from_text,
-    summarize_clusters,
-    summarize_options,
-    stream_agent_response,
     stream_openai_agent_response,
     stream_openai_summary_clusters,
 )
@@ -158,18 +153,16 @@ def test_parse_agent_response_keeps_openai_only_fields_for_openai():
     }
 
 
-def test_parse_agent_response_drops_openai_only_fields_for_ollama():
+def test_parse_agent_response_keeps_openai_fields_without_provider_branch():
     parsed = parse_agent_response(
-        '{"stance":"찬성","rationale":"필요합니다.",'
-        '"reframing":"정책 전제가 좁습니다.",'
-        '"persona_link":{"direct":"직접","inferred":"추론"}}',
-        model_provider="ollama",
+        '{"stance":"support","rationale":"ok","reframing":"frame",'
+        '"persona_link":{"direct":"direct","inferred":"inferred"}}'
     )
 
-    assert parsed == {"stance": "support", "rationale": "필요합니다."}
+    assert parsed["reframing"] == "frame"
+    assert parsed["persona_link"] == {"direct": "direct", "inferred": "inferred"}
 
-
-def test_agent_messages_use_provider_specific_system_prompt_and_user_prompt_not_two_keys():
+def test_agent_messages_use_openai_system_prompt_and_user_prompt_not_two_keys():
     persona = {
         "agent_id": 1,
         "age": 42,
@@ -180,18 +173,15 @@ def test_agent_messages_use_provider_specific_system_prompt_and_user_prompt_not_
         "narrative_context": {"persona": "자녀를 키우는 운전자"},
     }
 
-    ollama_messages = build_agent_messages(persona, "전세 지원", model_provider="ollama")
-    openai_messages = build_agent_messages(persona, "전세 지원", model_provider="openai")
+    messages = build_agent_messages(persona, "policy")
 
-    assert "blind_spot" in ollama_messages[0]["content"]
-    assert "affected_group" in ollama_messages[0]["content"]
-    assert "reframing" not in ollama_messages[0]["content"]
-    assert "reframing" in openai_messages[0]["content"]
-    assert "persona_link" in openai_messages[0]["content"]
-    assert "[Question]" in ollama_messages[1]["content"]
-    assert "어느 쪽에 가장 가깝습니까" in ollama_messages[1]["content"]
-    assert "Return only JSON with keys stance and rationale" not in ollama_messages[1]["content"]
-    assert "exactly two keys" not in ollama_messages[1]["content"]
+    assert "blind_spot" in messages[0]["content"]
+    assert "affected_group" in messages[0]["content"]
+    assert "reframing" in messages[0]["content"]
+    assert "persona_link" in messages[0]["content"]
+    assert "[Question]" in messages[1]["content"]
+    assert "Return only JSON with keys stance and rationale" not in messages[1]["content"]
+    assert "exactly two keys" not in messages[1]["content"]
 
 
 def test_parse_agent_response_keeps_caveat_and_stance_strength():
@@ -268,139 +258,6 @@ def test_parse_json_object_handles_nested_json():
     parsed = parse_json_object('noise {"a": {"b": 1}, "c": 2} tail')
 
     assert parsed == {"a": {"b": 1}, "c": 2}
-
-
-def test_ollama_host_defaults_to_loopback_ip(monkeypatch):
-    monkeypatch.delenv("OLLAMA_HOST", raising=False)
-
-    assert ollama_host() == "http://127.0.0.1:11434"
-
-
-def test_agent_options_discourage_repetition(monkeypatch):
-    monkeypatch.delenv("OLLAMA_TEMPERATURE", raising=False)
-    monkeypatch.delenv("OLLAMA_TOP_P", raising=False)
-    monkeypatch.delenv("OLLAMA_REPEAT_PENALTY", raising=False)
-    monkeypatch.delenv("OLLAMA_REPEAT_LAST_N", raising=False)
-    monkeypatch.delenv("OLLAMA_NUM_PREDICT", raising=False)
-
-    assert agent_options() == {
-        "temperature": 0.65,
-        "top_p": 0.9,
-        "repeat_penalty": 1.1,
-        "repeat_last_n": 256,
-        "num_predict": 500,
-    }
-
-
-def test_summarize_options_allow_bounded_thinking(monkeypatch):
-    monkeypatch.delenv("OLLAMA_SUMMARY_TEMPERATURE", raising=False)
-    monkeypatch.delenv("OLLAMA_SUMMARY_TOP_K", raising=False)
-    monkeypatch.delenv("OLLAMA_SUMMARY_TOP_P", raising=False)
-    monkeypatch.delenv("OLLAMA_SUMMARY_REPEAT_PENALTY", raising=False)
-    monkeypatch.delenv("OLLAMA_SUMMARY_PRESENCE_PENALTY", raising=False)
-    monkeypatch.delenv("OLLAMA_SUMMARY_REPEAT_LAST_N", raising=False)
-    monkeypatch.delenv("OLLAMA_SUMMARY_NUM_PREDICT", raising=False)
-
-    assert summarize_options() == {
-        "temperature": 0.45,
-        "top_k": 20,
-        "top_p": 0.95,
-        "repeat_penalty": 1.15,
-        "presence_penalty": 1.5,
-        "repeat_last_n": 256,
-        "num_predict": 3000,
-    }
-
-
-def test_stream_agent_response_exposes_ollama_failures(monkeypatch):
-    import app.services.llm_client as llm_client
-
-    class FailingClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def chat(self, *args, **kwargs):
-            raise RuntimeError("ollama unavailable")
-
-    monkeypatch.setattr(llm_client.ollama, "Client", FailingClient)
-
-    events = list(stream_agent_response({"agent_id": 0}, "policy"))
-
-    assert events[0]["type"] == "error"
-    assert "ollama unavailable" in events[0]["message"]
-    assert events[1]["type"] == "final"
-    assert events[1]["response"]["stance"] == "neutral"
-    assert "ollama unavailable" in events[1]["response"]["rationale"]
-
-
-def test_stream_agent_response_streams_thinking_and_parses_final_content(monkeypatch):
-    import app.services.llm_client as llm_client
-
-    class StreamingClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def chat(self, *args, **kwargs):
-            return iter(
-                [
-                    {"message": {"thinking": "thinking..."}},
-                    {"message": {"content": '{"stance":"support","rationale":"ok"}'}},
-                ]
-            )
-
-    monkeypatch.setattr(llm_client.ollama, "Client", StreamingClient)
-
-    events = list(stream_agent_response({"agent_id": 0}, "policy"))
-
-    assert events[0] == {"type": "thinking", "content": "thinking..."}
-    assert events[1] == {"type": "token", "content": '{"stance":"support","rationale":"ok"}'}
-    assert events[2] == {"type": "final", "response": {"stance": "support", "rationale": "ok"}}
-
-
-def test_stream_agent_response_disables_thinking_for_agent_calls(monkeypatch):
-    import app.services.llm_client as llm_client
-
-    captured = {}
-
-    class CapturingClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def chat(self, *args, **kwargs):
-            captured.update(kwargs)
-            return iter([{"message": {"content": '{"stance":"support","rationale":"ok"}'}}])
-
-    monkeypatch.setattr(llm_client.ollama, "Client", CapturingClient)
-
-    list(stream_agent_response({"agent_id": 0}, "policy"))
-
-    assert captured["think"] is False
-    assert captured["options"] == agent_options()
-
-
-def test_summarize_clusters_uses_summary_thinking_options(monkeypatch):
-    import app.services.llm_client as llm_client
-
-    captured = {}
-
-    class CapturingClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def chat(self, *args, **kwargs):
-            captured.update(kwargs)
-            return iter([{"message": {"content": '{"concern_clusters":[],"support_clusters":[]}'}}])
-
-    monkeypatch.setattr(llm_client.ollama, "Client", CapturingClient)
-
-    summary = summarize_clusters("policy", [{"stance": "support", "rationale": "ok"}])
-
-    assert summary["concern_clusters"] == []
-    assert summary["support_clusters"] == []
-    assert summary["status"] == "empty"
-    assert captured["think"] is True
-    assert captured["stream"] is True
-    assert captured["options"] == summarize_options()
 
 
 def test_summary_prompt_explicitly_limits_recheck_loops():
@@ -656,55 +513,6 @@ def test_summary_prompt_requests_blind_spot_clusters_schema():
     assert "blind_spot_clusters must be []" in full_prompt
 
 
-def test_summarize_clusters_does_not_parse_json_from_thinking_only(monkeypatch):
-    import app.services.llm_client as llm_client
-
-    class ThinkingOnlyClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def chat(self, *args, **kwargs):
-            return iter(
-                [
-                    {
-                        "message": {
-                            "thinking": 'draft {"concern_clusters":[{"label":"draft","count":1,"examples":["x"]}],"support_clusters":[]}'
-                        }
-                    }
-                ]
-            )
-
-    monkeypatch.setattr(llm_client.ollama, "Client", ThinkingOnlyClient)
-
-    summary = summarize_clusters("policy", [{"stance": "oppose", "rationale": "x"}])
-
-    assert summary["status"] == "failed"
-    assert summary["concern_clusters"] == []
-    assert "최종 JSON" in summary["message"]
-    assert "draft" in summary["raw_output"]
-
-
-def test_stream_agent_response_stops_repeated_thinking(monkeypatch):
-    import app.services.llm_client as llm_client
-
-    repeated = "repeating thought " * 20
-
-    class RepeatingClient:
-        def __init__(self, *args, **kwargs):
-            pass
-
-        def chat(self, *args, **kwargs):
-            return iter({"message": {"thinking": repeated}} for _ in range(4))
-
-    monkeypatch.setattr(llm_client.ollama, "Client", RepeatingClient)
-
-    events = list(stream_agent_response({"agent_id": 0}, "policy"))
-
-    assert any(event["type"] == "error" and "Repetition detected" in event["message"] for event in events)
-    assert events[-1]["type"] == "final"
-    assert events[-1]["response"]["stance"] == "neutral"
-
-
 def test_agent_prompt_includes_structured_profile_and_selected_narratives():
     persona = {
         "age": 42,
@@ -788,17 +596,18 @@ def test_build_agent_llm_payload_uses_requested_model_thinking_and_depth():
     payload = build_agent_llm_payload(
         persona,
         "policy",
-        model_name="qwen3:14b",
+        model_name="gpt-5-mini",
         thinking=True,
         persona_depth="minimal",
     )
 
-    assert payload["model"] == "qwen3:14b"
-    assert payload["think"] is True
+    assert payload["model"] == "gpt-5-mini"
+    assert "think" not in payload
+    assert "options" not in payload
     assert "occupation:" not in payload["messages"][1]["content"]
 
 
-def test_build_agent_llm_payload_omits_ollama_options_for_openai():
+def test_build_agent_llm_payload_omits_local_options_for_openai():
     payload = build_agent_llm_payload(
         {"agent_id": 1},
         "policy",
@@ -812,15 +621,15 @@ def test_build_agent_llm_payload_omits_ollama_options_for_openai():
     assert "think" not in payload
 
 
-def test_healthz_returns_model_and_dataset_status(monkeypatch):
-    monkeypatch.setenv("OLLAMA_MODEL", "qwen3.5:9b")
-
+def test_healthz_returns_dataset_status_without_local_llm_fields():
     client = TestClient(app)
     response = client.get("/healthz")
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["ollama_model"] == "qwen3.5:9b"
+    assert "ollama_host" not in payload
+    assert "ollama_model" not in payload
+    assert "ollama_reachable" not in payload
     assert "dataset_loaded" in payload
 
 
@@ -839,20 +648,27 @@ def test_simulate_preflight_allows_127_frontend_origin():
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5173"
 
 
-def test_simulate_request_accepts_experiment_options():
+def test_simulate_request_defaults_to_openai_model_and_accepts_options():
     req = SimulateRequest(
         policy="policy",
         n_agents=12,
-        model_provider="ollama",
-        model_name="qwen3:14b",
         thinking=True,
         persona_depth="full",
     )
 
-    assert req.model_provider == "ollama"
-    assert req.model_name == "qwen3:14b"
+    assert req.model_provider == "openai"
+    assert req.model_name == "gpt-5-mini"
     assert req.thinking is True
     assert req.persona_depth == "full"
+
+
+def test_simulate_request_rejects_local_provider():
+    try:
+        SimulateRequest(policy="policy", model_provider="ollama")
+    except ValidationError as exc:
+        assert "model_provider" in str(exc)
+    else:
+        raise AssertionError("Expected validation error")
 
 
 def test_simulate_request_accepts_topic_id():
@@ -978,15 +794,15 @@ def patch_fast_simulation(monkeypatch, simulate_api, agent_stream=None, summary=
     monkeypatch.setattr(simulate_api, "sample_personas_with_plan", sample_personas)
     monkeypatch.setattr(
         simulate_api,
-        "stream_agent_response",
+        "stream_openai_agent_response",
         agent_stream
         or (
-            lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="ollama": iter(
+            lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard": iter(
                 [{"type": "token", "content": "raw"}, {"type": "final", "response": {"stance": "support", "rationale": "ok"}}]
             )
         ),
     )
-    monkeypatch.setattr(simulate_api, "stream_summary_clusters", lambda policy, responses, model_name=None: summary or summary_stream())
+    monkeypatch.setattr(simulate_api, "stream_openai_summary_clusters", lambda policy, responses, model_name=None, thinking=False: summary or summary_stream())
     monkeypatch.setattr(simulate_api, "refill_summary_short_fields", lambda *args, **kwargs: {})
 
 
@@ -1002,7 +818,11 @@ def test_simulate_stream_event_order_with_summary_stream(monkeypatch):
     assert response.headers["content-type"].startswith("text/event-stream")
     events = [line.removeprefix("event: ") for line in response.text.splitlines() if line.startswith("event: ")]
 
-    assert events[:6] == ["sampling_plan", "agent_sampled", "llm_prompt", "llm_status", "llm_token", "llm_status"]
+    assert events[0] == "sampling_plan"
+    assert events.count("agent_sampled") == 5
+    assert events.count("llm_prompt") == 5
+    assert "llm_status" in events
+    assert "llm_token" in events
     assert "summary_prompt" in events
     assert "summary_status" in events
     assert "summary_token" in events
@@ -1026,7 +846,9 @@ def test_simulate_stream_includes_llm_input_payload(monkeypatch):
             llm_payloads.append(json.loads(line.removeprefix("data: ")))
 
     assert llm_payloads[0]["agent_id"] == 0
-    assert llm_payloads[0]["model"] == "qwen3.5:9b"
+    assert llm_payloads[0]["model"] == "gpt-5-mini"
+    assert "options" not in llm_payloads[0]
+    assert "think" not in llm_payloads[0]
     assert llm_payloads[0]["messages"][0]["role"] == "system"
     assert "policy" in llm_payloads[0]["messages"][1]["content"]
 
@@ -1097,7 +919,7 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
         model_name=None,
         thinking=False,
         persona_depth="standard",
-        model_provider="ollama",
+        model_provider="openai",
     ):
         yield {"type": "token", "content": "raw"}
         yield {
@@ -1185,7 +1007,7 @@ def test_simulate_stream_drops_fabricated_summary_blind_spots_without_raw_blind_
         model_name=None,
         thinking=False,
         persona_depth="standard",
-        model_provider="ollama",
+        model_provider="openai",
     ):
         yield {
             "type": "final",
@@ -1298,7 +1120,7 @@ def test_simulate_stream_supports_keyword_only_model_provider_streams(monkeypatc
         thinking=False,
         persona_depth="standard",
         *,
-        model_provider="ollama",
+        model_provider="openai",
     ):
         captured.append(model_provider)
         yield {"type": "token", "content": "keyword"}
@@ -1317,7 +1139,7 @@ def test_simulate_stream_supports_keyword_only_model_provider_streams(monkeypatc
         elif current_event == "llm_token" and line.startswith("data: "):
             tokens.append(json.loads(line.removeprefix("data: ")))
 
-    assert captured == ["ollama"] * 5
+    assert captured == ["openai"] * 5
     assert tokens[0] == {"agent_id": 0, "content": "keyword"}
 
 
@@ -1341,14 +1163,10 @@ def test_simulate_stream_includes_summary_tokens(monkeypatch):
     assert summary_tokens[1] == {"content": '{"concern_clusters":[],"support_clusters":[]}'}
 
 
-def test_simulate_stream_uses_openai_for_summary_when_provider_is_openai(monkeypatch):
+def test_simulate_stream_uses_openai_for_summary(monkeypatch):
     from app.api import simulate as simulate_api
 
-    called = {"ollama": 0, "openai": 0}
-
-    def ollama_summary(policy, responses, model_name=None):
-        called["ollama"] += 1
-        return summary_stream()
+    called = {"openai": 0}
 
     def openai_summary(policy, responses, model_name="gpt-4o-mini", thinking=False):
         called["openai"] += 1
@@ -1356,7 +1174,6 @@ def test_simulate_stream_uses_openai_for_summary_when_provider_is_openai(monkeyp
         return summary_stream()
 
     patch_fast_simulation(monkeypatch, simulate_api)
-    monkeypatch.setattr(simulate_api, "stream_summary_clusters", ollama_summary)
     monkeypatch.setattr(simulate_api, "stream_openai_summary_clusters", openai_summary, raising=False)
 
     client = TestClient(app)
@@ -1366,7 +1183,7 @@ def test_simulate_stream_uses_openai_for_summary_when_provider_is_openai(monkeyp
     )
 
     assert response.status_code == 200
-    assert called == {"ollama": 0, "openai": 1}
+    assert called == {"openai": 1}
 
 
 def test_simulate_stream_runs_openai_agent_calls_in_parallel(monkeypatch):
@@ -1415,10 +1232,10 @@ def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
     patch_fast_simulation(
         monkeypatch,
         simulate_api,
-        agent_stream=lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="ollama": iter(
+        agent_stream=lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="openai": iter(
             [
-                {"type": "error", "message": "ollama unavailable"},
-                {"type": "final", "response": {"stance": "neutral", "rationale": "ollama unavailable"}},
+                {"type": "error", "message": "openai unavailable"},
+                {"type": "final", "response": {"stance": "neutral", "rationale": "openai unavailable"}},
             ]
         ),
     )
@@ -1438,13 +1255,13 @@ def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
             errors.append(json.loads(line.removeprefix("data: ")))
 
     assert {"agent_id": 0, "status": "failed"} in statuses
-    assert errors[0] == {"agent_id": 0, "message": "ollama unavailable"}
+    assert errors[0] == {"agent_id": 0, "message": "openai unavailable"}
 
 
 def test_simulate_stream_emits_llm_heartbeat_while_waiting(monkeypatch):
     from app.api import simulate as simulate_api
 
-    def slow_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="ollama"):
+    def slow_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="openai"):
         time.sleep(0.05)
         yield {"type": "token", "content": "raw"}
         yield {"type": "final", "response": {"stance": "support", "rationale": "ok"}}
@@ -1464,6 +1281,6 @@ def test_simulate_stream_emits_llm_heartbeat_while_waiting(monkeypatch):
             heartbeats.append(json.loads(line.removeprefix("data: ")))
 
     assert heartbeats
-    assert heartbeats[0]["agent_id"] == 0
+    assert 0 <= heartbeats[0]["agent_id"] < 5
     assert heartbeats[0]["tokens_seen"] == 0
     assert heartbeats[0]["elapsed_seconds"] >= 0

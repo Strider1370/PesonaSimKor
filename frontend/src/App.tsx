@@ -63,7 +63,7 @@ import { saveCurrentRun, saveExperimentRunAsCurrentRun, useCurrentRunStore } fro
 import { ResultPage } from "./result/ResultPage"
 
 type Phase = "idle" | "running" | "done" | "error" | "stopped"
-type Page = "simulate" | "experiment" | "result"
+type Page = "main" | "result"
 
 const STANCE_LABELS: Record<Stance, string> = {
   support: "찬성",
@@ -99,9 +99,8 @@ const REGION_LABELS: Record<RegionGroup, string> = {
 const EMPTY_COUNTS: StanceCounts = { support: 0, oppose: 0, neutral: 0 }
 const PRESETS = presetsData as ExperimentPreset[]
 const PRESET_OPTIONS = getPresetOptions(PRESETS)
-const OLLAMA_MODEL_OPTIONS = ["qwen3.5:9b", "qwen3:14b", "gemma3:12b"]
-const DEFAULT_MODEL_PROVIDER = "ollama" as const
-const DEFAULT_MODEL_NAME = "qwen3.5:9b"
+const DEFAULT_MODEL_PROVIDER = "openai" as const
+const DEFAULT_MODEL_NAME = "gpt-5-mini"
 const PRIOR_TOPIC_IDS = new Set(["1_1", "1_2", "2_1"])
 
 export function formatPresetTopicLabel(topic: { id: string; label: string }) {
@@ -164,7 +163,7 @@ export default function App() {
   }, [phase])
 
   useEffect(() => {
-    if (page !== "simulate" || !draftRequest) return
+    if (page !== "main" || !draftRequest) return
     setPolicy(draftRequest.policy)
     setNAgents(draftRequest.n_agents)
   }, [page, draftRequest])
@@ -198,7 +197,7 @@ export default function App() {
     if (!trimmed || phase === "running") return
     const requestedAgents = nAgents
     const modelProvider = DEFAULT_MODEL_PROVIDER
-    const modelName = health?.ollama_model || DEFAULT_MODEL_NAME
+    const modelName = DEFAULT_MODEL_NAME
     const sampledForRun: AgentSampledEvent[] = []
 
     const controller = new AbortController()
@@ -274,7 +273,6 @@ export default function App() {
           useCurrentRunStore.getState().setDraftRequest({
             policy: trimmed,
             n_agents: requestedAgents,
-            model_provider: modelProvider,
             model_name: modelName,
           })
         } else if (event.type === "error") {
@@ -328,7 +326,7 @@ export default function App() {
   }
 
   function navigatePage(nextPage: Page) {
-    const nextPath = nextPage === "experiment" ? "/experiment" : nextPage === "result" ? "/result" : "/"
+    const nextPath = nextPage === "result" ? "/result" : "/"
     window.history.pushState(null, "", nextPath)
     setPage(nextPage)
   }
@@ -336,163 +334,22 @@ export default function App() {
   return (
     <main className="app-shell">
       <section className="workspace">
-        <Topbar page={page} phase={phase} progress={progress} health={health} healthError={healthError} />
-
-        <PageTabs page={page} onNavigate={navigatePage} />
+        <Topbar
+          page={page}
+          phase={phase}
+          progress={progress}
+          health={health}
+          healthError={healthError}
+          onOpenResult={() => navigatePage("result")}
+          onOpenMain={() => navigatePage("main")}
+        />
 
         {page === "result" ? (
           <ResultPage
-            onDebug={() => navigatePage("simulate")}
+            onDebug={() => navigatePage("main")}
           />
-        ) : page === "experiment" ? (
-          <ExperimentPage health={health} onOpenResult={() => navigatePage("result")} />
         ) : (
-          <>
-        <section className="control-panel">
-          <label className="field">
-            <span>정책 입력</span>
-            <textarea
-              value={policy}
-              onChange={(event) => setPolicy(event.target.value)}
-              disabled={phase === "running"}
-              rows={5}
-              placeholder="예: 65세 이상 노인에게 월 30만원의 교통비를 지원합니다."
-            />
-          </label>
-
-          <div className="run-row">
-            <label className="number-field">
-              <span>인원</span>
-              <input
-                type="number"
-                min={5}
-                max={100}
-                value={nAgents}
-                disabled={phase === "running"}
-                onChange={(event) => setNAgents(clamp(Number(event.target.value), 5, 100))}
-              />
-            </label>
-            <div className="button-group">
-              <button disabled={phase === "running" || !policy.trim()} onClick={runSimulation}>
-                {phase === "running" ? "실행 중" : "시뮬레이션 실행"}
-              </button>
-              <button type="button" className="secondary-button danger" disabled={phase !== "running"} onClick={stopSimulation}>
-                작동 중지
-              </button>
-              <button type="button" className="secondary-button" disabled={phase === "running"} onClick={resetSimulation}>
-                초기화
-              </button>
-              <button type="button" className="secondary-button" disabled={phase !== "done" || !aggregate} onClick={() => navigatePage("result")}>
-                결과 보기 -&gt;
-              </button>
-            </div>
-          </div>
-
-          {error && <div className="error-box">{error}</div>}
-        </section>
-
-        <section className="progress-panel">
-          <div className="progress-meta">
-            <span>
-              {sampled.length}명 샘플링 · {llmPrompts.length}건 입력 생성 · {responses.length}명 응답 완료
-            </span>
-            <span>{progress}%</span>
-          </div>
-          <div className="progress-track">
-            <div className="progress-fill" style={{ width: `${progress}%` }} />
-          </div>
-        </section>
-
-        <section className="content-grid">
-          <section className="panel result-panel">
-            <h2>샘플링 계획</h2>
-            {samplingPlan ? <SamplingPlanView plan={samplingPlan} /> : <p className="empty">샘플링 계획 대기 중입니다.</p>}
-          </section>
-
-          <section className="panel">
-            <h2>샘플링된 인원</h2>
-            <div className="sample-list">
-              {sampled.length === 0 && <p className="empty">아직 샘플링된 인원이 없습니다.</p>}
-              {sampled.map((agent) => (
-                <article key={agent.agent_id} className="sample-item">
-                  <div>
-                    <strong>#{agent.agent_id}</strong>
-                    <span>
-                      {agent.age}세 · {GENDER_LABELS[agent.gender]} · {REGION_LABELS[agent.region_group]}
-                    </span>
-                  </div>
-                  <p>
-                    {agent.region} · {agent.job}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="panel">
-            <h2>실시간 응답</h2>
-            <div className="live-list">
-              {responses.length === 0 && <p className="empty">아직 응답이 없습니다.</p>}
-              {responses.slice().reverse().map((response) => (
-                <ResponseCard key={response.agent_id} response={response} sampledAgent={sampledById.get(response.agent_id)} />
-              ))}
-            </div>
-          </section>
-
-          <section className="panel">
-            <h2>LLM 입력 로그</h2>
-            <div className="prompt-list">
-              {llmPrompts.length === 0 && <p className="empty">아직 모델 입력이 생성되지 않았습니다.</p>}
-              {llmPrompts.map((prompt) => (
-                <details key={prompt.agent_id} className="prompt-item">
-                  <summary>
-                    #{prompt.agent_id} · {prompt.model} · {prompt.messages.length} messages
-                  </summary>
-                  <pre>{JSON.stringify(prompt, null, 2)}</pre>
-                </details>
-              ))}
-            </div>
-          </section>
-
-          <section className="panel">
-            <h2>LLM 실시간 출력</h2>
-            <div className="token-list">
-              {llmAgentIds.length === 0 && <p className="empty">아직 모델 출력이 없습니다.</p>}
-              {llmAgentIds.map((agentId) => {
-                const status = llmStatuses[agentId] ?? "started"
-                return (
-                  <article key={agentId} className="token-item">
-                    <div>
-                      <span>#{agentId}</span>
-                      <span className={`llm-state ${status}`}>{llmStatusLabel(status)}</span>
-                      <span className={llmActivityClass(status, llmActivityAt[agentId], now)}>
-                        {llmActivityLabel(status, llmActivityAt[agentId], now)}
-                      </span>
-                      {llmHeartbeats[agentId] && <span className="llm-heartbeat">{llmHeartbeatLabel(llmHeartbeats[agentId])}</span>}
-                    </div>
-                    {llmErrors[agentId] && <p className="llm-error">{llmErrors[agentId].message}</p>}
-                    <pre>{llmOutputs[agentId] || "LLM 출력 대기 중..."}</pre>
-                  </article>
-                )
-              })}
-            </div>
-          </section>
-
-          <section className="panel result-panel">
-            <h2>전체 결과</h2>
-            <SummaryTrace
-              prompt={summaryPrompt}
-              status={summaryStatus}
-              output={summaryOutput}
-              heartbeat={summaryHeartbeat}
-              error={summaryError}
-              activityAt={summaryActivityAt}
-              now={now}
-            />
-            {aggregate ? <AggregateView aggregate={aggregate} /> : <p className="empty">집계 대기 중입니다.</p>}
-          </section>
-        </section>
-          </>
+          <ExperimentPage onOpenResult={() => navigatePage("result")} />
         )}
       </section>
     </main>
@@ -521,54 +378,46 @@ type ExperimentRunState = {
   error: string | null
 }
 
-function PageTabs({ page, onNavigate }: { page: Page; onNavigate: (page: Page) => void }) {
-  return (
-    <nav className="page-tabs" aria-label="페이지 전환">
-      <button type="button" className={page === "simulate" ? "active" : ""} onClick={() => onNavigate("simulate")}>
-        시뮬레이션
-      </button>
-      <button type="button" className={page === "experiment" ? "active" : ""} onClick={() => onNavigate("experiment")}>
-        실험실
-      </button>
-    </nav>
-  )
-}
-
 export function Topbar({
   page,
   phase,
   progress,
   health,
   healthError,
+  onOpenResult,
+  onOpenMain,
 }: {
   page: Page
   phase: Phase
   progress: number
   health: HealthStatus | null
   healthError: string | null
+  onOpenResult: () => void
+  onOpenMain: () => void
 }) {
   return (
     <header className="topbar">
       <div>
         <h1>KoreanSim</h1>
-        <p>
-          {page === "experiment"
-            ? "프리셋 정책 프롬프트를 비교 실행해 LLM 반응 차이를 확인합니다."
-            : "로컬 페르소나 데이터와 LLM으로 정책 반응을 시뮬레이션합니다."}
-        </p>
+        <p>프리셋 정책 프롬프트를 비교 실행해 LLM 반응 차이를 확인합니다.</p>
       </div>
-      {page !== "result" && (
-        <div className="topbar-status">
-          <OllamaStatusBadge health={health} error={healthError} />
-          <div className={`status-pill ${phase}`}>{phaseLabel(phase, progress)}</div>
-        </div>
-      )}
+      <div className="topbar-status">
+        {page === "main" ? (
+          <button type="button" className="secondary-button topbar-result-button" onClick={onOpenResult}>
+            결과
+          </button>
+        ) : (
+          <button type="button" className="secondary-button topbar-result-button" onClick={onOpenMain}>
+            메인
+          </button>
+        )}
+      </div>
     </header>
   )
 }
 
-export function ExperimentLevels({ modelProvider, hasPrior }: { modelProvider: "ollama" | "openai"; hasPrior: boolean }) {
-  const activeLevels = getActiveLevels(modelProvider, hasPrior)
+export function ExperimentLevels({ hasPrior }: { hasPrior: boolean }) {
+  const activeLevels = getActiveLevels(hasPrior)
   const levels = [
     { id: 1, label: "다양성", note: "페르소나마다 다른 이유로 다른 반응" },
     {
@@ -576,7 +425,7 @@ export function ExperimentLevels({ modelProvider, hasPrior }: { modelProvider: "
       label: "Prior 대응",
       note: hasPrior ? "한국갤럽 원전 prior 적용" : "원전 프리셋 선택 시 한국갤럽 prior 적용",
     },
-    { id: 3, label: "반문", note: "OpenAI 모델 선택 시 정책 전제에 대한 반문 생성" },
+    { id: 3, label: "반문", note: "정책 전제에 대한 반문 생성" },
     { id: 4, label: "대안", note: "미구현 - 장기 목표" },
   ]
 
@@ -604,11 +453,8 @@ export function ExperimentLevels({ modelProvider, hasPrior }: { modelProvider: "
   )
 }
 
-function ExperimentPromptGuide({ modelProvider }: { modelProvider: "ollama" | "openai" }) {
-  const outputFields =
-    modelProvider === "openai"
-      ? "stance, stance_strength, rationale, caveat, blind_spot, affected_group, reframing, persona_link"
-      : "stance, stance_strength, rationale, caveat, blind_spot, affected_group"
+function ExperimentPromptGuide() {
+  const outputFields = "stance, stance_strength, rationale, caveat, blind_spot, affected_group, reframing, persona_link"
 
   return (
     <section className="prompt-guide" aria-label="입력 프롬프트 기준">
@@ -617,7 +463,7 @@ function ExperimentPromptGuide({ modelProvider }: { modelProvider: "ollama" | "o
           <h2>입력 프롬프트 기준</h2>
           <p>실험 응답은 아래 기준으로 stance와 blind_spot을 분리해서 생성합니다.</p>
         </div>
-        <span>{modelProvider === "openai" ? "OpenAI schema" : "Ollama schema"}</span>
+        <span>OpenAI schema</span>
       </div>
       <div className="prompt-guide-grid">
         <article>
@@ -658,15 +504,12 @@ function currentPresetSelection(
   return preset ? selectionFromPreset(preset) : null
 }
 
-function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null; onOpenResult: () => void }) {
+function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   const [slots, setSlots] = useState(createInitialSlots)
   const [presetSelections, setPresetSelections] = useState<Partial<Record<PolicySlotId, PresetSelection>>>({})
   const [nAgents, setNAgents] = useState(30)
   const [repeatCount, setRepeatCount] = useState<1 | 3 | 5>(1)
-  const [modelProvider, setModelProvider] = useState<"ollama" | "openai">("ollama")
-  const [ollamaModelName, setOllamaModelName] = useState("qwen3.5:9b")
   const [openAiModelName, setOpenAiModelName] = useState("gpt-5-mini")
-  const [customOllamaModel, setCustomOllamaModel] = useState("")
   const [thinking, setThinking] = useState(false)
   const [personaDepth, setPersonaDepth] = useState<"minimal" | "standard" | "full">("standard")
   const [runs, setRuns] = useState<Partial<Record<PolicySlotId, ExperimentRunState>>>({})
@@ -680,8 +523,7 @@ function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null;
   const activeSlots = slots.filter((slot) => slot.policy.trim())
   const isRunning = Object.values(runs).some((run) => run?.phase === "running")
   const hasPrior = slots.some((slot) => slot.topicId && PRIOR_TOPIC_IDS.has(slot.topicId))
-  const effectiveModelName =
-    modelProvider === "ollama" ? customOllamaModel.trim() || ollamaModelName : openAiModelName
+  const effectiveModelName = openAiModelName
 
   useEffect(() => {
     refreshProjectCsvExports()
@@ -713,7 +555,6 @@ function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null;
           {
             policy,
             n_agents: nAgents,
-            model_provider: modelProvider,
             model_name: effectiveModelName,
             thinking,
             persona_depth: personaDepth,
@@ -861,7 +702,7 @@ function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null;
       settings: {
         nAgents,
         repeatCount,
-        modelProvider,
+        modelProvider: DEFAULT_MODEL_PROVIDER,
         modelName: effectiveModelName,
         thinking,
         personaDepth,
@@ -889,16 +730,8 @@ function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null;
     )
     setNAgents(snapshot.settings.nAgents)
     setRepeatCount((snapshot.settings.repeatCount === 3 || snapshot.settings.repeatCount === 5 ? snapshot.settings.repeatCount : 1) as 1 | 3 | 5)
-    if (snapshot.settings.modelProvider) setModelProvider(snapshot.settings.modelProvider)
     if (snapshot.settings.modelName) {
-      if (snapshot.settings.modelProvider === "openai") {
-        setOpenAiModelName(snapshot.settings.modelName)
-      } else if (OLLAMA_MODEL_OPTIONS.includes(snapshot.settings.modelName)) {
-        setOllamaModelName(snapshot.settings.modelName)
-        setCustomOllamaModel("")
-      } else {
-        setCustomOllamaModel(snapshot.settings.modelName)
-      }
+      setOpenAiModelName(snapshot.settings.modelName)
     }
     setThinking(Boolean(snapshot.settings.thinking))
     if (snapshot.settings.personaDepth) setPersonaDepth(snapshot.settings.personaDepth)
@@ -962,7 +795,7 @@ function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null;
       policy: slot.policy.trim(),
       nAgents,
       modelName: effectiveModelName,
-      modelProvider,
+      modelProvider: DEFAULT_MODEL_PROVIDER,
       aggregate: run.aggregate,
       sampledAgents: run.sampledAgents,
     })
@@ -971,59 +804,23 @@ function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null;
 
   return (
     <div className="experiment-layout">
-      <ExperimentLevels modelProvider={modelProvider} hasPrior={hasPrior} />
-      <ExperimentPromptGuide modelProvider={modelProvider} />
+      <ExperimentLevels hasPrior={hasPrior} />
+      <ExperimentPromptGuide />
       <section className="control-panel experiment-settings">
         <div className="settings-grid">
-          <label className="field compact-field">
-            <span>제공자</span>
-            <select
-              value={modelProvider}
-              disabled={isRunning}
-              onChange={(event) => setModelProvider(event.target.value as "ollama" | "openai")}
-            >
-              <option value="ollama">Ollama</option>
-              <option value="openai">OpenAI</option>
-            </select>
-          </label>
           <label className="field compact-field">
             <span>모델</span>
             <select
               disabled={isRunning}
-              value={modelProvider === "ollama" ? ollamaModelName : openAiModelName}
-              onChange={(event) =>
-                modelProvider === "ollama" ? setOllamaModelName(event.target.value) : setOpenAiModelName(event.target.value)
-              }
+              value={openAiModelName}
+              onChange={(event) => setOpenAiModelName(event.target.value)}
             >
-              {modelProvider === "ollama" ? (
-                <>
-                  {OLLAMA_MODEL_OPTIONS.map((model) => (
-                    <option value={model} key={model}>
-                      {model}
-                    </option>
-                  ))}
-                </>
-              ) : (
-                <>
-                  <option value="gpt-5-mini">gpt-5-mini</option>
-                  <option value="gpt-5">gpt-5</option>
-                  <option value="gpt-4o">gpt-4o</option>
-                  <option value="gpt-4o-mini">gpt-4o-mini</option>
-                </>
-              )}
+              <option value="gpt-5-mini">gpt-5-mini</option>
+              <option value="gpt-5">gpt-5</option>
+              <option value="gpt-4o">gpt-4o</option>
+              <option value="gpt-4o-mini">gpt-4o-mini</option>
             </select>
           </label>
-          {modelProvider === "ollama" && (
-            <label className="field compact-field">
-              <span>사용자 모델</span>
-              <input
-                value={customOllamaModel}
-                disabled={isRunning}
-                onChange={(event) => setCustomOllamaModel(event.target.value)}
-                placeholder={health?.ollama_model ?? "예: llama3.1:8b"}
-              />
-            </label>
-          )}
           <label className="field compact-field">
             <span>Thinking</span>
             <select
@@ -1152,7 +949,7 @@ function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null;
         runs={runs}
         nAgents={nAgents}
         modelName={effectiveModelName}
-        modelProvider={modelProvider}
+        modelProvider={DEFAULT_MODEL_PROVIDER}
         selectedTraceSlot={selectedTraceSlot}
         onSelectTraceSlot={setSelectedTraceSlot}
         onOpenResult={openExperimentResult}
@@ -1350,7 +1147,7 @@ function ExperimentResults({
   runs: Partial<Record<PolicySlotId, ExperimentRunState>>
   nAgents: number
   modelName: string
-  modelProvider: "ollama" | "openai"
+  modelProvider: "openai"
   selectedTraceSlot: PolicySlotId | null
   onSelectTraceSlot: (slotId: PolicySlotId) => void
   onOpenResult: (slotId: PolicySlotId, run: ExperimentRunState) => void
@@ -1544,7 +1341,7 @@ function ExperimentTrace({
   run: ExperimentRunState
   nAgents: number
   modelName: string
-  modelProvider: "ollama" | "openai"
+  modelProvider: "openai"
   onOpenResult: () => void
 }) {
   const progress = Math.round((run.responses.length / nAgents) * 100)
@@ -1789,9 +1586,16 @@ function emptyExperimentRun(): ExperimentRunState {
 }
 
 function pageFromLocation(): Page {
-  if (window.location.pathname === "/experiment") return "experiment"
-  if (window.location.pathname === "/result") return "result"
-  return "simulate"
+  const page = pageFromPathname(window.location.pathname)
+  if (window.location.pathname === "/experiment") {
+    window.history.replaceState(null, "", "/")
+  }
+  return page
+}
+
+export function pageFromPathname(pathname: string): Page {
+  if (pathname === "/result") return "result"
+  return "main"
 }
 
 function AggregateView({ aggregate }: { aggregate: AggregateEvent }) {
@@ -1908,33 +1712,6 @@ function SummaryTrace({
           <pre>{JSON.stringify(prompt, null, 2)}</pre>
         </details>
       )}
-    </div>
-  )
-}
-
-function OllamaStatusBadge({ health, error }: { health: HealthStatus | null; error: string | null }) {
-  if (error) {
-    return (
-      <div className="ollama-badge offline" title={error}>
-        <span>Ollama</span>
-        <strong>백엔드 확인 실패</strong>
-      </div>
-    )
-  }
-
-  if (!health) {
-    return (
-      <div className="ollama-badge checking">
-        <span>Ollama</span>
-        <strong>확인 중</strong>
-      </div>
-    )
-  }
-
-  return (
-    <div className={`ollama-badge ${health.ollama_reachable ? "online" : "offline"}`} title={`${health.ollama_host} / ${health.ollama_model}`}>
-      <span>Ollama</span>
-      <strong>{health.ollama_reachable ? "연결됨" : "꺼짐"}</strong>
     </div>
   )
 }
@@ -2063,10 +1840,9 @@ function safeClusters(value: unknown): { label: string; count: number; examples:
     })
 }
 
-function getActiveLevels(modelProvider: string, hasPrior: boolean): number[] {
-  const levels = [1]
+function getActiveLevels(hasPrior: boolean): number[] {
+  const levels = [1, 3]
   if (hasPrior) levels.push(2)
-  if (modelProvider === "openai") levels.push(3)
   return levels
 }
 
@@ -2169,9 +1945,9 @@ function llmActivityClass(status: LlmStatusEvent["status"], lastActivityAt: numb
 
 function llmHeartbeatLabel(heartbeat: LlmHeartbeatEvent) {
   if (heartbeat.tokens_seen === 0) {
-    return `Ollama 첫 출력 대기 ${heartbeat.elapsed_seconds}초`
+    return `첫 출력 대기 ${heartbeat.elapsed_seconds}초`
   }
-  return `Ollama 처리 중 ${heartbeat.elapsed_seconds}초, 토큰 ${heartbeat.tokens_seen}개`
+  return `처리 중 ${heartbeat.elapsed_seconds}초, 토큰 ${heartbeat.tokens_seen}개`
 }
 
 function appendLlmToken(

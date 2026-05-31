@@ -1,4 +1,3 @@
-import inspect
 import json
 import os
 import queue
@@ -16,10 +15,8 @@ from app.services.llm_client import (
     build_summary_llm_payload,
     normalize_summary,
     refill_summary_short_fields,
-    stream_agent_response,
     stream_openai_agent_response,
     stream_openai_summary_clusters,
-    stream_summary_clusters,
 )
 from app.services.persona_sampler import sample_personas_with_plan
 from app.services.prior_service import get_prior
@@ -27,16 +24,6 @@ from app.services.prior_service import get_prior
 router = APIRouter()
 HEARTBEAT_INTERVAL_SECONDS = 2.0
 DEFAULT_OPENAI_AGENT_CONCURRENCY = 5
-
-
-def accepts_model_provider(source) -> bool:
-    try:
-        signature = inspect.signature(source)
-    except (TypeError, ValueError):
-        return True
-    return "model_provider" in signature.parameters or any(
-        parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in signature.parameters.values()
-    )
 
 
 def sse_event(event: str, data: dict) -> str:
@@ -120,20 +107,7 @@ async def stream_with_heartbeat(source, *args, **kwargs):
         yield event
 
 
-async def stream_agent_response_with_heartbeat(
-    persona: dict,
-    policy: str,
-    prior: dict | None = None,
-    model_name: str | None = None,
-    thinking: bool = False,
-    persona_depth: str = "standard",
-):
-    async for event in stream_with_heartbeat(stream_agent_response, persona, policy, prior, model_name, thinking, persona_depth):
-        yield event
-
-
 async def stream_configured_agent_response_with_heartbeat(
-    provider: str,
     persona: dict,
     policy: str,
     prior: dict | None,
@@ -141,45 +115,25 @@ async def stream_configured_agent_response_with_heartbeat(
     thinking: bool,
     persona_depth: str,
 ):
-    if provider == "openai":
-        args = [persona, policy, prior, model_name, persona_depth, thinking]
-        kwargs = {}
-        if accepts_model_provider(stream_openai_agent_response):
-            kwargs["model_provider"] = provider
-        async for event in stream_with_heartbeat(
-            stream_openai_agent_response,
-            *args,
-            **kwargs,
-        ):
-            yield event
-        return
-
-    args = [persona, policy, prior, model_name, thinking, persona_depth]
-    kwargs = {}
-    if accepts_model_provider(stream_agent_response):
-        kwargs["model_provider"] = provider
-    async for event in stream_with_heartbeat(stream_agent_response, *args, **kwargs):
-        yield event
-
-
-async def stream_summary_clusters_with_heartbeat(policy: str, responses: list[dict], model_name: str | None = None):
-    async for event in stream_with_heartbeat(stream_summary_clusters, policy, responses, model_name):
+    async for event in stream_with_heartbeat(
+        stream_openai_agent_response,
+        persona,
+        policy,
+        prior,
+        model_name,
+        persona_depth=persona_depth,
+        thinking=thinking,
+    ):
         yield event
 
 
 async def stream_configured_summary_clusters_with_heartbeat(
-    provider: str,
     policy: str,
     responses: list[dict],
     model_name: str,
     thinking: bool,
 ):
-    if provider == "openai":
-        async for event in stream_with_heartbeat(stream_openai_summary_clusters, policy, responses, model_name, thinking):
-            yield event
-        return
-
-    async for event in stream_with_heartbeat(stream_summary_clusters, policy, responses, model_name):
+    async for event in stream_with_heartbeat(stream_openai_summary_clusters, policy, responses, model_name, thinking):
         yield event
 
 
@@ -188,7 +142,6 @@ async def stream_agent_sse_events(req: SimulateRequest, policy: str, persona: di
     result = {"stance": "neutral", "rationale": "Response generation failed."}
     llm_failed = False
     async for llm_event in stream_configured_agent_response_with_heartbeat(
-        req.model_provider,
         persona,
         policy,
         prior,
@@ -259,63 +212,34 @@ async def simulation_stream(req: SimulateRequest):
     try:
         personas, sampling_plan = sample_personas_with_plan(n_agents)
         yield sse_event("sampling_plan", sampling_plan)
-        if req.model_provider == "openai":
-            prepared_agents = []
-            for persona in personas:
-                yield sse_event("agent_sampled", sampled_event_from_persona(persona))
-                prior = get_prior(
-                    req.topic_id,
-                    {
-                        "age_group": persona["age_group"],
-                        "gender": persona["gender"],
-                        "province": persona.get("structured_profile", {}).get("province"),
-                    },
-                )
-                yield sse_event(
-                    "llm_prompt",
-                    build_agent_llm_payload(
-                        persona,
-                        policy,
-                        prior,
-                        model_name=req.model_name,
-                        thinking=req.thinking,
-                        persona_depth=req.persona_depth,
-                        model_provider=req.model_provider,
-                    ),
-                )
-                prepared_agents.append((persona, prior))
+        prepared_agents = []
+        for persona in personas:
+            yield sse_event("agent_sampled", sampled_event_from_persona(persona))
+            prior = get_prior(
+                req.topic_id,
+                {
+                    "age_group": persona["age_group"],
+                    "gender": persona["gender"],
+                    "province": persona.get("structured_profile", {}).get("province"),
+                },
+            )
+            yield sse_event(
+                "llm_prompt",
+                build_agent_llm_payload(
+                    persona,
+                    policy,
+                    prior,
+                    model_name=req.model_name,
+                    thinking=req.thinking,
+                    persona_depth=req.persona_depth,
+                ),
+            )
+            prepared_agents.append((persona, prior))
 
-            async for event_name, event_data in stream_openai_agent_sse_events_parallel(req, policy, prepared_agents):
-                if event_name == "agent_responded":
-                    responses.append(event_data)
-                yield sse_event(event_name, event_data)
-        else:
-            for persona in personas:
-                yield sse_event("agent_sampled", sampled_event_from_persona(persona))
-                prior = get_prior(
-                    req.topic_id,
-                    {
-                        "age_group": persona["age_group"],
-                        "gender": persona["gender"],
-                        "province": persona.get("structured_profile", {}).get("province"),
-                    },
-                )
-                yield sse_event(
-                    "llm_prompt",
-                    build_agent_llm_payload(
-                        persona,
-                        policy,
-                        prior,
-                        model_name=req.model_name,
-                        thinking=req.thinking,
-                        persona_depth=req.persona_depth,
-                        model_provider=req.model_provider,
-                    ),
-                )
-                async for event_name, event_data in stream_agent_sse_events(req, policy, persona, prior):
-                    if event_name == "agent_responded":
-                        responses.append(event_data)
-                    yield sse_event(event_name, event_data)
+        async for event_name, event_data in stream_openai_agent_sse_events_parallel(req, policy, prepared_agents):
+            if event_name == "agent_responded":
+                responses.append(event_data)
+            yield sse_event(event_name, event_data)
 
         responses.sort(key=lambda response: response["agent_id"])
 
@@ -336,7 +260,6 @@ async def simulation_stream(req: SimulateRequest):
         }
         summary_failed = False
         async for summary_event in stream_configured_summary_clusters_with_heartbeat(
-            req.model_provider,
             policy,
             responses,
             req.model_name,
@@ -368,7 +291,6 @@ async def simulation_stream(req: SimulateRequest):
                 policy,
                 missing,
                 model_name=req.model_name,
-                model_provider=req.model_provider,
                 thinking=req.thinking,
             ),
         )

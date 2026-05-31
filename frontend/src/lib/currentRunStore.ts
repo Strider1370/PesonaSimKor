@@ -6,7 +6,7 @@ export type CurrentRun = {
   policy: string
   n_agents: number
   model_name: string
-  model_provider: "ollama" | "openai"
+  model_provider: "openai"
   aggregate: AggregateEvent
   sampledAgents: AgentSampledEvent[]
   completedAt: string
@@ -45,7 +45,7 @@ export function saveExperimentRunAsCurrentRun({
   policy,
   nAgents,
   modelName,
-  modelProvider,
+  modelProvider = "openai",
   aggregate,
   sampledAgents,
   completedAt = new Date().toISOString(),
@@ -53,7 +53,7 @@ export function saveExperimentRunAsCurrentRun({
   policy: string
   nAgents: number
   modelName: string
-  modelProvider: "ollama" | "openai"
+  modelProvider?: "openai"
   aggregate: AggregateEvent
   sampledAgents: AgentSampledEvent[]
   completedAt?: string
@@ -70,7 +70,6 @@ export function saveExperimentRunAsCurrentRun({
   useCurrentRunStore.getState().setDraftRequest({
     policy,
     n_agents: nAgents,
-    model_provider: modelProvider,
     model_name: modelName,
   })
 }

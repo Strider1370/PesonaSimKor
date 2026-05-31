@@ -13,7 +13,7 @@ describe("experiment CSV", () => {
       id: "snapshot-1",
       createdAt: "2026-05-28T10:00:00.000Z",
       name: "test",
-      settings: { nAgents: 30, repeatCount: 3, modelProvider: "ollama", modelName: "qwen3.5:9b" },
+      settings: { nAgents: 30, repeatCount: 3, modelProvider: "openai", modelName: "gpt-5-mini" },
       slots: [{ id: "A", presetId: "preset-a", policy: "policy A" }],
       results: [
         {
@@ -47,7 +47,7 @@ describe("experiment CSV", () => {
 
     expect(csv).toContain("snapshot_id,name,created_at")
     expect(csv).toContain("snapshot-1,test,2026-05-28T10:00:00.000Z")
-    expect(csv).toContain("A,preset-a,30,3,ollama,qwen3.5:9b")
+    expect(csv).toContain("A,preset-a,30,3,openai,gpt-5-mini")
     expect(csv).toContain("6,3,1")
     expect(csv).toContain("Gallup,2022,69,60,-9")
   })

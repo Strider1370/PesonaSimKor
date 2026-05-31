@@ -1,30 +1,47 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 
-import { ExperimentLevels, ResponseCard, Topbar, formatPresetTopicLabel } from "./App"
+import { ExperimentLevels, ResponseCard, Topbar, formatPresetTopicLabel, pageFromPathname } from "./App"
+
+describe("routing", () => {
+  it("uses the main page for root and legacy experiment paths", () => {
+    expect(pageFromPathname("/")).toBe("main")
+    expect(pageFromPathname("/experiment")).toBe("main")
+    expect(pageFromPathname("/result")).toBe("result")
+  })
+})
 
 describe("Topbar", () => {
   it("hides connection and phase status on the result page", () => {
-    const html = renderToStaticMarkup(<Topbar page="result" phase="idle" progress={0} health={null} healthError={null} />)
+    const html = renderToStaticMarkup(
+      <Topbar page="result" phase="idle" progress={0} health={null} healthError={null} onOpenResult={() => {}} onOpenMain={() => {}} />,
+    )
 
     expect(html).toContain("KoreanSim")
+    expect(html).toContain("메인")
     expect(html).not.toContain("Ollama")
     expect(html).not.toContain("대기")
+    expect(html).not.toContain("결과</button>")
   })
 
-  it("shows connection and phase status outside the result page", () => {
-    const html = renderToStaticMarkup(<Topbar page="simulate" phase="idle" progress={0} health={null} healthError={null} />)
+  it("shows a result button on the main page instead of connection and phase status", () => {
+    const html = renderToStaticMarkup(
+      <Topbar page="main" phase="idle" progress={0} health={null} healthError={null} onOpenResult={() => {}} onOpenMain={() => {}} />,
+    )
 
-    expect(html).toContain("Ollama")
-    expect(html).toContain("대기")
+    expect(html).toContain("결과")
+    expect(html).not.toContain("Ollama")
+    expect(html).not.toContain("대기")
+    expect(html).not.toContain("실험실")
   })
 })
 
 describe("ExperimentLevels", () => {
   it("marks the prior level active when a prior-enabled preset is selected", () => {
-    const html = renderToStaticMarkup(<ExperimentLevels modelProvider="ollama" hasPrior />)
+    const html = renderToStaticMarkup(<ExperimentLevels hasPrior />)
 
     expect(html).toContain("L2: Prior 대응")
+    expect(html).toContain("L3: 반문")
     expect(html).toContain("ON")
     expect(html).toContain("한국갤럽 원전 prior 적용")
     expect(html).not.toContain("Prior 데이터 미수집")

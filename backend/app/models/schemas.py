@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field, field_validator
 class SimulateRequest(BaseModel):
     policy: str = Field(min_length=1)
     n_agents: int = Field(default=30, ge=5, le=100)
-    model_provider: Literal["ollama", "openai"] = "ollama"
-    model_name: str = "qwen3.5:9b"
+    model_provider: Literal["openai"] = "openai"
+    model_name: str = "gpt-5-mini"
     thinking: bool = False
     persona_depth: Literal["minimal", "standard", "full"] = "standard"
     topic_id: str | None = None

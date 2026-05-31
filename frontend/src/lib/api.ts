@@ -62,7 +62,7 @@ export type LlmPromptEvent = {
   model: string
   format: "json"
   messages: { role: "system" | "user" | "assistant"; content: string }[]
-  options: Record<string, unknown>
+  options?: Record<string, unknown>
   think?: boolean
 }
 
@@ -197,7 +197,7 @@ export type SimulateEvent =
 export type SimulateRequest = {
   policy: string
   n_agents: number
-  model_provider?: "ollama" | "openai"
+  model_provider?: "openai"
   model_name?: string
   thinking?: boolean
   persona_depth?: "minimal" | "standard" | "full"
@@ -206,9 +206,6 @@ export type SimulateRequest = {
 
 export type HealthStatus = {
   status: string
-  ollama_host: string
-  ollama_model: string
-  ollama_reachable: boolean
   dataset_loaded: boolean
   dataset_available: boolean
   dataset_rows: number | null

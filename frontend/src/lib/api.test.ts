@@ -11,13 +11,13 @@ describe("parseSseChunk", () => {
     const request: SimulateRequest = {
       policy: "policy",
       n_agents: 30,
-      model_provider: "ollama",
-      model_name: "qwen3:14b",
+      model_name: "gpt-5-mini",
       thinking: true,
       persona_depth: "full",
     }
 
-    expect(request.model_name).toBe("qwen3:14b")
+    expect(request.model_provider).toBeUndefined()
+    expect(request.model_name).toBe("gpt-5-mini")
   })
 
   it("allows blind spot response and aggregate fields in event types", () => {
@@ -86,9 +86,6 @@ describe("parseSseChunk", () => {
         ok: true,
         json: async () => ({
           status: "ok",
-          ollama_host: "http://127.0.0.1:11434",
-          ollama_model: "qwen3.5:9b",
-          ollama_reachable: true,
           dataset_loaded: true,
           dataset_available: true,
           dataset_rows: 1000000,
@@ -98,7 +95,7 @@ describe("parseSseChunk", () => {
 
     const health = await getHealth()
 
-    expect(health.ollama_reachable).toBe(true)
+    expect("ollama_reachable" in health).toBe(false)
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/healthz"), { cache: "no-store" })
   })
 

@@ -206,59 +206,6 @@ h1 {
   line-height: 1.5;
 }
 
-.ollama-badge {
-  min-width: 128px;
-  border: 1px solid #d5dde5;
-  border-radius: 999px;
-  padding: 6px 12px;
-  background: #ffffff;
-  text-align: left;
-}
-
-.ollama-badge span,
-.ollama-badge strong {
-  display: block;
-  line-height: 1.15;
-}
-
-.ollama-badge span {
-  color: #627d98;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.ollama-badge strong {
-  margin-top: 2px;
-  color: #334e68;
-  font-size: 13px;
-}
-
-.ollama-badge.online {
-  border-color: #86efac;
-  background: #f0fdf4;
-}
-
-.ollama-badge.online strong {
-  color: #166534;
-}
-
-.ollama-badge.offline {
-  border-color: #fca5a5;
-  background: #fff1f2;
-}
-
-.ollama-badge.offline strong {
-  color: #991b1b;
-}
-
-.ollama-badge.checking {
-  border-color: #bfdbfe;
-  background: #eff6ff;
-}
-
-.ollama-badge.checking strong {
-  color: #1d4ed8;
-}
 
 .control-panel,
 .progress-panel,

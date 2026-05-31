@@ -4,8 +4,6 @@ import os
 import re
 from typing import Any
 
-import ollama
-
 from app.services.aggregation import normalize_stance
 
 AGENT_FALLBACK = {
@@ -18,21 +16,7 @@ FAILURE_FALLBACK = {
     "rationale": "Response generation failed.",
 }
 
-DEFAULT_OLLAMA_HOST = "http://127.0.0.1:11434"
-DEFAULT_OLLAMA_MODEL = "qwen3.5:9b"
-
-SYSTEM_PROMPT_OLLAMA = """당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
-해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
-[여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
-반드시 아래 JSON 형식으로만 답하십시오. 다른 텍스트는 절대 포함하지 마십시오.
-반드시 한국어로만 답하십시오.
-
-{
-  "stance": "찬성" 또는 "반대" 또는 "중립",
-  "rationale": "입장 이유 (2문장, 이 페르소나의 관점에서)",
-  "blind_spot": "이 정책이 당신 같은 처지의 사람에게 예상치 못한 문제를 일으킬 수 있다면, 정책 설계자가 놓치기 쉬운 구체적인 직업, 생활, 경제 상황의 문제를 쓰십시오. 일반적인 우려가 아니라 페르소나 맥락에서만 보이는 문제여야 합니다. (1~2문장)",
-  "affected_group": "당신과 비슷한 처지의 사람들 중 이 정책으로 가장 타격받을 집단"
-}"""
+DEFAULT_OPENAI_MODEL = "gpt-5-mini"
 
 SYSTEM_PROMPT_OPENAI = """당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
 해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
@@ -104,29 +88,6 @@ def render_prior_text(prior: dict) -> str:
         f'이는 참고 정보일 뿐이며, 반드시 당신의 구체적인 직업과 생활 맥락에서 스스로 판단해 답하십시오.'
     )
 
-SYSTEM_PROMPT_OLLAMA = f"""당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
-해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
-[여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
-반드시 아래 JSON 형식으로만 답하십시오. 다른 텍스트는 절대 포함하지 마십시오.
-반드시 한국어로만 답하십시오.
-
-{STANCE_RULES}
-
-{CITIZEN_VOICE_RULES}
-
-{CAVEAT_RULES}
-
-{BLIND_SPOT_RULES}
-
-{{
-  "stance": "찬성" 또는 "반대" 또는 "중립",
-  "stance_strength": "강함" 또는 "기울어짐" 또는 "약함",
-  "rationale": "최종 선택 방향의 핵심 이유. 이 페르소나가 체감할 만한 1~2개 이유만 쓰십시오.",
-  "caveat": "가장 중요한 유보점 하나. 없으면 null.",
-  "blind_spot": "직접성·특수성·비중복성을 모두 만족하는 사각지대. 없으면 null.",
-  "affected_group": "blind_spot이 있을 때 가장 직접적으로 영향받는 집단. 없으면 null."
-}}"""
-
 SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
 해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
 [여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
@@ -156,12 +117,6 @@ SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 
 }}"""
 
 
-def ollama_host() -> str:
-    return os.getenv("OLLAMA_HOST", DEFAULT_OLLAMA_HOST)
-
-
-def ollama_model() -> str:
-    return os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
 
 
 def get_openai_api_key() -> str:
@@ -217,7 +172,7 @@ def clean_optional_text(value: Any) -> str | None:
     return cleaned
 
 
-def parse_agent_response(text: str, model_provider: str = "ollama") -> dict:
+def parse_agent_response(text: str, model_provider: str = "openai") -> dict:
     try:
         parsed = parse_json_object(text)
     except Exception:
@@ -243,20 +198,19 @@ def parse_agent_response(text: str, model_provider: str = "ollama") -> dict:
         if affected_group:
             result["affected_group"] = affected_group
 
-    if model_provider == "openai":
-        reframing = clean_optional_text(parsed.get("reframing"))
-        if reframing:
-            result["reframing"] = reframing
+    reframing = clean_optional_text(parsed.get("reframing"))
+    if reframing:
+        result["reframing"] = reframing
 
-        persona_link = parsed.get("persona_link")
-        if isinstance(persona_link, dict):
-            direct = persona_link.get("direct", "")
-            inferred = persona_link.get("inferred", "")
-            if isinstance(direct, str) and isinstance(inferred, str):
-                direct = direct.strip()
-                inferred = inferred.strip()
-                if direct or inferred:
-                    result["persona_link"] = {"direct": direct, "inferred": inferred}
+    persona_link = parsed.get("persona_link")
+    if isinstance(persona_link, dict):
+        direct = persona_link.get("direct", "")
+        inferred = persona_link.get("inferred", "")
+        if isinstance(direct, str) and isinstance(inferred, str):
+            direct = direct.strip()
+            inferred = inferred.strip()
+            if direct or inferred:
+                result["persona_link"] = {"direct": direct, "inferred": inferred}
 
     return result
 
@@ -359,35 +313,13 @@ def build_agent_messages(
     policy: str,
     prior: dict | None = None,
     persona_depth: str = "standard",
-    model_provider: str = "ollama",
+    model_provider: str = "openai",
 ) -> list[dict[str, str]]:
-    system = SYSTEM_PROMPT_OPENAI if model_provider == "openai" else SYSTEM_PROMPT_OLLAMA
     return [
-        {"role": "system", "content": system},
+        {"role": "system", "content": SYSTEM_PROMPT_OPENAI},
         {"role": "user", "content": build_agent_prompt(persona, policy, prior, persona_depth)},
     ]
 
-
-def agent_options() -> dict:
-    return {
-        "temperature": float(os.getenv("OLLAMA_TEMPERATURE", "0.65")),
-        "top_p": float(os.getenv("OLLAMA_TOP_P", "0.9")),
-        "repeat_penalty": float(os.getenv("OLLAMA_REPEAT_PENALTY", "1.1")),
-        "repeat_last_n": int(os.getenv("OLLAMA_REPEAT_LAST_N", "256")),
-        "num_predict": int(os.getenv("OLLAMA_NUM_PREDICT", "500")),
-    }
-
-
-def summarize_options() -> dict:
-    return {
-        "temperature": float(os.getenv("OLLAMA_SUMMARY_TEMPERATURE", "0.45")),
-        "top_k": int(os.getenv("OLLAMA_SUMMARY_TOP_K", "20")),
-        "top_p": float(os.getenv("OLLAMA_SUMMARY_TOP_P", "0.95")),
-        "repeat_penalty": float(os.getenv("OLLAMA_SUMMARY_REPEAT_PENALTY", "1.15")),
-        "presence_penalty": float(os.getenv("OLLAMA_SUMMARY_PRESENCE_PENALTY", "1.5")),
-        "repeat_last_n": int(os.getenv("OLLAMA_SUMMARY_REPEAT_LAST_N", "256")),
-        "num_predict": int(os.getenv("OLLAMA_SUMMARY_NUM_PREDICT", "3000")),
-    }
 
 
 def build_agent_llm_payload(
@@ -397,18 +329,14 @@ def build_agent_llm_payload(
     model_name: str | None = None,
     thinking: bool = False,
     persona_depth: str = "standard",
-    model_provider: str = "ollama",
+    model_provider: str = "openai",
 ) -> dict:
-    payload = {
+    return {
         "agent_id": persona["agent_id"],
-        "model": model_name or ollama_model(),
+        "model": model_name or DEFAULT_OPENAI_MODEL,
         "format": "json",
         "messages": build_agent_messages(persona, policy, prior, persona_depth, model_provider),
     }
-    if model_provider != "openai":
-        payload["options"] = agent_options()
-        payload["think"] = thinking
-    return payload
 
 
 def format_summary_response_row(response: dict) -> str:
@@ -429,7 +357,7 @@ def format_summary_response_row(response: dict) -> str:
 def build_summary_llm_payload(policy: str, responses: list[dict], model_name: str | None = None) -> dict:
     responses_text = "\n\n".join(format_summary_response_row(response) for response in responses)
     return {
-        "model": model_name or ollama_model(),
+        "model": model_name or DEFAULT_OPENAI_MODEL,
         "format": "json",
         "messages": [
             {
@@ -464,14 +392,12 @@ def build_summary_llm_payload(policy: str, responses: list[dict], model_name: st
                 ),
             },
         ],
-        "options": summarize_options(),
-        "think": True,
     }
 
 
 def build_summary_field_refill_payload(missing_summary: dict, model_name: str | None = None) -> dict:
     return {
-        "model": model_name or ollama_model(),
+        "model": model_name or DEFAULT_OPENAI_MODEL,
         "format": "json",
         "messages": [
             {
@@ -496,8 +422,6 @@ def build_summary_field_refill_payload(missing_summary: dict, model_name: str | 
                 ),
             },
         ],
-        "options": summarize_options(),
-        "think": False,
     }
 
 
@@ -505,32 +429,21 @@ def refill_summary_short_fields(
     policy: str,
     missing_summary: dict,
     model_name: str | None = None,
-    model_provider: str = "ollama",
+    model_provider: str = "openai",
     thinking: bool = False,
 ) -> dict:
     try:
         payload = build_summary_field_refill_payload(missing_summary, model_name)
-        if model_provider == "openai":
-            from openai import OpenAI
+        from openai import OpenAI
 
-            client = OpenAI(api_key=get_openai_api_key())
-            response = client.chat.completions.create(
-                model=model_name or "gpt-4o-mini",
-                response_format={"type": "json_object"},
-                messages=payload["messages"],
-                **openai_reasoning_options(thinking),
-            )
-            return parse_json_object(response.choices[0].message.content or "{}")
-
-        client = ollama.Client(host=ollama_host(), timeout=45)
-        response = client.chat(
-            model=payload["model"],
-            format=payload["format"],
+        client = OpenAI(api_key=get_openai_api_key())
+        response = client.chat.completions.create(
+            model=model_name or DEFAULT_OPENAI_MODEL,
+            response_format={"type": "json_object"},
             messages=payload["messages"],
-            options=payload["options"],
-            think=payload["think"],
+            **openai_reasoning_options(thinking),
         )
-        return parse_json_object(response["message"]["content"])
+        return parse_json_object(response.choices[0].message.content or "{}")
     except Exception:
         return {}
 
@@ -544,99 +457,14 @@ def has_repeated_tail(text: str, window: int = 80, repeats: int = 3) -> bool:
     return prior.count(tail) >= repeats - 1
 
 
-def get_agent_response(
-    persona: dict,
-    policy: str,
-    prior: dict | None = None,
-    model_name: str | None = None,
-    thinking: bool = False,
-    persona_depth: str = "standard",
-    model_provider: str = "ollama",
-) -> dict:
-    try:
-        client = ollama.Client(host=ollama_host(), timeout=60)
-        response = client.chat(
-            model=model_name or ollama_model(),
-            format="json",
-            messages=build_agent_messages(persona, policy, prior, persona_depth, model_provider),
-            options=agent_options(),
-            think=thinking,
-        )
-        return parse_agent_response(response["message"]["content"], model_provider=model_provider)
-    except Exception:
-        return dict(FAILURE_FALLBACK)
-
-
-def stream_agent_response(
-    persona: dict,
-    policy: str,
-    prior: dict | None = None,
-    model_name: str | None = None,
-    thinking: bool = False,
-    persona_depth: str = "standard",
-    model_provider: str = "ollama",
-):
-    raw_output = ""
-    try:
-        client = ollama.Client(host=ollama_host(), timeout=60)
-        stream = client.chat(
-            model=model_name or ollama_model(),
-            format="json",
-            messages=build_agent_messages(persona, policy, prior, persona_depth, model_provider),
-            options=agent_options(),
-            think=thinking,
-            stream=True,
-        )
-        thinking_output = ""
-        repeated = False
-        for chunk in stream:
-            message = chunk.get("message", {})
-            thinking = message.get("thinking", "")
-            content = message.get("content", "")
-            if thinking:
-                thinking_output += thinking
-                yield {"type": "thinking", "content": thinking}
-                if has_repeated_tail(thinking_output):
-                    repeated = True
-                    yield {"type": "error", "message": "Repetition detected in model thinking output."}
-                    break
-            if content:
-                raw_output += content
-                yield {"type": "token", "content": content}
-                if has_repeated_tail(raw_output):
-                    repeated = True
-                    yield {"type": "error", "message": "Repetition detected in model response output."}
-                    break
-        if repeated:
-            yield {
-                "type": "final",
-                "response": {
-                    "stance": "neutral",
-                    "rationale": "모델 출력이 반복되어 응답 생성을 중단했습니다.",
-                },
-            }
-            return
-        yield {"type": "final", "response": parse_agent_response(raw_output or thinking_output, model_provider=model_provider)}
-    except Exception as exc:
-        message = f"{type(exc).__name__}: {exc}"
-        yield {"type": "error", "message": message}
-        yield {
-            "type": "final",
-            "response": {
-                "stance": "neutral",
-                "rationale": f"LLM 호출 실패: {message}",
-            },
-        }
-
 
 def stream_openai_agent_response(
     persona: dict,
     policy: str,
     prior: dict | None = None,
-    model_name: str = "gpt-4o-mini",
+    model_name: str = DEFAULT_OPENAI_MODEL,
     persona_depth: str = "standard",
     thinking: bool = False,
-    model_provider: str = "openai",
 ):
     raw_output = ""
     try:
@@ -646,7 +474,7 @@ def stream_openai_agent_response(
         stream = client.chat.completions.create(
             model=model_name,
             response_format={"type": "json_object"},
-            messages=build_agent_messages(persona, policy, prior, persona_depth, model_provider),
+            messages=build_agent_messages(persona, policy, prior, persona_depth),
             **openai_reasoning_options(thinking),
             stream=True,
         )
@@ -655,7 +483,7 @@ def stream_openai_agent_response(
             if content:
                 raw_output += content
                 yield {"type": "token", "content": content}
-        yield {"type": "final", "response": parse_agent_response(raw_output, model_provider=model_provider)}
+        yield {"type": "final", "response": parse_agent_response(raw_output)}
     except Exception as exc:
         message = f"{type(exc).__name__}: {exc}"
         yield {"type": "error", "message": message}
@@ -671,7 +499,7 @@ def stream_openai_agent_response(
 def stream_openai_summary_clusters(
     policy: str,
     responses: list[dict],
-    model_name: str = "gpt-4o-mini",
+    model_name: str = DEFAULT_OPENAI_MODEL,
     thinking: bool = False,
 ):
     raw_output = ""
@@ -885,62 +713,3 @@ def failed_summary(message: str, raw_output: str = "") -> dict:
         "blind_spot_clusters": [],
         "raw_output": raw_output,
     }
-
-
-def stream_summary_clusters(policy: str, responses: list[dict], model_name: str | None = None):
-    raw_output = ""
-    thinking_output = ""
-    try:
-        client = ollama.Client(host=ollama_host(), timeout=90)
-        payload = build_summary_llm_payload(policy, responses, model_name)
-        stream = client.chat(
-            model=payload["model"],
-            format=payload["format"],
-            messages=payload["messages"],
-            options=payload["options"],
-            think=payload["think"],
-            stream=True,
-        )
-
-        repeated = False
-        for chunk in stream:
-            message = chunk.get("message", {})
-            thinking = message.get("thinking", "")
-            content = message.get("content", "")
-            if thinking:
-                thinking_output += thinking
-                yield {"type": "thinking", "content": thinking}
-                if has_repeated_tail(thinking_output):
-                    repeated = True
-                    yield {"type": "error", "message": "Repetition detected in summary thinking output."}
-                    break
-            if content:
-                raw_output += content
-                yield {"type": "token", "content": content}
-                if has_repeated_tail(raw_output):
-                    repeated = True
-                    yield {"type": "error", "message": "Repetition detected in summary response output."}
-                    break
-
-        if repeated:
-            yield {"type": "final", "summary": failed_summary("요약 모델 출력이 반복되어 생성을 중단했습니다.", raw_output or thinking_output)}
-            return
-        if not raw_output.strip():
-            yield {
-                "type": "final",
-                "summary": failed_summary("요약 모델이 추론만 출력하고 최종 JSON을 생성하지 않았습니다.", thinking_output),
-            }
-            return
-        yield {"type": "final", "summary": summary_from_text(raw_output)}
-    except Exception as exc:
-        message = f"{type(exc).__name__}: {exc}"
-        yield {"type": "error", "message": message}
-        yield {"type": "final", "summary": failed_summary(message, raw_output or thinking_output)}
-
-
-def summarize_clusters(policy: str, responses: list[dict]) -> dict:
-    final = failed_summary("Summary generation failed.")
-    for event in stream_summary_clusters(policy, responses):
-        if event["type"] == "final":
-            final = event["summary"]
-    return final

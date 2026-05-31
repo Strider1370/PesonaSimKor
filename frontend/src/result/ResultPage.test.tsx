@@ -32,8 +32,8 @@ describe("ResultPage", () => {
       policy:
         "[정책 설명]\n현행 사형제를 유지하고, 법률상 사형 선고가 가능한 제도를 계속 둔다.\n\n[제시 관점]\n한국은 법률상 사형제를 유지하고 있으나 장기간 집행하지 않은 상태입니다.",
       n_agents: 5,
-      model_name: "qwen3.5:9b",
-      model_provider: "ollama",
+      model_name: "gpt-5-mini",
+      model_provider: "openai",
       completedAt: "2026-05-30T00:00:00.000Z",
       sampledAgents: [
         { agent_id: 7, age: 52, gender: "female", region: "서울-은평구", job: "간호조무사", age_group: "50s", region_group: "capital" },
@@ -71,7 +71,7 @@ describe("ResultPage", () => {
     expect(html).toContain("찬성")
     expect(html).toContain("3")
     expect(html).toContain("사각지대")
-    expect(html).toContain("qwen3.5:9b")
+    expect(html).toContain("gpt-5-mini")
     expect(html).toContain("찬반 클러스터")
     expect(html).toContain("- 응답 수")
     expect(html).not.toContain("의견 지형도")
