@@ -14,6 +14,8 @@ from app.services.aggregation import compute_aggregate
 from app.services.llm_client import (
     build_agent_llm_payload,
     build_summary_llm_payload,
+    normalize_summary,
+    refill_summary_short_fields,
     stream_agent_response,
     stream_openai_agent_response,
     stream_openai_summary_clusters,
@@ -356,6 +358,17 @@ async def simulation_stream(req: SimulateRequest):
                 if summary_failed and summary.get("status") != "failed":
                     summary["status"] = "failed"
 
+        summary = normalize_summary(
+            summary,
+            responses,
+            refill_missing=lambda missing: refill_summary_short_fields(
+                policy,
+                missing,
+                model_name=req.model_name,
+                model_provider=req.model_provider,
+                thinking=req.thinking,
+            ),
+        )
         aggregate["concern_clusters"] = summary.get("concern_clusters", [])
         aggregate["support_clusters"] = summary.get("support_clusters", [])
         aggregate["blind_spot_clusters"] = summary.get("blind_spot_clusters", []) if aggregate["blind_spot_raw"] else []

@@ -202,7 +202,9 @@ describe("experiment slots", () => {
           by_region: {},
           concern_clusters: [],
           support_clusters: [],
-          blind_spot_clusters: [{ affected_group: "workers", count: 1, blind_spot_examples: ["blind spot"] }],
+          blind_spot_clusters: [
+            { affected_group: "workers", short_title: "workers", count: 1, blind_spot_examples: ["blind spot"], agent_ids: [3] },
+          ],
           reframing_list: [],
         },
         aggregateRuns: [

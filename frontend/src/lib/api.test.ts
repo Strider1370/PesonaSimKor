@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { getHealth, parseSseChunk } from "./api"
+import { getHealth, listProjectCsvExports, loadProjectCsvExport, parseSseChunk, saveProjectCsvExport } from "./api"
 import type { SimulateRequest } from "./api"
 
 afterEach(() => {
@@ -41,13 +41,19 @@ describe("parseSseChunk", () => {
       by_age: {},
       by_gender: {},
       by_region: {},
-      concern_clusters: [],
-      support_clusters: [],
+      concern_clusters: [
+        { label: "생활비 부담", short_label: "생활비 부담", count: 1, examples: ["부담"] },
+      ],
+      support_clusters: [
+        { label: "활동 보장", short_label: "활동 보장", count: 1, examples: ["필요"] },
+      ],
       blind_spot_clusters: [
         {
           affected_group: "수도권 맞벌이 가구",
+          short_title: "맞벌이 가구",
           count: 1,
           blind_spot_examples: ["월세 전환 때 보증금 흐름 불안"],
+          agent_ids: [1],
         },
       ],
       reframing_list: [{ text: "전제 반문", age_group: "40s", gender: "female", region_group: "capital" }],
@@ -94,5 +100,48 @@ describe("parseSseChunk", () => {
 
     expect(health.ollama_reachable).toBe(true)
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/healthz"), { cache: "no-store" })
+  })
+
+  it("saves csv exports to the project folder", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ filename: "test.csv", path: "exports/test.csv", bytes: 12 }),
+      }),
+    )
+
+    const result = await saveProjectCsvExport("test.csv", "a,b\n1,2", { name: "snapshot" })
+
+    expect(result.path).toBe("exports/test.csv")
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/exports/csv"),
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ filename: "test.csv", content: "a,b\n1,2", snapshot: { name: "snapshot" } }),
+      }),
+    )
+  })
+
+  it("lists and loads project csv exports", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ items: [{ filename: "saved.csv", path: "exports/saved.csv", bytes: 3, has_snapshot: true }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ filename: "saved.csv", content: "csv", snapshot: { name: "saved" } }),
+        }),
+    )
+
+    const listed = await listProjectCsvExports()
+    const loaded = await loadProjectCsvExport("saved.csv")
+
+    expect(listed.items[0].filename).toBe("saved.csv")
+    expect(loaded.snapshot).toEqual({ name: "saved" })
+    expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("/api/exports/csv/saved.csv"), { cache: "no-store" })
   })
 })

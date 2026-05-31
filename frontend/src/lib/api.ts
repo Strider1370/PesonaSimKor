@@ -112,16 +112,24 @@ export type SamplingPlanEvent = {
 
 export type StanceCounts = Record<Stance, number>
 
-export type Cluster = {
+export type SupportCluster = {
   label: string
+  short_label: string
   count: number
   examples: string[]
+  excluded_from_map?: boolean
 }
+
+export type ConcernCluster = SupportCluster
+export type Cluster = SupportCluster
 
 export type BlindSpotCluster = {
   affected_group: string
+  short_title: string
   count: number
   blind_spot_examples: string[]
+  agent_ids: number[]
+  title_fallback?: boolean
 }
 
 export type ReframingItem = {
@@ -137,12 +145,13 @@ export type BlindSpotRawItem = {
 }
 
 export type AggregateEvent = {
+  headline?: string | null
   total: StanceCounts
   by_age: Record<string, StanceCounts>
   by_gender: Record<string, StanceCounts>
   by_region: Record<string, StanceCounts>
-  concern_clusters: Cluster[]
-  support_clusters: Cluster[]
+  concern_clusters: ConcernCluster[]
+  support_clusters: SupportCluster[]
   blind_spot_raw?: BlindSpotRawItem[]
   blind_spot_clusters: BlindSpotCluster[]
   reframing_list: ReframingItem[]
@@ -184,6 +193,30 @@ export type HealthStatus = {
   dataset_loaded: boolean
   dataset_available: boolean
   dataset_rows: number | null
+}
+
+export type ProjectCsvExport = {
+  filename: string
+  path: string
+  bytes: number
+  modified_at?: number
+  has_snapshot?: boolean
+}
+
+export type ProjectCsvExportList = {
+  items: ProjectCsvExport[]
+}
+
+export type SavedProjectCsvExport = {
+  filename: string
+  path: string
+  bytes: number
+}
+
+export type LoadedProjectCsvExport = {
+  filename: string
+  content: string
+  snapshot: unknown | null
 }
 
 type ParsedEvent = { type: string; data: unknown }
@@ -260,6 +293,34 @@ export async function getHealth(): Promise<HealthStatus> {
   const response = await fetch(`${API_BASE_URL}/healthz`, { cache: "no-store" })
   if (!response.ok) {
     throw new Error(`Health check failed: ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function saveProjectCsvExport(filename: string, content: string, snapshot?: unknown): Promise<SavedProjectCsvExport> {
+  const response = await fetch(`${API_BASE_URL}/api/exports/csv`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename, content, snapshot }),
+  })
+  if (!response.ok) {
+    throw new Error(`CSV export save failed: ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function listProjectCsvExports(): Promise<ProjectCsvExportList> {
+  const response = await fetch(`${API_BASE_URL}/api/exports/csv`, { cache: "no-store" })
+  if (!response.ok) {
+    throw new Error(`CSV export list failed: ${response.status}`)
+  }
+  return response.json()
+}
+
+export async function loadProjectCsvExport(filename: string): Promise<LoadedProjectCsvExport> {
+  const response = await fetch(`${API_BASE_URL}/api/exports/csv/${encodeURIComponent(filename)}`, { cache: "no-store" })
+  if (!response.ok) {
+    throw new Error(`CSV export load failed: ${response.status}`)
   }
   return response.json()
 }

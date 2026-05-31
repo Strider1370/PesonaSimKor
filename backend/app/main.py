@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
+from app.api.exports import router as exports_router
 from app.api.simulate import router as simulate_router
 from app.config.env import load_backend_environment
 from app.services.persona_repository import parquet_row_groups
@@ -33,4 +34,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(health_router)
+app.include_router(exports_router, prefix="/api")
 app.include_router(simulate_router, prefix="/api")

@@ -24,6 +24,10 @@ import {
   SummaryStatusEvent,
   SummaryTokenEvent,
   getHealth,
+  listProjectCsvExports,
+  loadProjectCsvExport,
+  ProjectCsvExport,
+  saveProjectCsvExport,
   simulate,
 } from "./lib/api"
 import {
@@ -54,9 +58,11 @@ import {
   listExperimentSnapshots,
   saveExperimentSnapshot,
 } from "./lib/experimentStorage"
+import { saveCurrentRun, saveExperimentRunAsCurrentRun, useCurrentRunStore } from "./lib/currentRunStore"
+import { ResultPage } from "./result/ResultPage"
 
 type Phase = "idle" | "running" | "done" | "error" | "stopped"
-type Page = "simulate" | "experiment"
+type Page = "simulate" | "experiment" | "result"
 
 const STANCE_LABELS: Record<Stance, string> = {
   support: "찬성",
@@ -93,6 +99,13 @@ const EMPTY_COUNTS: StanceCounts = { support: 0, oppose: 0, neutral: 0 }
 const PRESETS = presetsData as ExperimentPreset[]
 const PRESET_OPTIONS = getPresetOptions(PRESETS)
 const OLLAMA_MODEL_OPTIONS = ["qwen3.5:9b", "qwen3:14b", "gemma3:12b"]
+const DEFAULT_MODEL_PROVIDER = "ollama" as const
+const DEFAULT_MODEL_NAME = "qwen3.5:9b"
+const PRIOR_TOPIC_IDS = new Set(["2_1"])
+
+export function formatPresetTopicLabel(topic: { id: string; label: string }) {
+  return PRIOR_TOPIC_IDS.has(topic.id) ? `${topic.label} (prior 있음)` : topic.label
+}
 
 export default function App() {
   const [page, setPage] = useState<Page>(() => pageFromLocation())
@@ -120,6 +133,7 @@ export default function App() {
   const [healthError, setHealthError] = useState<string | null>(null)
   const [now, setNow] = useState(Date.now())
   const abortControllerRef = useRef<AbortController | null>(null)
+  const draftRequest = useCurrentRunStore((state) => state.draftRequest)
 
   const progress = useMemo(() => Math.round((responses.length / nAgents) * 100), [responses.length, nAgents])
   const sampledById = useMemo(() => new Map(sampled.map((agent) => [agent.agent_id, agent])), [sampled])
@@ -149,6 +163,12 @@ export default function App() {
   }, [phase])
 
   useEffect(() => {
+    if (page !== "simulate" || !draftRequest) return
+    setPolicy(draftRequest.policy)
+    setNAgents(draftRequest.n_agents)
+  }, [page, draftRequest])
+
+  useEffect(() => {
     let cancelled = false
 
     async function refreshHealth() {
@@ -175,6 +195,10 @@ export default function App() {
   async function runSimulation() {
     const trimmed = policy.trim()
     if (!trimmed || phase === "running") return
+    const requestedAgents = nAgents
+    const modelProvider = DEFAULT_MODEL_PROVIDER
+    const modelName = health?.ollama_model || DEFAULT_MODEL_NAME
+    const sampledForRun: AgentSampledEvent[] = []
 
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -198,11 +222,12 @@ export default function App() {
     setError(null)
 
     try {
-      for await (const event of simulate({ policy: trimmed, n_agents: nAgents }, controller.signal)) {
+      for await (const event of simulate({ policy: trimmed, n_agents: requestedAgents }, controller.signal)) {
         const activityAt = Date.now()
         if (event.type === "sampling_plan") {
           setSamplingPlan(event.data)
         } else if (event.type === "agent_sampled") {
+          sampledForRun.push(event.data)
           setSampled((prev) => [...prev, event.data])
         } else if (event.type === "llm_prompt") {
           setLlmPrompts((prev) => [...prev, event.data])
@@ -236,6 +261,21 @@ export default function App() {
           setSummaryActivityAt(activityAt)
         } else if (event.type === "aggregate") {
           setAggregate(event.data)
+          saveCurrentRun({
+            policy: trimmed,
+            n_agents: requestedAgents,
+            model_name: modelName,
+            model_provider: modelProvider,
+            aggregate: event.data,
+            sampledAgents: sampledForRun.slice(),
+            completedAt: new Date().toISOString(),
+          })
+          useCurrentRunStore.getState().setDraftRequest({
+            policy: trimmed,
+            n_agents: requestedAgents,
+            model_provider: modelProvider,
+            model_name: modelName,
+          })
         } else if (event.type === "error") {
           setError(event.data.message)
           setPhase("error")
@@ -287,7 +327,7 @@ export default function App() {
   }
 
   function navigatePage(nextPage: Page) {
-    const nextPath = nextPage === "experiment" ? "/experiment" : "/"
+    const nextPath = nextPage === "experiment" ? "/experiment" : nextPage === "result" ? "/result" : "/"
     window.history.pushState(null, "", nextPath)
     setPage(nextPage)
   }
@@ -312,8 +352,14 @@ export default function App() {
 
         <PageTabs page={page} onNavigate={navigatePage} />
 
-        {page === "experiment" ? (
-          <ExperimentPage health={health} />
+        {page === "result" ? (
+          <ResultPage
+            onDebug={() => navigatePage("simulate")}
+            onExperiment={() => navigatePage("experiment")}
+            onRerun={() => navigatePage("simulate")}
+          />
+        ) : page === "experiment" ? (
+          <ExperimentPage health={health} onOpenResult={() => navigatePage("result")} />
         ) : (
           <>
         <section className="control-panel">
@@ -349,6 +395,9 @@ export default function App() {
               </button>
               <button type="button" className="secondary-button" disabled={phase === "running"} onClick={resetSimulation}>
                 초기화
+              </button>
+              <button type="button" className="secondary-button" disabled={phase !== "done" || !aggregate} onClick={() => navigatePage("result")}>
+                결과 보기 -&gt;
               </button>
             </div>
           </div>
@@ -499,11 +548,15 @@ function PageTabs({ page, onNavigate }: { page: Page; onNavigate: (page: Page) =
   )
 }
 
-function ExperimentLevels({ modelProvider }: { modelProvider: "ollama" | "openai" }) {
-  const activeLevels = getActiveLevels(modelProvider, false)
+export function ExperimentLevels({ modelProvider, hasPrior }: { modelProvider: "ollama" | "openai"; hasPrior: boolean }) {
+  const activeLevels = getActiveLevels(modelProvider, hasPrior)
   const levels = [
     { id: 1, label: "다양성", note: "페르소나마다 다른 이유로 다른 반응" },
-    { id: 2, label: "Prior 대응", note: "Prior 데이터 미수집 - 갤럽 여론만 파이프라인 구분 예정" },
+    {
+      id: 2,
+      label: "Prior 대응",
+      note: hasPrior ? "한국갤럽 원전 prior 적용" : "원전 프리셋 선택 시 한국갤럽 prior 적용",
+    },
     { id: 3, label: "반문", note: "OpenAI 모델 선택 시 정책 전제에 대한 반문 생성" },
     { id: 4, label: "대안", note: "미구현 - 장기 목표" },
   ]
@@ -586,7 +639,7 @@ function currentPresetSelection(
   return preset ? selectionFromPreset(preset) : null
 }
 
-function ExperimentPage({ health }: { health: HealthStatus | null }) {
+function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null; onOpenResult: () => void }) {
   const [slots, setSlots] = useState(createInitialSlots)
   const [presetSelections, setPresetSelections] = useState<Partial<Record<PolicySlotId, PresetSelection>>>({})
   const [nAgents, setNAgents] = useState(30)
@@ -601,11 +654,19 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
   const [selectedTraceSlot, setSelectedTraceSlot] = useState<PolicySlotId | null>(null)
   const [savedSnapshots, setSavedSnapshots] = useState<ExperimentSnapshot[]>(() => listExperimentSnapshots())
   const [snapshotName, setSnapshotName] = useState("")
+  const [projectCsvExports, setProjectCsvExports] = useState<ProjectCsvExport[]>([])
+  const [projectCsvStatus, setProjectCsvStatus] = useState<string | null>(null)
+  const [projectCsvError, setProjectCsvError] = useState<string | null>(null)
   const controllersRef = useRef<Partial<Record<PolicySlotId, AbortController>>>({})
   const activeSlots = slots.filter((slot) => slot.policy.trim())
   const isRunning = Object.values(runs).some((run) => run?.phase === "running")
+  const hasPrior = slots.some((slot) => slot.topicId === "2_1")
   const effectiveModelName =
     modelProvider === "ollama" ? customOllamaModel.trim() || ollamaModelName : openAiModelName
+
+  useEffect(() => {
+    refreshProjectCsvExports()
+  }, [])
 
   function setRun(slotId: PolicySlotId, updater: (prev: ExperimentRunState) => ExperimentRunState) {
     setRuns((prev) => ({
@@ -762,6 +823,16 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
     setSavedSnapshots(listExperimentSnapshots())
   }
 
+  async function refreshProjectCsvExports() {
+    try {
+      const exported = await listProjectCsvExports()
+      setProjectCsvExports(exported.items)
+      setProjectCsvError(null)
+    } catch (err) {
+      setProjectCsvError(err instanceof Error ? err.message : "프로젝트 CSV 목록을 불러오지 못했습니다.")
+    }
+  }
+
   function currentSnapshotInput() {
     const snapshotSlots = slots
       .filter((slot) => slot.policy.trim())
@@ -830,9 +901,58 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
     downloadCsv(`${safeCsvFilename(snapshot.name)}.csv`, buildExperimentCsv(snapshot))
   }
 
+  async function saveCurrentExperimentCsvToProject() {
+    const snapshot = {
+      ...currentSnapshotInput(),
+      id: "current",
+      createdAt: new Date().toISOString(),
+    }
+    const filename = `${safeCsvFilename(snapshot.name)}.csv`
+    try {
+      const saved = await saveProjectCsvExport(filename, buildExperimentCsv(snapshot), snapshot)
+      setProjectCsvStatus(`저장됨: ${saved.path}`)
+      setProjectCsvError(null)
+      await refreshProjectCsvExports()
+    } catch (err) {
+      setProjectCsvStatus(null)
+      setProjectCsvError(err instanceof Error ? err.message : "프로젝트 폴더에 CSV를 저장하지 못했습니다.")
+    }
+  }
+
+  async function loadProjectCsv(filename: string) {
+    try {
+      const loaded = await loadProjectCsvExport(filename)
+      if (!isExperimentSnapshot(loaded.snapshot)) {
+        setProjectCsvStatus(null)
+        setProjectCsvError(`${filename}에는 복원 가능한 실험 상태 정보가 없습니다.`)
+        return
+      }
+      loadSnapshot(loaded.snapshot)
+      setProjectCsvStatus(`불러옴: exports/${loaded.filename}`)
+      setProjectCsvError(null)
+    } catch (err) {
+      setProjectCsvStatus(null)
+      setProjectCsvError(err instanceof Error ? err.message : "프로젝트 CSV를 불러오지 못했습니다.")
+    }
+  }
+
+  function openExperimentResult(slotId: PolicySlotId, run: ExperimentRunState) {
+    const slot = slots.find((item) => item.id === slotId)
+    if (!slot?.policy.trim() || !run.aggregate) return
+    saveExperimentRunAsCurrentRun({
+      policy: slot.policy.trim(),
+      nAgents,
+      modelName: effectiveModelName,
+      modelProvider,
+      aggregate: run.aggregate,
+      sampledAgents: run.sampledAgents,
+    })
+    onOpenResult()
+  }
+
   return (
     <div className="experiment-layout">
-      <ExperimentLevels modelProvider={modelProvider} />
+      <ExperimentLevels modelProvider={modelProvider} hasPrior={hasPrior} />
       <ExperimentPromptGuide modelProvider={modelProvider} />
       <section className="control-panel experiment-settings">
         <div className="settings-grid">
@@ -971,7 +1091,7 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
                   <option value="">직접 입력</option>
                   {PRESET_OPTIONS.topics.map((topic) => (
                     <option value={topic.id} key={topic.id}>
-                      {topic.label}
+                      {formatPresetTopicLabel(topic)}
                     </option>
                   ))}
                 </select>
@@ -1012,8 +1132,11 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
         slots={slots}
         runs={runs}
         nAgents={nAgents}
+        modelName={effectiveModelName}
+        modelProvider={modelProvider}
         selectedTraceSlot={selectedTraceSlot}
         onSelectTraceSlot={setSelectedTraceSlot}
+        onOpenResult={openExperimentResult}
       />
 
       <section className="control-panel experiment-archive">
@@ -1033,8 +1156,41 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
             저장
           </button>
           <button type="button" className="secondary-button" disabled={isRunning || activeSlots.length === 0} onClick={exportCurrentExperiment}>
-            CSV 내보내기
+            CSV 다운로드
           </button>
+          <button type="button" className="secondary-button" disabled={isRunning || activeSlots.length === 0} onClick={saveCurrentExperimentCsvToProject}>
+            프로젝트 폴더에 CSV 저장
+          </button>
+        </div>
+        {(projectCsvStatus || projectCsvError) && (
+          <p className={projectCsvError ? "error-box compact" : "settings-note"}>{projectCsvError ?? projectCsvStatus}</p>
+        )}
+        <div className="saved-snapshot-list">
+          <div className="section-head compact-head">
+            <div>
+              <h3>프로젝트 CSV</h3>
+              <p>저장 위치: exports/*.csv</p>
+            </div>
+            <button type="button" className="secondary-button" disabled={isRunning} onClick={refreshProjectCsvExports}>
+              새로고침
+            </button>
+          </div>
+          {projectCsvExports.length === 0 && <p className="empty compact">프로젝트 폴더에 저장된 CSV가 없습니다.</p>}
+          {projectCsvExports.map((item) => (
+            <article key={item.filename} className="saved-snapshot-item">
+              <div>
+                <strong>{item.filename}</strong>
+                <span>
+                  {item.path} · {item.bytes.toLocaleString()} bytes{item.has_snapshot ? "" : " · 상태 정보 없음"}
+                </span>
+              </div>
+              <div>
+                <button type="button" className="secondary-button" disabled={isRunning || !item.has_snapshot} onClick={() => loadProjectCsv(item.filename)}>
+                  불러오기
+                </button>
+              </div>
+            </article>
+          ))}
         </div>
         <div className="saved-snapshot-list">
           {savedSnapshots.length === 0 && <p className="empty compact">저장된 실험이 없습니다.</p>}
@@ -1165,14 +1321,20 @@ function ExperimentResults({
   slots,
   runs,
   nAgents,
+  modelName,
+  modelProvider,
   selectedTraceSlot,
   onSelectTraceSlot,
+  onOpenResult,
 }: {
   slots: ReturnType<typeof createInitialSlots>
   runs: Partial<Record<PolicySlotId, ExperimentRunState>>
   nAgents: number
+  modelName: string
+  modelProvider: "ollama" | "openai"
   selectedTraceSlot: PolicySlotId | null
   onSelectTraceSlot: (slotId: PolicySlotId) => void
+  onOpenResult: (slotId: PolicySlotId, run: ExperimentRunState) => void
 }) {
   const visibleSlots = slots.filter((slot) => runs[slot.id] || slot.policy.trim())
   const visibleSlotIds = visibleSlots.map((slot) => slot.id)
@@ -1258,7 +1420,13 @@ function ExperimentResults({
               </button>
             ))}
           </div>
-          <ExperimentTrace run={activeRun} nAgents={nAgents} />
+          <ExperimentTrace
+            run={activeRun}
+            nAgents={nAgents}
+            modelName={modelName}
+            modelProvider={modelProvider}
+            onOpenResult={() => onOpenResult(activeTraceSlot, activeRun)}
+          />
         </section>
       )}
     </section>
@@ -1326,7 +1494,19 @@ function ResponseCard({
   )
 }
 
-function ExperimentTrace({ run, nAgents }: { run: ExperimentRunState; nAgents: number }) {
+function ExperimentTrace({
+  run,
+  nAgents,
+  modelName,
+  modelProvider,
+  onOpenResult,
+}: {
+  run: ExperimentRunState
+  nAgents: number
+  modelName: string
+  modelProvider: "ollama" | "openai"
+  onOpenResult: () => void
+}) {
   const progress = Math.round((run.responses.length / nAgents) * 100)
   const sampledById = new Map(run.sampledAgents.map((agent) => [agent.agent_id, agent]))
   const llmAgentIds = Array.from(
@@ -1347,7 +1527,12 @@ function ExperimentTrace({ run, nAgents }: { run: ExperimentRunState; nAgents: n
             {run.sampledAgents.length}명 샘플링 · {run.llmPrompts.length}건 입력 생성 · {run.responses.length}명 응답 완료
             {run.aggregateRuns.length > 1 ? ` · ${run.currentRunIndex + 1}번째 실행` : ""}
           </span>
-          <span>{phaseLabel(run.phase, progress)}</span>
+          <span>
+            {modelProvider} · {modelName} · {phaseLabel(run.phase, progress)}
+          </span>
+          <button type="button" className="secondary-button" disabled={!run.aggregate || run.phase === "running"} onClick={onOpenResult}>
+            결과 보기 -&gt;
+          </button>
         </div>
         <div className="progress-track">
           <div className="progress-fill" style={{ width: `${progress}%` }} />
@@ -1526,6 +1711,19 @@ function safeCsvFilename(value: string) {
   return value.trim().replace(/[^\w가-힣]+/g, "_") || "experiment"
 }
 
+function isExperimentSnapshot(value: unknown): value is ExperimentSnapshot {
+  if (!value || typeof value !== "object") return false
+  const snapshot = value as Partial<ExperimentSnapshot>
+  return (
+    typeof snapshot.id === "string" &&
+    typeof snapshot.createdAt === "string" &&
+    typeof snapshot.name === "string" &&
+    !!snapshot.settings &&
+    Array.isArray(snapshot.slots) &&
+    Array.isArray(snapshot.results)
+  )
+}
+
 function emptyExperimentRun(): ExperimentRunState {
   return {
     phase: "idle",
@@ -1551,7 +1749,9 @@ function emptyExperimentRun(): ExperimentRunState {
 }
 
 function pageFromLocation(): Page {
-  return window.location.pathname === "/experiment" ? "experiment" : "simulate"
+  if (window.location.pathname === "/experiment") return "experiment"
+  if (window.location.pathname === "/result") return "result"
+  return "simulate"
 }
 
 function AggregateView({ aggregate }: { aggregate: AggregateEvent }) {
