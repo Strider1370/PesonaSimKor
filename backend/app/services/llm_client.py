@@ -1,6 +1,7 @@
 import ast
 import json
 import os
+import re
 from typing import Any
 
 import ollama
@@ -22,6 +23,7 @@ DEFAULT_OLLAMA_MODEL = "qwen3.5:9b"
 
 SYSTEM_PROMPT_OLLAMA = """당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
 해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
+[여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
 반드시 아래 JSON 형식으로만 답하십시오. 다른 텍스트는 절대 포함하지 마십시오.
 반드시 한국어로만 답하십시오.
 
@@ -34,6 +36,7 @@ SYSTEM_PROMPT_OLLAMA = """당신은 주어진 페르소나 정보를 충실히 �
 
 SYSTEM_PROMPT_OPENAI = """당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
 해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
+[여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
 반드시 아래 JSON 형식으로만 답하십시오. 다른 텍스트는 절대 포함하지 마십시오.
 반드시 한국어로만 답하십시오.
 
@@ -87,8 +90,23 @@ blind_spot은 전문가적 정책 분석이 아닙니다.
 세 조건 중 하나라도 부족하면 blind_spot은 null로 반환하십시오.
 blind_spot이 null이면 affected_group도 null로 반환하십시오."""
 
+
+def render_prior_text(prior: dict) -> str:
+    national = prior["national"]
+    group_phrases = ", ".join(
+        f'{g["label"]} 찬성 {g["support"]}%·반대 {g["oppose"]}%' for g in prior["groups"]
+    )
+    return (
+        f'실제 설문조사({prior["source"]})에 따르면, "{prior["question"]}"에 대해 '
+        f'전국 응답은 찬성 {national["support"]}%, 반대 {national["oppose"]}%, '
+        f'유보 {national["undecided"]}%입니다.\n'
+        f'당신이 속한 집단의 실제 여론은 다음과 같습니다: {group_phrases}.\n'
+        f'이는 참고 정보일 뿐이며, 반드시 당신의 구체적인 직업과 생활 맥락에서 스스로 판단해 답하십시오.'
+    )
+
 SYSTEM_PROMPT_OLLAMA = f"""당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
 해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
+[여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
 반드시 아래 JSON 형식으로만 답하십시오. 다른 텍스트는 절대 포함하지 마십시오.
 반드시 한국어로만 답하십시오.
 
@@ -111,6 +129,7 @@ SYSTEM_PROMPT_OLLAMA = f"""당신은 주어진 페르소나 정보를 충실히 
 
 SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
 해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
+[여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
 반드시 아래 JSON 형식으로만 답하십시오. 다른 텍스트는 절대 포함하지 마십시오.
 반드시 한국어로만 답하십시오.
 
@@ -248,7 +267,7 @@ def build_agent_prompt(
     prior: dict | None = None,
     persona_depth: str = "standard",
 ) -> str:
-    prior_text = json.dumps(prior, ensure_ascii=False) if prior else "none"
+    prior_text = render_prior_text(prior) if prior else "none"
     if persona_depth == "minimal":
         structured_profile = {
             "age": persona.get("age"),
@@ -276,7 +295,7 @@ def build_agent_prompt(
 [Narrative Context]
 {narrative_text}
 
-[Prior]
+[여론 참고]
 {prior_text}
 
 [Policy]
@@ -296,7 +315,7 @@ def build_agent_prompt(
     prior: dict | None = None,
     persona_depth: str = "standard",
 ) -> str:
-    prior_text = json.dumps(prior, ensure_ascii=False) if prior else "none"
+    prior_text = render_prior_text(prior) if prior else "none"
     if persona_depth == "minimal":
         structured_profile = {
             "age": persona.get("age"),
@@ -324,7 +343,7 @@ def build_agent_prompt(
 [Narrative Context]
 {narrative_text}
 
-[Prior]
+[여론 참고]
 {prior_text}
 
 [Policy]
@@ -402,8 +421,23 @@ def build_agent_llm_payload(
     }
 
 
+def format_summary_response_row(response: dict) -> str:
+    agent_id = response.get("agent_id", "")
+    return "\n".join(
+        [
+            f"Response #{agent_id} ({response.get('age_group', '')} {response.get('gender', '')} {response.get('region_group', '')}):",
+            f"  stance: {response.get('stance', '')}",
+            f"  rationale: {response.get('rationale', '')}",
+            f"  caveat: {response.get('caveat') or 'null'}",
+            f"  blind_spot: {response.get('blind_spot') or 'null'}",
+            f"  affected_group: {response.get('affected_group') or 'null'}",
+            f"  reframing: {response.get('reframing') or 'null'}",
+        ]
+    )
+
+
 def build_summary_llm_payload(policy: str, responses: list[dict], model_name: str | None = None) -> dict:
-    payload = json.dumps(responses, ensure_ascii=False)
+    responses_text = "\n\n".join(format_summary_response_row(response) for response in responses)
     return {
         "model": model_name or ollama_model(),
         "format": "json",
@@ -412,13 +446,16 @@ def build_summary_llm_payload(policy: str, responses: list[dict], model_name: st
                 "role": "system",
                 "content": (
                     "Summarize Korean policy reaction rationales. "
-                    "Return only a valid JSON object with exactly three arrays: "
+                    "Return only a valid JSON object with headline and exactly three arrays: "
                     "concern_clusters, support_clusters, and blind_spot_clusters. "
-                    "Concern and support clusters must have label, count, and examples. "
-                    "Blind spot clusters must have affected_group, count, and blind_spot_examples. "
+                    "Concern and support clusters must have label, short_label, count, and examples. "
+                    "Blind spot clusters must have affected_group, short_title, count, blind_spot_examples, and agent_ids. "
                     "For blind_spot_clusters, use only response items with a non-null blind_spot field. "
                     "Do not infer, invent, generalize, or add blind spots from rationale, caveat, reframing, policy context, or outside knowledge. "
                     "If there are no responses with a non-null blind_spot, blind_spot_clusters must be []. "
+                    "Examples and agent_ids must use the N from the 'Response #N' marker. Do not invent or infer ids. "
+                    "Keep one-person blind spots as single clusters with count=1. "
+                    "Do not force-merge similar-looking blind spots when affected_group or effect path differs. "
                     "All cluster labels and examples should be written in Korean. "
                     "Do not use markdown. "
                     "In thinking mode, use at most 3 short reasoning bullets, then stop thinking and produce the final JSON. "
@@ -428,16 +465,84 @@ def build_summary_llm_payload(policy: str, responses: list[dict], model_name: st
             {
                 "role": "user",
                 "content": (
-                    f"Policy: {policy}\nResponses: {payload}\n\n"
-                    'Return schema: {"concern_clusters":[{"label":"string","count":1,"examples":["string"]}],'
-                    '"support_clusters":[{"label":"string","count":1,"examples":["string"]}],'
-                    '"blind_spot_clusters":[{"affected_group":"string","count":1,"blind_spot_examples":["string"]}]}'
+                    f"Policy: {policy}\nResponses:\n{responses_text}\n\n"
+                    'Return schema: {"headline":"string or null",'
+                    '"concern_clusters":[{"label":"string","short_label":"string","count":1,"examples":["string"]}],'
+                    '"support_clusters":[{"label":"string","short_label":"string","count":1,"examples":["string"]}],'
+                    '"blind_spot_clusters":[{"affected_group":"string","short_title":"string","count":1,'
+                    '"blind_spot_examples":["string"],"agent_ids":[0]}]}'
                 ),
             },
         ],
         "options": summarize_options(),
         "think": True,
     }
+
+
+def build_summary_field_refill_payload(missing_summary: dict, model_name: str | None = None) -> dict:
+    return {
+        "model": model_name or ollama_model(),
+        "format": "json",
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Fill only missing short display fields for Korean policy summary clusters. "
+                    "Return only JSON. Do not add new clusters. Keep label and affected_group unchanged."
+                ),
+            },
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {
+                        "missing": missing_summary,
+                        "return_schema": {
+                            "concern_clusters": [{"label": "string", "short_label": "string"}],
+                            "support_clusters": [{"label": "string", "short_label": "string"}],
+                            "blind_spot_clusters": [{"affected_group": "string", "short_title": "string"}],
+                        },
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        ],
+        "options": summarize_options(),
+        "think": False,
+    }
+
+
+def refill_summary_short_fields(
+    policy: str,
+    missing_summary: dict,
+    model_name: str | None = None,
+    model_provider: str = "ollama",
+    thinking: bool = False,
+) -> dict:
+    try:
+        payload = build_summary_field_refill_payload(missing_summary, model_name)
+        if model_provider == "openai":
+            from openai import OpenAI
+
+            client = OpenAI(api_key=get_openai_api_key())
+            response = client.chat.completions.create(
+                model=model_name or "gpt-4o-mini",
+                response_format={"type": "json_object"},
+                messages=payload["messages"],
+                **openai_reasoning_options(thinking),
+            )
+            return parse_json_object(response.choices[0].message.content or "{}")
+
+        client = ollama.Client(host=ollama_host(), timeout=45)
+        response = client.chat(
+            model=payload["model"],
+            format=payload["format"],
+            messages=payload["messages"],
+            options=payload["options"],
+            think=payload["think"],
+        )
+        return parse_json_object(response["message"]["content"])
+    except Exception:
+        return {}
 
 
 def has_repeated_tail(text: str, window: int = 80, repeats: int = 3) -> bool:
@@ -611,18 +716,168 @@ def openai_reasoning_options(thinking: bool) -> dict:
     return {"reasoning_effort": "medium"} if thinking else {}
 
 
+def normalize_summary_cluster_item(item: Any) -> dict | None:
+    if not isinstance(item, dict):
+        return None
+    return {
+        "label": str(item.get("label") or "").strip(),
+        "short_label": str(item.get("short_label") or "").strip(),
+        "count": max(0, int(item.get("count") or 0)),
+        "examples": item.get("examples") if isinstance(item.get("examples"), list) else [],
+    }
+
+
+def normalize_blind_spot_cluster_item(item: Any) -> dict | None:
+    if not isinstance(item, dict):
+        return None
+    raw_agent_ids = item.get("agent_ids")
+    agent_ids = [int(agent_id) for agent_id in raw_agent_ids if str(agent_id).isdigit()] if isinstance(raw_agent_ids, list) else []
+    return {
+        "affected_group": str(item.get("affected_group") or "").strip(),
+        "short_title": str(item.get("short_title") or "").strip(),
+        "count": max(0, int(item.get("count") or 0)),
+        "blind_spot_examples": item.get("blind_spot_examples") if isinstance(item.get("blind_spot_examples"), list) else [],
+        "agent_ids": agent_ids,
+    }
+
+
+def compact_korean_label(value: str, limit: int) -> str:
+    cleaned = " ".join(str(value).split())
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[:limit].rstrip()
+
+
+def extract_agent_ids_from_examples(examples: list) -> list[int]:
+    ids: list[int] = []
+    for example in examples:
+        if not isinstance(example, str):
+            continue
+        for match in re.findall(r"(?:응답자|Response #)\s*(\d+)", example):
+            ids.append(int(match))
+    return sorted(set(ids))
+
+
+def apply_refilled_summary_fields(summary: dict, refill: dict) -> None:
+    for key, field in (("concern_clusters", "short_label"), ("support_clusters", "short_label")):
+        refill_items = refill.get(key, [])
+        if not isinstance(refill_items, list):
+            continue
+        by_label = {
+            str(item.get("label") or ""): str(item.get(field) or "").strip()
+            for item in refill_items
+            if isinstance(item, dict)
+        }
+        for cluster in summary.get(key, []):
+            if isinstance(cluster, dict) and not str(cluster.get(field) or "").strip():
+                next_value = by_label.get(str(cluster.get("label") or ""))
+                if next_value:
+                    cluster[field] = next_value
+
+    refill_blind_spots = refill.get("blind_spot_clusters", [])
+    if isinstance(refill_blind_spots, list):
+        by_group = {
+            str(item.get("affected_group") or ""): str(item.get("short_title") or "").strip()
+            for item in refill_blind_spots
+            if isinstance(item, dict)
+        }
+        for cluster in summary.get("blind_spot_clusters", []):
+            if isinstance(cluster, dict) and not str(cluster.get("short_title") or "").strip():
+                next_value = by_group.get(str(cluster.get("affected_group") or ""))
+                if next_value:
+                    cluster["short_title"] = next_value
+
+
+def normalize_summary(summary: dict, responses: list[dict], refill_missing=None) -> dict:
+    actual_ids = {int(response["agent_id"]) for response in responses if "agent_id" in response}
+    normalized = dict(summary)
+
+    missing_for_refill = {
+        "concern_clusters": [
+            cluster
+            for cluster in normalized.get("concern_clusters", [])
+            if isinstance(cluster, dict) and not str(cluster.get("short_label") or "").strip()
+        ],
+        "support_clusters": [
+            cluster
+            for cluster in normalized.get("support_clusters", [])
+            if isinstance(cluster, dict) and not str(cluster.get("short_label") or "").strip()
+        ],
+        "blind_spot_clusters": [
+            cluster
+            for cluster in normalized.get("blind_spot_clusters", [])
+            if isinstance(cluster, dict) and not str(cluster.get("short_title") or "").strip()
+        ],
+    }
+    if refill_missing and any(missing_for_refill.values()):
+        refill = refill_missing(missing_for_refill)
+        if isinstance(refill, dict):
+            apply_refilled_summary_fields(normalized, refill)
+
+    for key in ("concern_clusters", "support_clusters"):
+        clusters = normalized.get(key, [])
+        if not isinstance(clusters, list):
+            clusters = []
+        for cluster in clusters:
+            if not isinstance(cluster, dict):
+                continue
+            label = cluster.get("label", "")
+            if not isinstance(cluster.get("short_label"), str) or not cluster.get("short_label", "").strip():
+                cluster["short_label"] = compact_korean_label(str(label), 6)
+                cluster["excluded_from_map"] = True
+            cluster["count"] = max(0, int(cluster.get("count") or 0))
+        normalized[key] = clusters
+
+    blind_spots = normalized.get("blind_spot_clusters", [])
+    if not isinstance(blind_spots, list):
+        blind_spots = []
+    for cluster in blind_spots:
+        if not isinstance(cluster, dict):
+            continue
+        affected_group = str(cluster.get("affected_group") or "").strip()
+        if not isinstance(cluster.get("short_title"), str) or not cluster.get("short_title", "").strip():
+            cluster["short_title"] = compact_korean_label(affected_group, 14)
+            cluster["title_fallback"] = True
+
+        raw_ids = cluster.get("agent_ids")
+        if not isinstance(raw_ids, list):
+            raw_ids = extract_agent_ids_from_examples(cluster.get("blind_spot_examples", []))
+        clean_ids = sorted({int(agent_id) for agent_id in raw_ids if str(agent_id).isdigit() and int(agent_id) in actual_ids})
+        cluster["agent_ids"] = clean_ids
+        reported_count = max(0, int(cluster.get("count") or 0))
+        cluster["count"] = max(reported_count, len(clean_ids))
+    normalized["blind_spot_clusters"] = blind_spots
+    return normalized
+
+
 def summary_from_text(raw_output: str) -> dict:
     parsed = parse_json_object(raw_output)
     concerns = parsed.get("concern_clusters", [])
     support = parsed.get("support_clusters", [])
     blind_spots = parsed.get("blind_spot_clusters", [])
-    concern_clusters = concerns if isinstance(concerns, list) else []
-    support_clusters = support if isinstance(support, list) else []
-    blind_spot_clusters = blind_spots if isinstance(blind_spots, list) else []
+    concern_clusters = [
+        cluster
+        for cluster in (normalize_summary_cluster_item(item) for item in concerns)
+        if cluster is not None
+    ] if isinstance(concerns, list) else []
+    support_clusters = [
+        cluster
+        for cluster in (normalize_summary_cluster_item(item) for item in support)
+        if cluster is not None
+    ] if isinstance(support, list) else []
+    blind_spot_clusters = [
+        cluster
+        for cluster in (normalize_blind_spot_cluster_item(item) for item in blind_spots)
+        if cluster is not None
+    ] if isinstance(blind_spots, list) else []
+    headline = parsed.get("headline")
+    if not isinstance(headline, str):
+        headline = None
     has_clusters = bool(concern_clusters or support_clusters or blind_spot_clusters)
     return {
         "status": "completed" if has_clusters else "empty",
         "message": "요약이 생성되었습니다." if has_clusters else "요약 모델이 빈 cluster 배열을 반환했습니다.",
+        "headline": headline,
         "concern_clusters": concern_clusters,
         "support_clusters": support_clusters,
         "blind_spot_clusters": blind_spot_clusters,
@@ -634,6 +889,7 @@ def failed_summary(message: str, raw_output: str = "") -> dict:
     return {
         "status": "failed",
         "message": message,
+        "headline": None,
         "concern_clusters": [],
         "support_clusters": [],
         "blind_spot_clusters": [],

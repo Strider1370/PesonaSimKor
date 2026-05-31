@@ -23,6 +23,24 @@ PROVINCE_TO_REGION = {
     "제주": "jeju",     # suppressed (n<50) in source -> not present in by_region -> national
 }
 
+GENDER_LABELS = {"male": "남성", "female": "여성"}
+AGE_LABELS = {
+    "20s": "18~29세",
+    "30s": "30대",
+    "40s": "40대",
+    "50s": "50대",
+    "60s": "60대",
+    "70_plus": "70대 이상",
+}
+REGION_LABELS = {
+    "seoul": "서울",
+    "incheon_gyeonggi": "인천·경기",
+    "daejeon_sejong_chungcheong": "대전·세종·충청",
+    "gwangju_jeolla": "광주·전라",
+    "daegu_gyeongbuk": "대구·경북",
+    "busan_ulsan_gyeongnam": "부산·울산·경남",
+}
+
 
 def priors_dir() -> Path:
     # this file: backend/app/services/prior_service.py ; parents[1] == backend/app
@@ -53,12 +71,26 @@ def get_prior(topic_id: str | None, persona_axes: dict[str, str]) -> dict | None
     province = persona_axes.get("province")
     region_key = PROVINCE_TO_REGION.get(province)
 
+    groups: list[dict] = []
+
+    gender_bucket = data["by_gender"].get(gender)
+    if gender_bucket is not None and gender in GENDER_LABELS:
+        groups.append({"label": GENDER_LABELS[gender], **gender_bucket})
+
+    age_bucket = data["by_age_group"].get(age_group)
+    if age_bucket is not None and age_group in AGE_LABELS:
+        groups.append({"label": AGE_LABELS[age_group], **age_bucket})
+
+    # Region is omitted when the persona's province has no published bucket
+    # (강원/제주 suppressed, or unmapped) — no redundant national fallback clause.
+    region_bucket = data["by_region"].get(region_key) if region_key else None
+    if region_bucket is not None and region_key in REGION_LABELS:
+        groups.append({"label": REGION_LABELS[region_key], **region_bucket})
+
     return {
         "topic": data["topic"],
         "source": data["source"],
         "question": data["question"],
         "national": national,
-        "by_gender": data["by_gender"].get(gender, national),
-        "by_age": data["by_age_group"].get(age_group, national),
-        "by_region": data["by_region"].get(region_key, national),
+        "groups": groups,
     }

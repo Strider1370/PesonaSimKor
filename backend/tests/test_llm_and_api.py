@@ -17,9 +17,11 @@ from app.services.llm_client import (
     build_summary_llm_payload,
     failed_summary,
     get_openai_api_key,
+    normalize_summary,
     ollama_host,
     parse_agent_response,
     parse_json_object,
+    render_prior_text,
     summary_from_text,
     summarize_clusters,
     summarize_options,
@@ -27,6 +29,49 @@ from app.services.llm_client import (
     stream_openai_agent_response,
     stream_openai_summary_clusters,
 )
+
+
+def test_render_prior_text_is_natural_language_not_json():
+    prior = {
+        "topic": "신규 원전 건설",
+        "source": "한국갤럽 데일리 오피니언 제648호",
+        "question": "신규 원전을 건설해야 한다 / 건설하지 말아야 한다",
+        "national": {"support": 54, "oppose": 25, "undecided": 21},
+        "groups": [
+            {"label": "남성", "support": 70, "oppose": 20, "undecided": 10},
+            {"label": "60대", "support": 69, "oppose": 16, "undecided": 14},
+            {"label": "서울", "support": 60, "oppose": 20, "undecided": 20},
+        ],
+    }
+    text = render_prior_text(prior)
+    assert text.startswith("실제 설문조사(")
+    assert "전국 응답은 찬성 54%" in text
+    assert "남성 찬성 70%·반대 20%" in text
+    assert "60대 찬성 69%" in text
+    assert "{" not in text  # not a JSON dump
+
+
+def test_build_agent_prompt_renders_prior_as_opinion_section():
+    persona = {
+        "agent_id": 1,
+        "age": 65,
+        "gender": "male",
+        "region": "Seoul",
+        "structured_profile": {"province": "서울", "occupation": "teacher"},
+        "narrative_context": {"persona": "은퇴를 앞둔 교사."},
+    }
+    prior = {
+        "topic": "신규 원전 건설",
+        "source": "한국갤럽 제648호",
+        "question": "신규 원전을 건설해야 한다",
+        "national": {"support": 54, "oppose": 25, "undecided": 21},
+        "groups": [{"label": "남성", "support": 70, "oppose": 20, "undecided": 10}],
+    }
+    prompt = build_agent_prompt(persona, "원전 정책", prior)
+    assert "[여론 참고]" in prompt
+    assert "[Prior]" not in prompt
+    assert "남성 찬성 70%" in prompt
+    assert '{"' not in prompt  # prior is not injected as JSON
 
 
 def empty_summary():
@@ -366,6 +411,32 @@ def test_summary_prompt_explicitly_limits_recheck_loops():
     assert "Do not restart, re-check, say wait" in system_prompt
 
 
+def test_summary_prompt_requests_result_page_short_fields_and_agent_ids():
+    payload = build_summary_llm_payload(
+        "policy",
+        [
+            {
+                "agent_id": 9,
+                "age_group": "50s",
+                "gender": "female",
+                "region_group": "capital",
+                "stance": "oppose",
+                "rationale": "living costs are worrying",
+                "blind_spot": "night workers may miss application windows",
+                "affected_group": "night shift workers",
+            }
+        ],
+    )
+    full_prompt = "\n".join(message["content"] for message in payload["messages"])
+
+    assert "short_label" in full_prompt
+    assert "short_title" in full_prompt
+    assert "agent_ids" in full_prompt
+    assert "Response #9" in full_prompt
+    assert "Do not invent or infer ids" in full_prompt
+    assert "Keep one-person blind spots as single clusters" in full_prompt
+
+
 def test_compute_aggregate_collects_blind_spots_and_reframing():
     aggregate = compute_aggregate(
         [
@@ -431,10 +502,130 @@ def test_summary_from_text_parses_blind_spot_clusters_and_completed_status():
     assert summary["blind_spot_clusters"] == [
         {
             "affected_group": "수도권 맞벌이 가구",
+            "short_title": "",
             "count": 2,
             "blind_spot_examples": ["보증금 흐름 불안"],
+            "agent_ids": [],
         }
     ]
+
+
+def test_summary_from_text_preserves_result_page_fields():
+    raw_output = json.dumps(
+        {
+            "headline": "blind spots appeared",
+            "concern_clusters": [
+                {
+                    "label": "living costs may rise",
+                    "short_label": "living costs",
+                    "count": 3,
+                    "examples": ["burden"],
+                }
+            ],
+            "support_clusters": [
+                {
+                    "label": "education labor rights are protected",
+                    "short_label": "labor rights",
+                    "count": 2,
+                    "examples": ["needed"],
+                }
+            ],
+            "blind_spot_clusters": [
+                {
+                    "affected_group": "night shift workers",
+                    "short_title": "night shift",
+                    "count": 1,
+                    "blind_spot_examples": ["(Response #9) missed application windows"],
+                    "agent_ids": [9],
+                }
+            ],
+        },
+        ensure_ascii=False,
+    )
+
+    summary = summary_from_text(raw_output)
+
+    assert summary["headline"] == "blind spots appeared"
+    assert summary["concern_clusters"][0]["short_label"] == "living costs"
+    assert summary["support_clusters"][0]["short_label"] == "labor rights"
+    assert summary["blind_spot_clusters"][0]["short_title"] == "night shift"
+    assert summary["blind_spot_clusters"][0]["agent_ids"] == [9]
+
+
+def test_normalize_summary_fills_missing_short_labels_and_titles():
+    summary = {
+        "status": "completed",
+        "message": "ok",
+        "concern_clusters": [{"label": "생활비 부담이 커진다는 우려", "count": 2, "examples": []}],
+        "support_clusters": [{"label": "아이들 활동 보장을 지지", "count": 1, "examples": []}],
+        "blind_spot_clusters": [
+            {
+                "affected_group": "야간근무 보호자",
+                "count": 1,
+                "blind_spot_examples": ["(응답자 7) 낮 시간 안내를 챙기기 어렵습니다."],
+            }
+        ],
+    }
+    responses = [{"agent_id": 7, "blind_spot": "낮 시간 안내를 챙기기 어렵습니다."}]
+
+    normalized = normalize_summary(summary, responses)
+
+    assert normalized["concern_clusters"][0]["short_label"] == "생활비 부담"
+    assert normalized["support_clusters"][0]["short_label"] == "아이들 활동"
+    assert normalized["blind_spot_clusters"][0]["short_title"] == "야간근무 보호자"
+    assert normalized["blind_spot_clusters"][0]["agent_ids"] == [7]
+
+
+def test_normalize_summary_removes_unknown_agent_ids_and_corrects_count():
+    summary = {
+        "status": "completed",
+        "message": "ok",
+        "concern_clusters": [],
+        "support_clusters": [],
+        "blind_spot_clusters": [
+            {
+                "affected_group": "맞벌이 가구",
+                "short_title": "맞벌이 가구",
+                "count": 1,
+                "blind_spot_examples": ["(응답자 1) 일정 조정이 어렵습니다.", "(응답자 2) 돌봄 공백이 생깁니다."],
+                "agent_ids": [1, 2, 999],
+            }
+        ],
+    }
+    responses = [{"agent_id": 1}, {"agent_id": 2}]
+
+    normalized = normalize_summary(summary, responses)
+
+    assert normalized["blind_spot_clusters"][0]["agent_ids"] == [1, 2]
+    assert normalized["blind_spot_clusters"][0]["count"] == 2
+
+
+def test_normalize_summary_uses_refill_callback_before_fallback():
+    summary = {
+        "status": "completed",
+        "message": "ok",
+        "concern_clusters": [{"label": "생활비 부담이 커진다는 우려", "count": 1, "examples": []}],
+        "support_clusters": [],
+        "blind_spot_clusters": [
+            {
+                "affected_group": "야간근무 보호자",
+                "count": 1,
+                "blind_spot_examples": ["(응답자 7) 낮 시간 안내를 챙기기 어렵습니다."],
+            }
+        ],
+    }
+
+    def refill_missing(missing_summary):
+        assert missing_summary["concern_clusters"][0]["label"] == "생활비 부담이 커진다는 우려"
+        return {
+            "concern_clusters": [{"label": "생활비 부담이 커진다는 우려", "short_label": "생활비 부담"}],
+            "blind_spot_clusters": [{"affected_group": "야간근무 보호자", "short_title": "야간 보호자"}],
+        }
+
+    normalized = normalize_summary(summary, [{"agent_id": 7}], refill_missing=refill_missing)
+
+    assert normalized["concern_clusters"][0]["short_label"] == "생활비 부담"
+    assert normalized["blind_spot_clusters"][0]["short_title"] == "야간 보호자"
 
 
 def test_failed_summary_includes_blind_spot_clusters_default():
@@ -770,6 +961,7 @@ def patch_fast_simulation(monkeypatch, simulate_api, agent_stream=None, summary=
         ),
     )
     monkeypatch.setattr(simulate_api, "stream_summary_clusters", lambda policy, responses, model_name=None: summary or summary_stream())
+    monkeypatch.setattr(simulate_api, "refill_summary_short_fields", lambda *args, **kwargs: {})
 
 
 def test_simulate_stream_event_order_with_summary_stream(monkeypatch):
@@ -876,7 +1068,7 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
                     {
                         "affected_group": "수도권 맞벌이 가구",
                         "count": 5,
-                        "blind_spot_examples": ["월세 전환 때 보증금 흐름 불안"],
+                        "blind_spot_examples": ["(응답자 0) 월세 전환 때 보증금 흐름 불안"],
                     }
                 ],
                 "raw_output": "{}",
@@ -913,10 +1105,15 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
     assert aggregate_payloads[-1]["blind_spot_clusters"] == [
         {
             "affected_group": "수도권 맞벌이 가구",
+            "short_title": "수도권 맞벌이 가구",
             "count": 5,
-            "blind_spot_examples": ["월세 전환 때 보증금 흐름 불안"],
+            "blind_spot_examples": ["(응답자 0) 월세 전환 때 보증금 흐름 불안"],
+            "agent_ids": [0],
+            "title_fallback": True,
         }
     ]
+    assert aggregate_payloads[-1]["blind_spot_clusters"][0]["short_title"]
+    assert aggregate_payloads[-1]["blind_spot_clusters"][0]["agent_ids"]
     assert "blind_spot" in prompt_payloads[0]["messages"][0]["content"]
 
 
