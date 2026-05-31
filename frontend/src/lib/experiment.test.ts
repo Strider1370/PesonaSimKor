@@ -12,6 +12,8 @@ import {
   resolvePresetSelection,
   resolveVisibleSlotId,
   updateSlotFromPreset,
+  updateSlotPolicy,
+  type ExperimentPreset,
 } from "./experiment"
 
 const preset = {
@@ -242,5 +244,26 @@ describe("experiment slots", () => {
     expect(runs.A?.aggregate?.total).toEqual({ support: 6, oppose: 3, neutral: 1 })
     expect(runs.A?.aggregateRuns[0].total).toEqual({ support: 6, oppose: 3, neutral: 1 })
     expect(runs.A?.responses).toEqual([])
+  })
+})
+
+describe("slot topicId", () => {
+  const preset = {
+    id: "2_1_neutral_no_context_explicit_base",
+    topic_id: "2_1",
+    topic: "원자력 발전 확대",
+    prompt: "정책 본문",
+  } as unknown as ExperimentPreset
+
+  it("sets topicId when a preset is applied", () => {
+    const slots = createInitialSlots()
+    const next = updateSlotFromPreset(slots, slots[0].id, preset)
+    expect(next[0].topicId).toBe("2_1")
+  })
+
+  it("clears topicId when policy is edited freely", () => {
+    const slots = updateSlotFromPreset(createInitialSlots(), "A", preset)
+    const next = updateSlotPolicy(slots, "A", "자유 입력")
+    expect(next[0].topicId).toBeUndefined()
   })
 })

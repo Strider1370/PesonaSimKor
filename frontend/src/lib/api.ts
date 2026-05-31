@@ -173,6 +173,7 @@ export type SimulateRequest = {
   model_name?: string
   thinking?: boolean
   persona_depth?: "minimal" | "standard" | "full"
+  topic_id?: string | null
 }
 
 export type HealthStatus = {

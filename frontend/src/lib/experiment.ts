@@ -43,6 +43,7 @@ export type PolicySlot = {
   id: PolicySlotId
   policy: string
   presetId: string
+  topicId?: string
 }
 
 export type PresetOption = {
@@ -137,7 +138,7 @@ export function removePolicySlot(slots: PolicySlot[], slotId: PolicySlotId): Pol
 }
 
 export function updateSlotPolicy(slots: PolicySlot[], slotId: PolicySlotId, policy: string): PolicySlot[] {
-  return slots.map((slot) => (slot.id === slotId ? { ...slot, policy, presetId: "" } : slot))
+  return slots.map((slot) => (slot.id === slotId ? { ...slot, policy, presetId: "", topicId: undefined } : slot))
 }
 
 export function updateSlotFromPreset(
@@ -146,7 +147,7 @@ export function updateSlotFromPreset(
   preset: ExperimentPreset,
 ): PolicySlot[] {
   return slots.map((slot) =>
-    slot.id === slotId ? { ...slot, presetId: preset.id, policy: preset.prompt } : slot,
+    slot.id === slotId ? { ...slot, presetId: preset.id, policy: preset.prompt, topicId: preset.topic_id } : slot,
   )
 }
 

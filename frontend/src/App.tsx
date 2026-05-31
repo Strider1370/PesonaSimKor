@@ -615,6 +615,7 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
   }
 
   async function runSlot(slotId: PolicySlotId, policy: string) {
+    const topicId = slots.find((slot) => slot.id === slotId)?.topicId
     const controller = new AbortController()
     controllersRef.current[slotId] = controller
     setRun(slotId, () => ({ ...emptyExperimentRun(), phase: "running", aggregateRuns: [], currentRunIndex: 0 }))
@@ -636,6 +637,7 @@ function ExperimentPage({ health }: { health: HealthStatus | null }) {
             model_name: effectiveModelName,
             thinking,
             persona_depth: personaDepth,
+            topic_id: topicId ?? null,
           },
           controller.signal,
         )) {
