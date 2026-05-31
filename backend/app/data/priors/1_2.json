@@ -1,0 +1,27 @@
+{
+  "topic_id": "1_2",
+  "topic": "동성결혼 법제화",
+  "source": "한국갤럽 데일리 오피니언 제637호 (2025.10.14~16, n=1001)",
+  "question": "동성 커플에게 합법적으로 결혼할 권리를 주는 것에 찬성 / 반대",
+  "national": { "support": 34, "oppose": 58, "undecided": 8 },
+  "by_gender": {
+    "male": { "support": 30, "oppose": 61, "undecided": 8 },
+    "female": { "support": 38, "oppose": 55, "undecided": 7 }
+  },
+  "by_age_group": {
+    "20s": { "support": 49, "oppose": 44, "undecided": 7 },
+    "30s": { "support": 44, "oppose": 50, "undecided": 6 },
+    "40s": { "support": 46, "oppose": 47, "undecided": 6 },
+    "50s": { "support": 28, "oppose": 62, "undecided": 10 },
+    "60s": { "support": 22, "oppose": 70, "undecided": 7 },
+    "70_plus": { "support": 19, "oppose": 72, "undecided": 10 }
+  },
+  "by_region": {
+    "seoul": { "support": 38, "oppose": 52, "undecided": 10 },
+    "incheon_gyeonggi": { "support": 35, "oppose": 58, "undecided": 6 },
+    "daejeon_sejong_chungcheong": { "support": 29, "oppose": 68, "undecided": 4 },
+    "gwangju_jeolla": { "support": 37, "oppose": 59, "undecided": 4 },
+    "daegu_gyeongbuk": { "support": 33, "oppose": 59, "undecided": 8 },
+    "busan_ulsan_gyeongnam": { "support": 31, "oppose": 57, "undecided": 12 }
+  }
+}

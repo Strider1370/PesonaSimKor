@@ -1,0 +1,27 @@
+{
+  "topic_id": "1_1",
+  "topic": "사형제 유지",
+  "source": "한국갤럽 데일리 오피니언 제504호 (2022.7.19~21, n=1000)",
+  "question": "사형 제도를 유지해야 한다 / 폐지해야 한다",
+  "national": { "support": 69, "oppose": 23, "undecided": 8 },
+  "by_gender": {
+    "male": { "support": 72, "oppose": 24, "undecided": 5 },
+    "female": { "support": 66, "oppose": 22, "undecided": 12 }
+  },
+  "by_age_group": {
+    "20s": { "support": 64, "oppose": 31, "undecided": 5 },
+    "30s": { "support": 75, "oppose": 19, "undecided": 6 },
+    "40s": { "support": 75, "oppose": 19, "undecided": 6 },
+    "50s": { "support": 69, "oppose": 26, "undecided": 6 },
+    "60s": { "support": 67, "oppose": 21, "undecided": 12 },
+    "70_plus": { "support": 63, "oppose": 18, "undecided": 19 }
+  },
+  "by_region": {
+    "seoul": { "support": 69, "oppose": 22, "undecided": 10 },
+    "incheon_gyeonggi": { "support": 73, "oppose": 21, "undecided": 6 },
+    "daejeon_sejong_chungcheong": { "support": 63, "oppose": 26, "undecided": 11 },
+    "gwangju_jeolla": { "support": 60, "oppose": 29, "undecided": 12 },
+    "daegu_gyeongbuk": { "support": 66, "oppose": 27, "undecided": 7 },
+    "busan_ulsan_gyeongnam": { "support": 72, "oppose": 20, "undecided": 8 }
+  }
+}
