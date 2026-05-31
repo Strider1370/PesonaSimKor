@@ -259,11 +259,11 @@ async def simulation_stream(req: SimulateRequest):
             for persona in personas:
                 yield sse_event("agent_sampled", sampled_event_from_persona(persona))
                 prior = get_prior(
-                    policy,
+                    req.topic_id,
                     {
                         "age_group": persona["age_group"],
-                        "region_group": persona["region_group"],
                         "gender": persona["gender"],
+                        "province": persona.get("structured_profile", {}).get("province"),
                     },
                 )
                 yield sse_event(
@@ -288,11 +288,11 @@ async def simulation_stream(req: SimulateRequest):
             for persona in personas:
                 yield sse_event("agent_sampled", sampled_event_from_persona(persona))
                 prior = get_prior(
-                    policy,
+                    req.topic_id,
                     {
                         "age_group": persona["age_group"],
-                        "region_group": persona["region_group"],
                         "gender": persona["gender"],
+                        "province": persona.get("structured_profile", {}).get("province"),
                     },
                 )
                 yield sse_event(

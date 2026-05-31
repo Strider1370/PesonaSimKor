@@ -750,6 +750,7 @@ def sample_personas(n: int):
             "background": "A",
             "age_group": "20s",
             "region_group": "capital",
+            "structured_profile": {"province": "서울"},
         }
         for index in range(n)
     ]
@@ -810,6 +811,30 @@ def test_simulate_stream_includes_llm_input_payload(monkeypatch):
     assert llm_payloads[0]["model"] == "qwen3.5:9b"
     assert llm_payloads[0]["messages"][0]["role"] == "system"
     assert "policy" in llm_payloads[0]["messages"][1]["content"]
+
+
+def test_simulate_stream_passes_topic_id_and_province_to_get_prior(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    captured = []
+
+    def fake_get_prior(topic_id, persona_axes):
+        captured.append((topic_id, persona_axes))
+        return None
+
+    patch_fast_simulation(monkeypatch, simulate_api)
+    monkeypatch.setattr(simulate_api, "get_prior", fake_get_prior)
+
+    client = TestClient(app)
+    response = client.post("/api/simulate", json={"policy": "원전 정책", "n_agents": 5, "topic_id": "2_1"})
+
+    assert response.status_code == 200
+    assert captured, "get_prior was not called"
+    topic_id, axes = captured[0]
+    assert topic_id == "2_1"
+    assert axes["province"] == "서울"
+    assert axes["gender"] in {"male", "female"}
+    assert axes["age_group"] == "20s"
 
 
 def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(monkeypatch):
