@@ -41,13 +41,13 @@ describe("Topbar", () => {
 })
 
 describe("ExperimentLevels", () => {
-  it("marks the prior level active when a prior-enabled preset is selected", () => {
+  it("marks the prior level active without rendering explanatory notes", () => {
     const html = renderToStaticMarkup(<ExperimentLevels hasPrior />)
 
     expect(html).toContain("L2: Prior 대응")
     expect(html).toContain("L3: 반문")
     expect(html).toContain("ON")
-    expect(html).toContain("한국갤럽 원전 prior 적용")
+    expect(html).not.toContain("level-notes")
     expect(html).not.toContain("Prior 데이터 미수집")
   })
 })

@@ -419,14 +419,10 @@ export function Topbar({
 export function ExperimentLevels({ hasPrior }: { hasPrior: boolean }) {
   const activeLevels = getActiveLevels(hasPrior)
   const levels = [
-    { id: 1, label: "다양성", note: "페르소나마다 다른 이유로 다른 반응" },
-    {
-      id: 2,
-      label: "Prior 대응",
-      note: hasPrior ? "한국갤럽 원전 prior 적용" : "원전 프리셋 선택 시 한국갤럽 prior 적용",
-    },
-    { id: 3, label: "반문", note: "정책 전제에 대한 반문 생성" },
-    { id: 4, label: "대안", note: "미구현 - 장기 목표" },
+    { id: 1, label: "다양성" },
+    { id: 2, label: "Prior 대응" },
+    { id: 3, label: "반문" },
+    { id: 4, label: "대안" },
   ]
 
   return (
@@ -443,11 +439,6 @@ export function ExperimentLevels({ hasPrior }: { hasPrior: boolean }) {
             </div>
           )
         })}
-      </div>
-      <div className="level-notes">
-        {levels.map((level) => (
-          <p key={level.id}>{level.note}</p>
-        ))}
       </div>
     </section>
   )
