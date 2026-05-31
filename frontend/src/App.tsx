@@ -14,6 +14,7 @@ import {
   LlmPromptEvent,
   LlmStatusEvent,
   LlmTokenEvent,
+  PriorEvent,
   RegionGroup,
   SamplingPlanEvent,
   Stance,
@@ -101,7 +102,7 @@ const PRESET_OPTIONS = getPresetOptions(PRESETS)
 const OLLAMA_MODEL_OPTIONS = ["qwen3.5:9b", "qwen3:14b", "gemma3:12b"]
 const DEFAULT_MODEL_PROVIDER = "ollama" as const
 const DEFAULT_MODEL_NAME = "qwen3.5:9b"
-const PRIOR_TOPIC_IDS = new Set(["2_1"])
+const PRIOR_TOPIC_IDS = new Set(["1_1", "1_2", "2_1"])
 
 export function formatPresetTopicLabel(topic: { id: string; label: string }) {
   return PRIOR_TOPIC_IDS.has(topic.id) ? `${topic.label} (prior 있음)` : topic.label
@@ -335,28 +336,13 @@ export default function App() {
   return (
     <main className="app-shell">
       <section className="workspace">
-        <header className="topbar">
-          <div>
-            <h1>KoreanSim</h1>
-            <p>
-              {page === "experiment"
-                ? "프리셋 정책 프롬프트를 비교 실행해 LLM 반응 차이를 확인합니다."
-                : "로컬 페르소나 데이터와 LLM으로 정책 반응을 시뮬레이션합니다."}
-            </p>
-          </div>
-          <div className="topbar-status">
-            <OllamaStatusBadge health={health} error={healthError} />
-            <div className={`status-pill ${phase}`}>{phaseLabel(phase, progress)}</div>
-          </div>
-        </header>
+        <Topbar page={page} phase={phase} progress={progress} health={health} healthError={healthError} />
 
         <PageTabs page={page} onNavigate={navigatePage} />
 
         {page === "result" ? (
           <ResultPage
             onDebug={() => navigatePage("simulate")}
-            onExperiment={() => navigatePage("experiment")}
-            onRerun={() => navigatePage("simulate")}
           />
         ) : page === "experiment" ? (
           <ExperimentPage health={health} onOpenResult={() => navigatePage("result")} />
@@ -548,6 +534,39 @@ function PageTabs({ page, onNavigate }: { page: Page; onNavigate: (page: Page) =
   )
 }
 
+export function Topbar({
+  page,
+  phase,
+  progress,
+  health,
+  healthError,
+}: {
+  page: Page
+  phase: Phase
+  progress: number
+  health: HealthStatus | null
+  healthError: string | null
+}) {
+  return (
+    <header className="topbar">
+      <div>
+        <h1>KoreanSim</h1>
+        <p>
+          {page === "experiment"
+            ? "프리셋 정책 프롬프트를 비교 실행해 LLM 반응 차이를 확인합니다."
+            : "로컬 페르소나 데이터와 LLM으로 정책 반응을 시뮬레이션합니다."}
+        </p>
+      </div>
+      {page !== "result" && (
+        <div className="topbar-status">
+          <OllamaStatusBadge health={health} error={healthError} />
+          <div className={`status-pill ${phase}`}>{phaseLabel(phase, progress)}</div>
+        </div>
+      )}
+    </header>
+  )
+}
+
 export function ExperimentLevels({ modelProvider, hasPrior }: { modelProvider: "ollama" | "openai"; hasPrior: boolean }) {
   const activeLevels = getActiveLevels(modelProvider, hasPrior)
   const levels = [
@@ -660,7 +679,7 @@ function ExperimentPage({ health, onOpenResult }: { health: HealthStatus | null;
   const controllersRef = useRef<Partial<Record<PolicySlotId, AbortController>>>({})
   const activeSlots = slots.filter((slot) => slot.policy.trim())
   const isRunning = Object.values(runs).some((run) => run?.phase === "running")
-  const hasPrior = slots.some((slot) => slot.topicId === "2_1")
+  const hasPrior = slots.some((slot) => slot.topicId && PRIOR_TOPIC_IDS.has(slot.topicId))
   const effectiveModelName =
     modelProvider === "ollama" ? customOllamaModel.trim() || ollamaModelName : openAiModelName
 
@@ -1433,7 +1452,7 @@ function ExperimentResults({
   )
 }
 
-function ResponseCard({
+export function ResponseCard({
   response,
   sampledAgent,
 }: {
@@ -1456,6 +1475,7 @@ function ResponseCard({
           {response.caveat && <span>조건/유의점 {response.caveat}</span>}
         </div>
       )}
+      {response.prior && <PriorBadges prior={response.prior} />}
       <p>{response.rationale}</p>
       {(response.blind_spot || response.affected_group) && (
         <div className="response-insights">
@@ -1492,6 +1512,26 @@ function ResponseCard({
       )}
     </article>
   )
+}
+
+function PriorBadges({ prior }: { prior: PriorEvent }) {
+  return (
+    <div className="response-prior" aria-label="여론 prior">
+      <span className="prior-label">prior 있음</span>
+      <span>{formatNationalPrior(prior.national)}</span>
+      {prior.groups.map((group) => (
+        <span key={group.label}>{formatGroupPrior(group)}</span>
+      ))}
+    </div>
+  )
+}
+
+function formatNationalPrior(prior: PriorEvent["national"]) {
+  return `전국 찬 ${prior.support} · 반 ${prior.oppose} · 유보 ${prior.undecided}`
+}
+
+function formatGroupPrior(group: PriorEvent["groups"][number]) {
+  return `${group.label} 찬 ${group.support} · 반 ${group.oppose}`
 }
 
 function ExperimentTrace({

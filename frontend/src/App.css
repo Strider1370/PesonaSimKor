@@ -868,6 +868,29 @@ button:disabled {
   font-weight: 800;
 }
 
+.response-prior {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -2px 0 10px;
+}
+
+.response-prior span {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.response-prior .prior-label {
+  border-color: #0f766e;
+  background: #ccfbf1;
+  color: #115e59;
+}
+
 .response-item p,
 .cluster-item p {
   margin-bottom: 0;

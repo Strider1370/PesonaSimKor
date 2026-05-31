@@ -314,7 +314,7 @@ function buildPrompt(variant, framing, context, stanceFormat) {
   }
 
   parts.push(`[정책 설명]\n${variant.policy}`);
-  parts.push(`[제시 관점]\n${framing.instruction}\n${variant.framing[framing.key]}`);
+  parts.push(`[제시 관점]\n${variant.framing[framing.key]}`);
   parts.push(`[응답 방식]\n${stanceFormat.text}`);
 
   return parts.join("\n\n");

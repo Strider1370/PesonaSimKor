@@ -36,6 +36,25 @@ export type AgentRespondedEvent = {
     direct: string
     inferred: string
   }
+  prior?: PriorEvent
+}
+
+export type PriorEvent = {
+  topic: string
+  source: string
+  question: string
+  national: PriorDistribution
+  groups: PriorGroupDistribution[]
+}
+
+export type PriorDistribution = {
+  support: number
+  oppose: number
+  undecided: number
+}
+
+export type PriorGroupDistribution = PriorDistribution & {
+  label: string
 }
 
 export type LlmPromptEvent = {

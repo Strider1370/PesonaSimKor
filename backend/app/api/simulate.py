@@ -62,8 +62,8 @@ def sampled_event_from_persona(persona: dict) -> dict:
     }
 
 
-def response_event_from_result(persona: dict, result: dict) -> dict:
-    return {
+def response_event_from_result(persona: dict, result: dict, prior: dict | None = None) -> dict:
+    event = {
         "agent_id": persona["agent_id"],
         "age_group": persona["age_group"],
         "gender": persona["gender"],
@@ -77,6 +77,9 @@ def response_event_from_result(persona: dict, result: dict) -> dict:
         "reframing": result.get("reframing"),
         "persona_link": result.get("persona_link"),
     }
+    if prior:
+        event["prior"] = prior
+    return event
 
 
 async def stream_with_heartbeat(source, *args, **kwargs):
@@ -220,7 +223,7 @@ async def stream_agent_sse_events(req: SimulateRequest, policy: str, persona: di
             if not llm_failed:
                 yield ("llm_status", {"agent_id": persona["agent_id"], "status": "completed"})
 
-    yield ("agent_responded", response_event_from_result(persona, result))
+    yield ("agent_responded", response_event_from_result(persona, result, prior))
 
 
 async def stream_openai_agent_sse_events_parallel(

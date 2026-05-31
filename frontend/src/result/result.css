@@ -186,133 +186,87 @@
   font-weight: 400;
 }
 
-.map-panel {
-  padding: 18px 20px 20px;
+.opinion-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
 }
 
-.map-wrap {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1.3 / 1;
-  overflow: hidden;
+.opinion-column {
+  min-height: 220px;
   border: 1px solid var(--result-line);
   border-radius: 10px;
   background: var(--result-panel-2);
+  padding: 14px;
 }
 
-.y-axis {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 2;
-  width: 44px;
-  border-right: 1px solid var(--result-line);
-  color: var(--result-muted);
-  font-size: 10.5px;
-}
-
-.y-tick {
-  position: absolute;
-  right: 6px;
-  transform: translateY(-50%);
-  font-variant-numeric: tabular-nums;
-}
-
-.y-tick::after {
-  content: "";
-  position: absolute;
-  right: -7px;
-  top: 50%;
-  width: 4px;
-  height: 1px;
-  background: var(--result-line);
-}
-
-.plot-area {
-  position: absolute;
-  left: 44px;
-  right: 0;
-  top: 0;
-  bottom: 0;
-}
-
-.center-vline {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--result-line);
-}
-
-.y-grid {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--result-line);
-  opacity: 0.35;
-}
-
-.x-label {
-  position: absolute;
-  bottom: 6px;
-  transform: translateX(-50%);
-  color: var(--result-muted);
-  font-size: 11px;
-  pointer-events: none;
-}
-
-.badge {
-  position: absolute;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  max-width: 170px;
-  gap: 5px;
-  overflow: hidden;
-  transform: translate(-50%, -50%);
-  border: 1.5px solid transparent;
-  border-radius: 999px;
-  background: var(--result-panel);
-  padding: 5px 9px;
-  white-space: nowrap;
-  font-size: 11.5px;
-  font-weight: 600;
-}
-
-.badge .lab {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.badge .cnt {
-  flex-shrink: 0;
-  border-radius: 999px;
-  padding: 1px 7px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.badge.support { border-color: var(--support); color: var(--support); }
-.badge.support .cnt { background: rgba(91, 217, 166, 0.18); }
-.badge.oppose { border-color: var(--oppose); color: var(--oppose); }
-.badge.oppose .cnt { background: rgba(255, 122, 122, 0.18); }
-.badge.sz-1 { font-size: 11.5px; padding: 4px 8px; }
-.badge.sz-2 { font-size: 12px; padding: 5px 9px; }
-.badge.sz-3 { font-size: 13px; padding: 6px 11px; }
-.badge.sz-5 { font-size: 14px; padding: 7px 13px; }
-
-.opinion-empty {
-  position: absolute;
-  top: 50%;
-  color: var(--result-muted);
+.opinion-column h3 {
+  margin: 0 0 12px;
   font-size: 13px;
 }
 
-.opinion-empty.left { left: 13%; }
-.opinion-empty.right { right: 13%; }
+.opinion-column.support h3 { color: var(--support); }
+.opinion-column.oppose h3 { color: var(--oppose); }
+
+.opinion-cluster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.opinion-cluster-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--result-line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 10px 11px;
+}
+
+.opinion-cluster-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.opinion-cluster-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.opinion-cluster-detail {
+  color: var(--result-muted);
+  font-size: 11.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.opinion-cluster-example {
+  color: #b8bfd1;
+  font-size: 11.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.opinion-cluster-row strong {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.opinion-column.support .opinion-cluster-row strong { color: var(--support); }
+.opinion-column.oppose .opinion-cluster-row strong { color: var(--oppose); }
+
+.opinion-empty {
+  margin: 0;
+  color: var(--result-muted);
+  font-size: 13px;
+}
 
 .legend {
   display: flex;

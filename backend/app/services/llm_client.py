@@ -349,21 +349,9 @@ def build_agent_prompt(
 [Policy]
 {policy}
 
-[Task]
-제시된 정책 방향에 대한 이 시민의 최종 선택 방향을 판단하십시오.
-찬성, 반대, 중립 중 어느 쪽에 가깝습니까?
-정책 전문가처럼 답하지 말고 이 페르소나가 실제로 알거나 생활에서 체감할 만한 1~2개 이유만 말하십시오.
-정책 보고서처럼 포괄적인 조건 목록을 만들거나 모든 쟁점을 균형 있게 다루려고 하지 마십시오.
-조건부 동의나 조건부 반대는 stance를 중립으로 바꾸지 말고 caveat에 분리하십시오.
-caveat는 가장 중요한 유보점 하나만 쓰고, 여러 조건을 병렬로 나열하거나 정책 보완책 묶음을 설계하지 마십시오.
-예상치 못한 문제는 blind_spot 기준을 통과할 때만 작성하십시오.
-blind_spot은 직접성·특수성·비중복성을 모두 만족할 때만 작성하십시오.
-blind_spot은 전문가적 정책 분석이 아니라 페르소나의 생활, 직업, 가족, 지역, 경제 조건 때문에 직접 떠올릴 수 있는 문제여야 합니다.
-정책 구조 전체를 분석해야만 보이는 문제는 blind_spot으로 쓰지 마십시오.
-세 조건 중 하나라도 부족하면 blind_spot은 null로 반환하십시오.
-
-반드시 시스템 메시지에서 요구한 JSON 구조와 일치하는 JSON만 반환하십시오.
-일반적인 정책 분석이 아니라 이 시민의 생활 맥락에서 답하십시오."""
+[Question]
+위 정책 방향에 대해 당신은 찬성, 반대, 중립 중 어느 쪽에 가장 가깝습니까?
+당신의 생활 맥락에서 실제로 떠올릴 만한 이유를 바탕으로 답하십시오."""
 
 
 def build_agent_messages(
@@ -411,14 +399,16 @@ def build_agent_llm_payload(
     persona_depth: str = "standard",
     model_provider: str = "ollama",
 ) -> dict:
-    return {
+    payload = {
         "agent_id": persona["agent_id"],
         "model": model_name or ollama_model(),
         "format": "json",
         "messages": build_agent_messages(persona, policy, prior, persona_depth, model_provider),
-        "options": agent_options(),
-        "think": thinking,
     }
+    if model_provider != "openai":
+        payload["options"] = agent_options()
+        payload["think"] = thinking
+    return payload
 
 
 def format_summary_response_row(response: dict) -> str:

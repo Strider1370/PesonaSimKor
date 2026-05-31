@@ -1,15 +1,13 @@
 import "./result.css"
 import type { AgentSampledEvent, AggregateEvent, BlindSpotCluster, ReframingItem, StanceCounts } from "../lib/api"
 import { getCurrentRunSnapshot, useCurrentRunStore } from "../lib/currentRunStore"
-import { ageGroupShort, genderShort, niceTickMax, placeOpinionBadges, regionGroupLabel, regionShort } from "../lib/resultHelpers"
+import { ageGroupShort, genderShort, regionGroupLabel, regionShort } from "../lib/resultHelpers"
 
 type ResultPageProps = {
   onDebug: () => void
-  onExperiment: () => void
-  onRerun: () => void
 }
 
-export function ResultPage({ onDebug, onExperiment, onRerun }: ResultPageProps) {
+export function ResultPage({ onDebug }: ResultPageProps) {
   const currentRun = useCurrentRunStore((state) => state.currentRun) ?? getCurrentRunSnapshot()
 
   if (!currentRun) {
@@ -27,10 +25,10 @@ export function ResultPage({ onDebug, onExperiment, onRerun }: ResultPageProps) 
 
   return (
     <main className="result-shell">
-      <ResultHeader policy={currentRun.policy} onDebug={onDebug} onExperiment={onExperiment} onRerun={onRerun} />
+      <ResultHeader policy={currentRun.policy} />
       <Hero aggregate={currentRun.aggregate} nAgents={currentRun.n_agents} modelName={currentRun.model_name} />
       <section className="result-grid">
-        <OpinionMap aggregate={currentRun.aggregate} nAgents={currentRun.n_agents} />
+        <OpinionMap aggregate={currentRun.aggregate} />
         <DemographicBars aggregate={currentRun.aggregate} />
       </section>
       <BlindSpotGrid clusters={currentRun.aggregate.blind_spot_clusters} sampledAgents={currentRun.sampledAgents} />
@@ -39,38 +37,27 @@ export function ResultPage({ onDebug, onExperiment, onRerun }: ResultPageProps) 
   )
 }
 
-function ResultHeader({
-  policy,
-  onDebug,
-  onExperiment,
-  onRerun,
-}: {
-  policy: string
-  onDebug: () => void
-  onExperiment: () => void
-  onRerun: () => void
-}) {
+function ResultHeader({ policy }: { policy: string }) {
+  const policyDescription = extractPolicyDescription(policy)
   return (
     <header className="result-header">
       <div className="result-header-left">
         <strong>KoreanSim</strong>
-        <span className="result-policy-chip" title={policy}>
-          {policy}
+        <span className="result-policy-chip" title={policyDescription}>
+          {policyDescription}
         </span>
-      </div>
-      <div className="result-header-actions">
-        <button type="button" className="result-secondary-button" onClick={onExperiment}>
-          실험으로 보내기 -&gt;
-        </button>
-        <button type="button" className="result-secondary-button" onClick={onDebug}>
-          디버그
-        </button>
-        <button type="button" className="result-primary-button" onClick={onRerun}>
-          재실행
-        </button>
       </div>
     </header>
   )
+}
+
+function extractPolicyDescription(policy: string) {
+  const match = policy.match(/\[정책 설명\]\s*([\s\S]*?)(?=\n\s*\[[^\]]+\]|$)/)
+  return normalizeInlineText(match?.[1] || policy)
+}
+
+function normalizeInlineText(text: string) {
+  return text.replace(/\s+/g, " ").trim()
 }
 
 function Hero({ aggregate, nAgents, modelName }: { aggregate: AggregateEvent; nAgents: number; modelName: string }) {
@@ -129,59 +116,62 @@ function safeCounts(value: StanceCounts): StanceCounts {
   }
 }
 
-function OpinionMap({ aggregate, nAgents }: { aggregate: AggregateEvent; nAgents: number }) {
-  const clusters = [...aggregate.support_clusters, ...aggregate.concern_clusters]
-  const maxClusterCount = Math.max(0, ...clusters.map((cluster) => cluster.count))
-  const yMax = niceTickMax(Math.max(nAgents, maxClusterCount))
-  const supportBadges = placeOpinionBadges(aggregate.support_clusters, "support", yMax)
-  const concernBadges = placeOpinionBadges(aggregate.concern_clusters, "concern", yMax)
-  const ticks = buildOpinionTicks(yMax)
-  const gridTicks = ticks.filter((tick) => tick !== 0 && tick !== yMax && tick % Math.max(1, Math.round(yMax / 3)) === 0)
-
+function OpinionMap({ aggregate }: { aggregate: AggregateEvent }) {
   return (
-    <section className="result-panel opinion-map map-panel">
+    <section className="result-panel opinion-map">
       <h2>
-        의견 지형도 <span className="hint">- 찬반 × 언급 수</span>
+        찬반 클러스터 <span className="hint">- 응답 수</span>
       </h2>
-      <div className="map-wrap">
-        <div className="y-axis" aria-hidden="true">
-          {ticks.map((tick) => (
-            <span key={tick} className="y-tick" style={{ top: `${tickToTop(tick, yMax)}%` }}>
-              {tick}
-            </span>
-          ))}
-        </div>
-        <div className="plot-area">
-          <span className="center-vline" />
-          {gridTicks.map((tick) => (
-            <span key={tick} className="y-grid" style={{ top: `${tickToTop(tick, yMax)}%` }} />
-          ))}
-          {aggregate.support_clusters.length === 0 && <span className="opinion-empty left">이번 실행에선 찬성 cluster 없음</span>}
-          {aggregate.concern_clusters.length === 0 && <span className="opinion-empty right">이번 실행에선 반대 cluster 없음</span>}
-          {[...supportBadges, ...concernBadges].map((badge) => (
-            <span
-              key={`${badge.side}-${badge.label}`}
-              className={`badge ${badge.side === "concern" ? "oppose" : "support"} ${badge.sizeClass}`}
-              style={{ left: `${badge.x}%`, top: `${badge.y}%` }}
-              title={`${badge.label} · ${badge.count}명`}
-            >
-              <span className="lab">{badge.short_label}</span>
-              <span className="cnt">{badge.count}</span>
-            </span>
-          ))}
-          <span className="x-label" style={{ left: "25%" }}>찬성 측</span>
-          <span className="x-label" style={{ left: "75%" }}>반대 측</span>
-        </div>
-      </div>
-      <div className="legend">
-        <span className="key"><span className="swatch s" />찬성 cluster</span>
-        <span className="key"><span className="swatch o" />반대 cluster</span>
-        <span className="legend-note">y축 = 언급한 응답 수 / 뱃지 크기도 비례</span>
-      </div>
-      <div className="toggles">
-        <button type="button">▾ 응답 {nAgents}개 모두 보기</button>
+      <div className="opinion-columns">
+        <OpinionClusterColumn title="찬성 클러스터" tone="support" clusters={aggregate.support_clusters} />
+        <OpinionClusterColumn title="반대 클러스터" tone="oppose" clusters={aggregate.concern_clusters} />
       </div>
     </section>
+  )
+}
+
+function OpinionClusterColumn({
+  title,
+  tone,
+  clusters,
+}: {
+  title: string
+  tone: "support" | "oppose"
+  clusters: AggregateEvent["support_clusters"]
+}) {
+  return (
+    <div className={`opinion-column ${tone}`}>
+      <h3>{title}</h3>
+      {clusters.length === 0 ? (
+        <p className="opinion-empty">이번 실행에선 클러스터 없음</p>
+      ) : (
+        <div className="opinion-cluster-list">
+          {clusters.map((cluster, index) => {
+            const examples = cluster.examples
+              .map(normalizeInlineText)
+              .filter((example) => example && example !== cluster.label && example !== cluster.short_label)
+              .slice(0, 2)
+            const title = [cluster.label, ...examples].filter(Boolean).join(" / ")
+            return (
+              <div key={`${cluster.label}-${index}`} className="opinion-cluster-row" title={title}>
+                <span className="opinion-cluster-copy">
+                  <span className="opinion-cluster-title">{cluster.short_label || cluster.label}</span>
+                  {cluster.label && cluster.label !== cluster.short_label && (
+                    <span className="opinion-cluster-detail">{cluster.label}</span>
+                  )}
+                  {examples.map((example, exampleIndex) => (
+                    <span key={`${cluster.label}-example-${exampleIndex}`} className="opinion-cluster-example">
+                      {example}
+                    </span>
+                  ))}
+                </span>
+                <strong>{cluster.count}명</strong>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -313,18 +303,4 @@ function ReframingList({ items }: { items: ReframingItem[] }) {
       {items.length > 6 && <div className="toggles"><button type="button">▾ 반문 {items.length - 6}건 더 보기</button></div>}
     </section>
   )
-}
-
-function buildOpinionTicks(yMax: number): number[] {
-  const step = yMax <= 10 ? 2 : yMax <= 30 ? 5 : yMax <= 50 ? 10 : Math.ceil(yMax / 5 / 10) * 10
-  const ticks: number[] = []
-  for (let value = yMax; value >= 0; value -= step) {
-    ticks.push(value)
-  }
-  if (ticks[ticks.length - 1] !== 0) ticks.push(0)
-  return ticks
-}
-
-function tickToTop(tick: number, yMax: number): number {
-  return (1 - tick / Math.max(1, yMax)) * 88 + 8
 }

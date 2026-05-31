@@ -188,8 +188,8 @@ def test_agent_messages_use_provider_specific_system_prompt_and_user_prompt_not_
     assert "reframing" not in ollama_messages[0]["content"]
     assert "reframing" in openai_messages[0]["content"]
     assert "persona_link" in openai_messages[0]["content"]
-    assert "어느 쪽에 가깝습니까" in ollama_messages[1]["content"]
-    assert "예상치 못한 문제" in ollama_messages[1]["content"]
+    assert "[Question]" in ollama_messages[1]["content"]
+    assert "어느 쪽에 가장 가깝습니까" in ollama_messages[1]["content"]
     assert "Return only JSON with keys stance and rationale" not in ollama_messages[1]["content"]
     assert "exactly two keys" not in ollama_messages[1]["content"]
 
@@ -762,6 +762,18 @@ def test_build_agent_prompt_minimal_depth_excludes_job_and_narrative():
     assert "housing loan" not in prompt
 
 
+def test_build_agent_prompt_keeps_user_message_to_inputs_and_question():
+    prompt = build_agent_prompt({"age": 35, "gender": "male", "region": "Seoul"}, "policy")
+
+    assert "[Question]" in prompt
+    assert "[Task]" not in prompt
+    assert "위 정책 방향에 대해 당신은 찬성, 반대, 중립 중 어느 쪽에 가장 가깝습니까?" in prompt
+    assert "정책 전문가처럼 답하지 말고" not in prompt
+    assert "조건부 동의나 조건부 반대" not in prompt
+    assert "blind_spot은 직접성·특수성·비중복성" not in prompt
+    assert "시스템 메시지에서 요구한 JSON 구조" not in prompt
+
+
 def test_build_agent_llm_payload_uses_requested_model_thinking_and_depth():
     persona = {
         "agent_id": 1,
@@ -784,6 +796,20 @@ def test_build_agent_llm_payload_uses_requested_model_thinking_and_depth():
     assert payload["model"] == "qwen3:14b"
     assert payload["think"] is True
     assert "occupation:" not in payload["messages"][1]["content"]
+
+
+def test_build_agent_llm_payload_omits_ollama_options_for_openai():
+    payload = build_agent_llm_payload(
+        {"agent_id": 1},
+        "policy",
+        model_name="gpt-4o-mini",
+        thinking=True,
+        model_provider="openai",
+    )
+
+    assert payload["model"] == "gpt-4o-mini"
+    assert "options" not in payload
+    assert "think" not in payload
 
 
 def test_healthz_returns_model_and_dataset_status(monkeypatch):
@@ -1027,6 +1053,38 @@ def test_simulate_stream_passes_topic_id_and_province_to_get_prior(monkeypatch):
     assert axes["province"] == "서울"
     assert axes["gender"] in {"male", "female"}
     assert axes["age_group"] == "20s"
+
+
+def test_simulate_stream_includes_prior_in_agent_response_event(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    prior = {
+        "topic": "사형제 유지",
+        "source": "한국갤럽 데일리 오피니언 제504호",
+        "question": "사형 제도 유지/폐지 찬반",
+        "national": {"support": 69, "oppose": 23, "undecided": 8},
+        "groups": [
+            {"label": "여성", "support": 66, "oppose": 25, "undecided": 9},
+            {"label": "70대+", "support": 75, "oppose": 18, "undecided": 7},
+            {"label": "호남", "support": 62, "oppose": 28, "undecided": 10},
+        ],
+    }
+
+    patch_fast_simulation(monkeypatch, simulate_api)
+    monkeypatch.setattr(simulate_api, "get_prior", lambda topic_id, persona_axes: prior)
+
+    client = TestClient(app)
+    response = client.post("/api/simulate", json={"policy": "사형제 정책", "n_agents": 5, "topic_id": "1_1"})
+
+    agent_responses = []
+    current_event = None
+    for line in response.text.splitlines():
+        if line.startswith("event: "):
+            current_event = line.removeprefix("event: ")
+        elif current_event == "agent_responded" and line.startswith("data: "):
+            agent_responses.append(json.loads(line.removeprefix("data: ")))
+
+    assert agent_responses[0]["prior"] == prior
 
 
 def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(monkeypatch):
