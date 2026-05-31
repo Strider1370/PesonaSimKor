@@ -638,6 +638,16 @@ def test_simulate_request_accepts_experiment_options():
     assert req.persona_depth == "full"
 
 
+def test_simulate_request_accepts_topic_id():
+    from app.models.schemas import SimulateRequest
+
+    req = SimulateRequest(policy="p", topic_id="2_1")
+    assert req.topic_id == "2_1"
+
+    req_default = SimulateRequest(policy="p")
+    assert req_default.topic_id is None
+
+
 def test_simulate_request_rejects_invalid_provider_and_depth():
     try:
         SimulateRequest(policy="policy", model_provider="bad", persona_depth="huge")

@@ -10,6 +10,7 @@ class SimulateRequest(BaseModel):
     model_name: str = "qwen3.5:9b"
     thinking: bool = False
     persona_depth: Literal["minimal", "standard", "full"] = "standard"
+    topic_id: str | None = None
 
     @field_validator("policy")
     @classmethod
