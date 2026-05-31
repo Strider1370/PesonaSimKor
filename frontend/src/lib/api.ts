@@ -199,7 +199,6 @@ export type SimulateRequest = {
   n_agents: number
   model_provider?: "openai"
   model_name?: string
-  thinking?: boolean
   persona_depth?: "minimal" | "standard" | "full"
   topic_id?: string | null
 }

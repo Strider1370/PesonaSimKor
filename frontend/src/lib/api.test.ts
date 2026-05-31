@@ -12,7 +12,6 @@ describe("parseSseChunk", () => {
       policy: "policy",
       n_agents: 30,
       model_name: "gpt-5-mini",
-      thinking: true,
       persona_depth: "full",
     }
 

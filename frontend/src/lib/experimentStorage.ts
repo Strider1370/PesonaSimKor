@@ -24,7 +24,6 @@ export type ExperimentSnapshotSettings = {
   repeatCount?: number
   modelProvider?: string
   modelName?: string
-  thinking?: boolean
   personaDepth?: "minimal" | "standard" | "full"
 }
 

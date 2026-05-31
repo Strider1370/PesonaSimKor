@@ -510,7 +510,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   const [nAgents, setNAgents] = useState(30)
   const [repeatCount, setRepeatCount] = useState<1 | 3 | 5>(1)
   const [openAiModelName, setOpenAiModelName] = useState("gpt-5-mini")
-  const [thinking, setThinking] = useState(false)
   const [personaDepth, setPersonaDepth] = useState<"minimal" | "standard" | "full">("standard")
   const [runs, setRuns] = useState<Partial<Record<PolicySlotId, ExperimentRunState>>>({})
   const [selectedTraceSlot, setSelectedTraceSlot] = useState<PolicySlotId | null>(null)
@@ -556,7 +555,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
             policy,
             n_agents: nAgents,
             model_name: effectiveModelName,
-            thinking,
             persona_depth: personaDepth,
             topic_id: topicId ?? null,
           },
@@ -704,7 +702,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
         repeatCount,
         modelProvider: DEFAULT_MODEL_PROVIDER,
         modelName: effectiveModelName,
-        thinking,
         personaDepth,
       },
       slots: snapshotSlots,
@@ -733,7 +730,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
     if (snapshot.settings.modelName) {
       setOpenAiModelName(snapshot.settings.modelName)
     }
-    setThinking(Boolean(snapshot.settings.thinking))
     if (snapshot.settings.personaDepth) setPersonaDepth(snapshot.settings.personaDepth)
     setRuns(restoreSnapshotRuns(snapshot.results))
     setSelectedTraceSlot(snapshot.slots[0]?.id ?? null)
@@ -819,17 +815,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
               <option value="gpt-5">gpt-5</option>
               <option value="gpt-4o">gpt-4o</option>
               <option value="gpt-4o-mini">gpt-4o-mini</option>
-            </select>
-          </label>
-          <label className="field compact-field">
-            <span>Thinking</span>
-            <select
-              disabled={isRunning}
-              value={thinking ? "on" : "off"}
-              onChange={(event) => setThinking(event.target.value === "on")}
-            >
-              <option value="off">OFF</option>
-              <option value="on">ON</option>
             </select>
           </label>
           <label className="field compact-field">

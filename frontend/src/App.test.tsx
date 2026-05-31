@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { ExperimentLevels, ResponseCard, Topbar, formatPresetTopicLabel, pageFromPathname } from "./App"
+import App, { ExperimentLevels, ResponseCard, Topbar, formatPresetTopicLabel, pageFromPathname } from "./App"
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 describe("routing", () => {
   it("uses the main page for root and legacy experiment paths", () => {
@@ -45,6 +49,22 @@ describe("ExperimentLevels", () => {
     expect(html).toContain("ON")
     expect(html).toContain("한국갤럽 원전 prior 적용")
     expect(html).not.toContain("Prior 데이터 미수집")
+  })
+})
+
+describe("main settings", () => {
+  it("does not expose the OpenAI thinking effort control", () => {
+    vi.stubGlobal("window", {
+      location: { pathname: "/" },
+      history: { pushState: () => {} },
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })
+
+    const html = renderToStaticMarkup(<App />)
+
+    expect(html).not.toContain("Thinking")
+    expect(html).not.toContain('value="on"')
   })
 })
 
