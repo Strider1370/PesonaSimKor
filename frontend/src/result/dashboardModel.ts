@@ -287,15 +287,16 @@ function representativePersonaRows(
   const fallbackIds = responses
     .filter((response) => response.blind_spot || response.expected_complaint)
     .map((response) => response.agent_id)
-  const selectedIds = includeMissingStanceRepresentatives(signalIds.length ? signalIds : fallbackIds, responses).slice(0, 6)
+  const selectedIds = selectRepresentativeIds(signalIds.length ? signalIds : fallbackIds, responses, 6)
   return selectedIds.flatMap((agentId) => {
     const response = byId.get(agentId)
     return response ? [personaRows([response])[0]] : []
   })
 }
 
-function includeMissingStanceRepresentatives(agentIds: number[], responses: AgentRespondedEvent[]): number[] {
-  const selected = new Set(agentIds)
+function selectRepresentativeIds(agentIds: number[], responses: AgentRespondedEvent[], limit: number): number[] {
+  const initial = orderedUnique(agentIds).slice(0, limit)
+  const selected = new Set(initial)
   const represented = new Set(
     responses.flatMap((response) => (selected.has(response.agent_id) && response.stance ? [response.stance] : [])),
   )
@@ -305,7 +306,20 @@ function includeMissingStanceRepresentatives(agentIds: number[], responses: Agen
     const response = responses.find((item) => item.stance === stance)
     return response ? [response.agent_id] : []
   })
-  return orderedUnique(agentIds.concat(additions))
+  const required = new Set(additions)
+  const output = orderedUnique(initial.concat(additions))
+  while (output.length > limit) {
+    let removableIndex = -1
+    for (let index = output.length - 1; index >= 0; index -= 1) {
+      if (!required.has(output[index])) {
+        removableIndex = index
+        break
+      }
+    }
+    if (removableIndex < 0) break
+    output.splice(removableIndex, 1)
+  }
+  return output
 }
 
 function orderedUnique(values: number[]): number[] {

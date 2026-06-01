@@ -113,6 +113,7 @@ test("loads a saved pivot snapshot into the data-only dashboard", async ({ page 
 
   await expect(page.getByText("입장 분포")).toBeVisible()
   await expect(page.getByRole("button", { name: /나는 대상자인가요/ })).toBeVisible()
+  await page.getByRole("button", { name: "정책 요약 펼치기" }).click()
   await expect(page.getByText("앱 신청")).toBeVisible()
   await expect(page.getByText(/27세/)).toBeVisible()
 })

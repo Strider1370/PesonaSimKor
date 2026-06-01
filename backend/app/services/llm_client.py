@@ -660,6 +660,45 @@ def attach_inferred_based(clusters: list[dict], responses: list[dict]) -> list[d
     return clusters
 
 
+def append_missing_blind_spot_clusters(clusters: list[dict], responses: list[dict]) -> list[dict]:
+    used_ids = {
+        agent_id
+        for cluster in clusters
+        if isinstance(cluster, dict)
+        for agent_id in cluster.get("agent_ids", [])
+    }
+    for response in responses:
+        agent_id = response.get("agent_id")
+        blind_spot = str(response.get("blind_spot") or "").strip()
+        if agent_id in used_ids or not blind_spot:
+            continue
+        affected_group = str(response.get("affected_group") or "").strip() or "기타"
+        existing = next(
+            (
+                cluster
+                for cluster in clusters
+                if isinstance(cluster, dict) and str(cluster.get("affected_group") or "").strip() == affected_group
+            ),
+            None,
+        )
+        if existing is not None:
+            existing.setdefault("agent_ids", []).append(agent_id)
+            existing.setdefault("blind_spot_examples", []).append(blind_spot)
+            existing["count"] = len(existing["agent_ids"])
+        else:
+            clusters.append(
+                {
+                    "affected_group": affected_group,
+                    "short_title": compact_korean_label(affected_group, 14),
+                    "count": 1,
+                    "blind_spot_examples": [blind_spot],
+                    "agent_ids": [agent_id],
+                }
+            )
+        used_ids.add(agent_id)
+    return clusters
+
+
 def reconcile_agent_id_clusters(clusters: list, responses: list[dict], examples_key: str | None = None) -> list[dict]:
     actual_ids = {int(response["agent_id"]) for response in responses if "agent_id" in response}
     if not isinstance(clusters, list):
@@ -762,6 +801,7 @@ def normalize_summary(summary: dict, responses: list[dict], refill_missing=None)
             cluster["title_fallback"] = True
 
     blind_spots = reconcile_agent_id_clusters(blind_spots, responses, examples_key="blind_spot_examples")
+    append_missing_blind_spot_clusters(blind_spots, responses)
     attach_representative_quotes(blind_spots, responses, field="blind_spot")
     attach_inferred_based(blind_spots, responses)
     normalized["blind_spot_clusters"] = blind_spots

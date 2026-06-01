@@ -135,4 +135,34 @@ describe("buildDashboard", () => {
     expect(vm.personas.map((persona) => persona.agentId)).toEqual([0, 1, 2])
     expect(vm.personas.find((persona) => persona.stance === "oppose")?.rationale).toBe("나는 적용되는 교통수단이 없다.")
   })
+
+  it("keeps minority stance representatives when signal responses exceed the display limit", () => {
+    const run = {
+      policy: "policy",
+      n_agents: 8,
+      aggregate: {
+        total: { support: 7, neutral: 0, oppose: 1 },
+        blind_spot_clusters: [
+          { representative_quote: "우려 0", count: 1, agent_ids: [0] },
+          { representative_quote: "우려 1", count: 1, agent_ids: [1] },
+          { representative_quote: "우려 2", count: 1, agent_ids: [2] },
+          { representative_quote: "우려 3", count: 1, agent_ids: [3] },
+          { representative_quote: "우려 4", count: 1, agent_ids: [4] },
+          { representative_quote: "우려 5", count: 1, agent_ids: [5] },
+          { representative_quote: "우려 6", count: 1, agent_ids: [6] },
+        ],
+        complaint_clusters: [],
+      },
+      responses: [
+        ...Array.from({ length: 7 }, (_, agent_id) => ({ agent_id, stance: "support", rationale: `찬성 ${agent_id}`, blind_spot: `우려 ${agent_id}` })),
+        { agent_id: 7, stance: "oppose", rationale: "소수 반대 의견" },
+      ],
+    } as any
+
+    const vm = buildDashboard(run)
+
+    expect(vm.personas).toHaveLength(6)
+    expect(vm.personas.map((persona) => persona.agentId)).toContain(7)
+    expect(vm.personas.find((persona) => persona.stance === "oppose")?.rationale).toBe("소수 반대 의견")
+  })
 })

@@ -457,6 +457,30 @@ def test_cluster_representative_quote_is_verbatim_and_deterministic():
     assert out[0]["denominator"] == 3
 
 
+def test_normalize_summary_preserves_unclustered_raw_blind_spots():
+    responses = [
+        {"agent_id": 0, "blind_spot": "앱 가입이 어렵다", "affected_group": "디지털 취약 이용자"},
+        {"agent_id": 1, "blind_spot": "야간 택시 이용자는 빠진다", "affected_group": "야간 근무자"},
+    ]
+    raw = {
+        "blind_spot_clusters": [
+            {
+                "affected_group": "디지털 취약 이용자",
+                "short_title": "앱 가입",
+                "blind_spot_examples": ["앱 가입이 어렵다"],
+                "agent_ids": [0],
+                "count": 1,
+            }
+        ]
+    }
+
+    out = normalize_summary(raw, responses)
+
+    assert [cluster["agent_ids"] for cluster in out["blind_spot_clusters"]] == [[0], [1]]
+    assert out["blind_spot_clusters"][1]["affected_group"] == "야간 근무자"
+    assert out["blind_spot_clusters"][1]["representative_quote"] == "야간 택시 이용자는 빠진다"
+
+
 def test_inferred_based_uses_direct_empty_proxy():
     from app.services.llm_client import compute_inferred_based
 
@@ -978,9 +1002,15 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
         {
             "affected_group": "수도권 맞벌이 가구",
             "short_title": "수도권 맞벌이 가구",
-            "count": 1,
-            "blind_spot_examples": ["(응답자 0) 월세 전환 때 보증금 흐름 불안"],
-            "agent_ids": [0],
+            "count": 5,
+            "blind_spot_examples": [
+                "(응답자 0) 월세 전환 때 보증금 흐름 불안",
+                "월세 전환 때 보증금 흐름 불안",
+                "월세 전환 때 보증금 흐름 불안",
+                "월세 전환 때 보증금 흐름 불안",
+                "월세 전환 때 보증금 흐름 불안",
+            ],
+            "agent_ids": [0, 1, 2, 3, 4],
             "title_fallback": True,
             "denominator": 5,
             "representative_quote": "월세 전환 때 보증금 흐름 불안",
