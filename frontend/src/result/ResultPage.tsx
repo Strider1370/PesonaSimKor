@@ -3,7 +3,7 @@ import "./result.css"
 import type { Stance } from "../lib/api"
 import type { CurrentRun } from "../lib/currentRunStore"
 import { getCurrentRunSnapshot, useCurrentRunStore } from "../lib/currentRunStore"
-import { buildDashboard, DashboardCluster, filterPersonasByAgentIds } from "./dashboardModel"
+import { buildDashboard, DashboardAffectedGroup, DashboardCluster, filterPersonasByAgentIds } from "./dashboardModel"
 
 type ResultPageProps = {
   run?: CurrentRun
@@ -100,7 +100,7 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
       <section className="dashboard-card">
         <div className="section-title">
           <h2>불리하다고 지목된 집단</h2>
-          <p>응답에서 지목된 횟수만 표시합니다.</p>
+          <p>비슷한 집단을 묶고, 지목된 이유를 함께 표시합니다.</p>
         </div>
         {vm.affectedGroups.length === 0 ? (
           <p className="dashboard-empty">지목된 집단 없음</p>
@@ -113,8 +113,11 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
                 className="affected-row"
                 onClick={() => setSelectedAgentIds(group.agentIds)}
               >
-                <span>{group.label}</span>
-                <strong>{group.count}명 지목</strong>
+                <span className="affected-copy">
+                  <b>{group.label}</b>
+                  {group.reason && <small>집단이 불리하다고 지목된 이유: {group.reason}</small>}
+                </span>
+                <strong>{affectedCountLabel(group)}</strong>
               </button>
             ))}
           </div>
@@ -178,8 +181,9 @@ function ClusterSection({
               className={panel ? "complaint-panel" : "cluster-row"}
               onClick={() => onSelect(cluster.agentIds)}
             >
-              <span>
-                {cluster.quote}
+              <span className="cluster-copy">
+                <b>{cluster.label}</b>
+                {cluster.label !== cluster.quote && <small>{cluster.quote}</small>}
                 {cluster.inferredBased && <em>추론 기반</em>}
               </span>
               <strong>{countLabel(cluster)}</strong>
@@ -194,6 +198,11 @@ function ClusterSection({
 function countLabel(cluster: DashboardCluster) {
   if (cluster.denominator == null) return `${cluster.count}명`
   return `${cluster.denominator}명 중 ${cluster.count}명`
+}
+
+function affectedCountLabel(group: DashboardAffectedGroup) {
+  if (group.denominator == null) return `${group.count}명 지목`
+  return `${group.denominator}명 중 ${group.count}명 지목`
 }
 
 function stanceWidth(value: number, nAgents: number) {

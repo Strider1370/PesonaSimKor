@@ -274,7 +274,8 @@ def test_summary_prompt_requests_result_page_short_fields_and_agent_ids():
     assert "agent_ids" in full_prompt
     assert "Response #9" in full_prompt
     assert "Do not invent or infer ids" in full_prompt
-    assert "Keep one-person blind spots as single clusters" in full_prompt
+    assert "Merge blind spots that share the same policy bottleneck" in full_prompt
+    assert "Keep one-person blind spots as single clusters" not in full_prompt
 
 
 def test_compute_aggregate_collects_blind_spots_and_reframing():

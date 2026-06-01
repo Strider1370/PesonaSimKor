@@ -2,6 +2,7 @@ import type { AgentRespondedEvent, Stance, StanceCounts, StructuredPolicy, Struc
 import type { CurrentRun } from "../lib/currentRunStore"
 
 export type DashboardCluster = {
+  label: string
   quote: string
   count: number
   denominator: number | null
@@ -11,9 +12,15 @@ export type DashboardCluster = {
 
 export type DashboardAffectedGroup = {
   label: string
+  reason: string | null
   count: number
   denominator: number | null
   agentIds: number[]
+}
+
+type RawDashboardCluster = DashboardCluster & {
+  affectedGroup: string
+  searchText: string
 }
 
 export type DashboardPersona = {
@@ -56,14 +63,15 @@ export function buildDashboard(run: CurrentRun): DashboardModel {
     affected_group_clusters?: unknown[]
     affected_groups?: unknown[]
   }
+  const rawConcerns = clusterRows(aggregate.blind_spot_clusters)
 
   return {
     policyHeader: buildPolicyHeader(run.policy, run.structuredPolicy),
     nAgents: run.n_agents,
     stance: safeCounts(aggregate.total),
-    concerns: clusterRows(aggregate.blind_spot_clusters),
+    concerns: consolidateClusters(rawConcerns),
     complaints: clusterRows(aggregate.complaint_clusters),
-    affectedGroups: affectedGroupRows(aggregate.affected_group_clusters ?? aggregate.affected_groups),
+    affectedGroups: affectedGroupRows(aggregate.affected_group_clusters ?? aggregate.affected_groups, rawConcerns),
     personas: personaRows(run.responses ?? []),
   }
 }
@@ -95,35 +103,44 @@ function safeCounts(value: unknown): StanceCounts {
   }
 }
 
-function clusterRows(value: unknown): DashboardCluster[] {
+function clusterRows(value: unknown): RawDashboardCluster[] {
   if (!Array.isArray(value)) return []
   return value.flatMap((cluster) => {
     if (!cluster || typeof cluster !== "object") return []
     const item = cluster as {
       representative_quote?: unknown
       blind_spot_examples?: unknown
+      complaint_examples?: unknown
+      affected_group?: unknown
+      short_title?: unknown
       count?: unknown
       denominator?: unknown
       inferred_based?: unknown
       agent_ids?: unknown
     }
-    const quote = textValue(item.representative_quote) || firstString(item.blind_spot_examples)
+    const examples = strings(item.blind_spot_examples).concat(strings(item.complaint_examples))
+    const quote = textValue(item.representative_quote) || examples[0]
     if (!quote) return []
+    const affectedGroup = textValue(item.affected_group) || ""
+    const label = textValue(item.short_title) || quote
     return [
       {
+        label,
         quote,
         count: Number(item.count) || 0,
         denominator: item.denominator == null ? null : Number(item.denominator) || 0,
         inferredBased: item.inferred_based === true,
         agentIds: numberArray(item.agent_ids),
+        affectedGroup,
+        searchText: [quote, affectedGroup, textValue(item.short_title), ...examples].filter(Boolean).join(" "),
       },
     ]
   })
 }
 
-function affectedGroupRows(value: unknown): DashboardAffectedGroup[] {
+function affectedGroupRows(value: unknown, concernRows: RawDashboardCluster[]): DashboardAffectedGroup[] {
   if (!Array.isArray(value)) return []
-  return value.flatMap((group) => {
+  const rows = value.flatMap((group) => {
     if (!group || typeof group !== "object") return []
     const item = group as {
       representative_quote?: unknown
@@ -136,15 +153,117 @@ function affectedGroupRows(value: unknown): DashboardAffectedGroup[] {
     }
     const label = textValue(item.representative_quote) || textValue(item.affected_group) || textValue(item.group) || textValue(item.label)
     if (!label) return []
+    const agentIds = numberArray(item.agent_ids)
+    const relatedConcerns = relatedRows(concernRows, agentIds)
     return [
       {
         label,
+        reason: joinedReasons(relatedConcerns.map((row) => row.quote)),
         count: Number(item.count) || 0,
         denominator: item.denominator == null ? null : Number(item.denominator) || 0,
-        agentIds: numberArray(item.agent_ids),
+        agentIds,
       },
     ]
   })
+  return consolidateAffectedGroups(rows, concernRows)
+}
+
+function consolidateClusters(rows: RawDashboardCluster[]): DashboardCluster[] {
+  const grouped = groupRows(rows, (row) => row.searchText)
+  return grouped.map(({ theme, rows: groupRows }) => ({
+    label: theme?.label ?? groupRows[0].label,
+    quote: joinedReasons(groupRows.map((row) => row.quote)) ?? groupRows[0].quote,
+    count: mergedCount(groupRows),
+    denominator: mergedDenominator(groupRows),
+    inferredBased: groupRows.some((row) => row.inferredBased),
+    agentIds: mergedAgentIds(groupRows),
+  }))
+}
+
+function consolidateAffectedGroups(rows: DashboardAffectedGroup[], concernRows: RawDashboardCluster[]): DashboardAffectedGroup[] {
+  const grouped = groupRows(rows, (row) => {
+    const related = relatedRows(concernRows, row.agentIds)
+    return [row.label, row.reason, ...related.map((item) => item.searchText)].filter(Boolean).join(" ")
+  })
+  return grouped.map(({ theme, rows: groupRows }) => {
+    const agentIds = mergedAgentIds(groupRows)
+    const related = relatedRows(concernRows, agentIds)
+    return {
+      label: theme ? `${theme.label} 영향 집단` : groupRows[0].label,
+      reason: joinedReasons(related.map((row) => row.quote)) ?? joinedReasons(groupRows.map((row) => row.reason)),
+      count: agentIds.length || sumCounts(groupRows),
+      denominator: mergedDenominator(groupRows),
+      agentIds,
+    }
+  })
+}
+
+function groupRows<T extends { count: number; agentIds: number[] }>(rows: T[], textForRow: (row: T) => string): Array<{ theme: DisplayTheme | null; rows: T[] }> {
+  const groups = new Map<string, { theme: DisplayTheme | null; rows: T[] }>()
+  rows.forEach((row, index) => {
+    const theme = classifyTheme(textForRow(row))
+    const key = theme?.id ?? `raw-${index}`
+    const existing = groups.get(key)
+    if (existing) {
+      existing.rows.push(row)
+    } else {
+      groups.set(key, { theme, rows: [row] })
+    }
+  })
+  return Array.from(groups.values()).sort((a, b) => mergedCount(b.rows) - mergedCount(a.rows))
+}
+
+type DisplayTheme = { id: string; label: string }
+
+function classifyTheme(text: string): DisplayTheme | null {
+  const compact = text.toLowerCase()
+  if (containsAny(compact, ["초과근무", "특수근무", "교대", "야간", "프리랜서", "일용직", "플랫폼", "비공식", "화물차", "소득 변동", "수입이", "유지심사", "기여금"])) {
+    return { id: "income", label: "불규칙 소득·유지심사" }
+  }
+  if (containsAny(compact, ["모바일", "앱", "비대면", "디지털", "스마트폰", "오프라인", "창구"])) {
+    return { id: "digital", label: "모바일·비대면 절차" }
+  }
+  if (containsAny(compact, ["가구", "가족", "부모", "동거", "주민등록", "세대", "배우자", "별거", "독립", "동의"])) {
+    return { id: "household", label: "가구 기준·가족 동의" }
+  }
+  if (containsAny(compact, ["농촌", "지방", "지역", "지점", "은행"])) {
+    return { id: "local", label: "지역·현장 접근성" }
+  }
+  return null
+}
+
+function containsAny(text: string, keywords: string[]): boolean {
+  return keywords.some((keyword) => text.includes(keyword))
+}
+
+function relatedRows(rows: RawDashboardCluster[], agentIds: number[]): RawDashboardCluster[] {
+  if (agentIds.length === 0) return []
+  const allowed = new Set(agentIds)
+  return rows.filter((row) => row.agentIds.some((agentId) => allowed.has(agentId)))
+}
+
+function joinedReasons(values: Array<string | null>): string | null {
+  const unique = Array.from(new Set(values.flatMap((value) => (value ? [value] : []))))
+  if (unique.length === 0) return null
+  return unique.slice(0, 2).join(" / ")
+}
+
+function mergedCount(rows: Array<{ count: number; agentIds: number[] }>): number {
+  const ids = mergedAgentIds(rows)
+  return ids.length || sumCounts(rows)
+}
+
+function sumCounts(rows: Array<{ count: number }>): number {
+  return rows.reduce((total, row) => total + row.count, 0)
+}
+
+function mergedDenominator(rows: Array<{ denominator: number | null }>): number | null {
+  const values = rows.map((row) => row.denominator).filter((value): value is number => value != null)
+  return values.length ? Math.max(...values) : null
+}
+
+function mergedAgentIds(rows: Array<{ agentIds: number[] }>): number[] {
+  return Array.from(new Set(rows.flatMap((row) => row.agentIds))).sort((a, b) => a - b)
 }
 
 function personaRows(responses: AgentRespondedEvent[]): DashboardPersona[] {
@@ -179,8 +298,8 @@ function textValue(value: unknown): string | null {
   return trimmed || null
 }
 
-function firstString(value: unknown): string | null {
-  return Array.isArray(value) ? textValue(value.find((item) => typeof item === "string")) : null
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.flatMap((item) => (typeof item === "string" && item.trim() ? [item.trim()] : [])) : []
 }
 
 function numberArray(value: unknown): number[] {

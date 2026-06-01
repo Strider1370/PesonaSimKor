@@ -164,12 +164,32 @@
   text-align: left;
 }
 
-.cluster-row span,
-.affected-row span,
-.complaint-panel span {
+.cluster-row > span,
+.affected-row > span,
+.complaint-panel > span {
   min-width: 0;
   overflow-wrap: anywhere;
   font-weight: 700;
+}
+
+.cluster-copy,
+.affected-copy {
+  display: grid;
+  gap: 4px;
+  font-weight: 400;
+}
+
+.cluster-copy b,
+.affected-copy b {
+  font-weight: 700;
+}
+
+.cluster-copy small,
+.affected-copy small {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .cluster-row strong,
