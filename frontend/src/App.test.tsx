@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import App, { ExperimentLevels, ResponseCard, Topbar, currentRunFromSnapshot, pageFromPathname } from "./App"
+import App, { ResponseCard, Topbar, currentRunFromSnapshot, pageFromPathname } from "./App"
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -40,20 +40,8 @@ describe("Topbar", () => {
   })
 })
 
-describe("ExperimentLevels", () => {
-  it("does not render prior-specific level copy", () => {
-    const html = renderToStaticMarkup(<ExperimentLevels />)
-
-    expect(html).toContain("L2: 민원")
-    expect(html).toContain("L3: 반문")
-    expect(html).toContain("ON")
-    expect(html).not.toContain("level-notes")
-    expect(html).not.toContain("Prior")
-  })
-})
-
 describe("main settings", () => {
-  it("does not expose preset or OpenAI thinking controls", () => {
+  it("does not expose internal model and level controls", () => {
     vi.stubGlobal("window", {
       location: { pathname: "/" },
       history: { pushState: () => {} },
@@ -70,6 +58,15 @@ describe("main settings", () => {
     expect(html).not.toContain("입력 프롬프트 기준")
     expect(html).not.toContain("OpenAI schema")
     expect(html).not.toContain("출력 필드")
+    expect(html).not.toContain("L1: 다양성")
+    expect(html).not.toContain("L2: 민원")
+    expect(html).not.toContain("L3: 반문")
+    expect(html).not.toContain("L4: 대안")
+    expect(html).not.toContain("모델")
+    expect(html).not.toContain("페르소나")
+    expect(html).not.toContain("반복")
+    expect(html).not.toContain("에이전트 수")
+    expect(html).not.toContain("OpenAI는 백엔드")
   })
 })
 

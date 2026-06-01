@@ -412,34 +412,6 @@ export function Topbar({
   )
 }
 
-export function ExperimentLevels() {
-  const activeLevels = getActiveLevels()
-  const levels = [
-    { id: 1, label: "다양성" },
-    { id: 2, label: "민원" },
-    { id: 3, label: "반문" },
-    { id: 4, label: "대안" },
-  ]
-
-  return (
-    <section className="level-panel" aria-label="검증 Level">
-      <div className="level-tabs">
-        {levels.map((level) => {
-          const active = activeLevels.includes(level.id)
-          return (
-            <div key={level.id} className={`level-tab ${active ? "active" : ""}`}>
-              <strong>
-                L{level.id}: {level.label}
-              </strong>
-              <span>{active ? "ON" : "OFF"}</span>
-            </div>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
 function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   const [slots, setSlots] = useState(createInitialSlots)
   const [nAgents, setNAgents] = useState(30)
@@ -710,61 +682,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
 
   return (
     <div className="experiment-layout">
-      <ExperimentLevels />
-      <section className="control-panel experiment-settings">
-        <div className="settings-grid">
-          <label className="field compact-field">
-            <span>모델</span>
-            <select
-              disabled={isRunning}
-              value={openAiModelName}
-              onChange={(event) => setOpenAiModelName(event.target.value)}
-            >
-              <option value="gpt-5-mini">gpt-5-mini</option>
-              <option value="gpt-5">gpt-5</option>
-              <option value="gpt-4o">gpt-4o</option>
-              <option value="gpt-4o-mini">gpt-4o-mini</option>
-            </select>
-          </label>
-          <label className="field compact-field">
-            <span>페르소나</span>
-            <select
-              disabled={isRunning}
-              value={personaDepth}
-              onChange={(event) => setPersonaDepth(event.target.value as "minimal" | "standard" | "full")}
-            >
-              <option value="minimal">최소</option>
-              <option value="standard">중간</option>
-              <option value="full">풍부</option>
-            </select>
-          </label>
-          <label className="field compact-field">
-            <span>반복</span>
-            <select
-              disabled={isRunning}
-              value={repeatCount}
-              onChange={(event) => setRepeatCount(Number(event.target.value) as 1 | 3 | 5)}
-            >
-              <option value="1">1회</option>
-              <option value="3">3회</option>
-              <option value="5">5회</option>
-            </select>
-          </label>
-          <label className="field compact-field">
-            <span>에이전트 수</span>
-            <input
-              type="number"
-              min={5}
-              max={100}
-              value={nAgents}
-              disabled={isRunning}
-              onChange={(event) => setNAgents(clamp(Number(event.target.value), 5, 100))}
-            />
-          </label>
-        </div>
-        <p className="settings-note">OpenAI는 백엔드의 OPENAI_API_KEY 환경 변수로만 실행됩니다. 현재 요청 모델: {effectiveModelName}</p>
-      </section>
-
       <section className="control-panel policy-slots">
         <div className="section-head">
           <div>

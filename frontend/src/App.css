@@ -107,38 +107,6 @@ h1 {
   color: #ffffff;
 }
 
-.level-panel {
-  border: 1px solid #d5dde5;
-  border-radius: 8px;
-  padding: 14px;
-  background: #ffffff;
-}
-
-.level-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.level-tab {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 150px;
-  border: 1px solid #d5dde5;
-  border-radius: 6px;
-  padding: 8px 10px;
-  background: #f8fafc;
-  color: #52616f;
-}
-
-.level-tab.active {
-  border-color: #2563eb;
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
 .control-panel,
 .progress-panel,
 .panel {
