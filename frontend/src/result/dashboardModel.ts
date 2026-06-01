@@ -287,44 +287,113 @@ function representativePersonaRows(
   complaints: RawDashboardCluster[],
 ): DashboardPersona[] {
   const byId = new Map(responses.map((response) => [response.agent_id, response]))
-  const signalIds = orderedAgentIds([...concerns, ...complaints])
+  const signalRows = [...concerns, ...complaints]
+  const clusterLeadIds = representativeClusterLeadIds(signalRows, byId)
+  const signalIds = orderedAgentIds(signalRows)
   const fallbackIds = responses
     .filter((response) => response.blind_spot || response.expected_complaint)
     .map((response) => response.agent_id)
-  const selectedIds = selectRepresentativeIds(signalIds.length ? signalIds : fallbackIds, responses, 6)
+  const primaryIds = clusterLeadIds.length ? clusterLeadIds : fallbackIds
+  const selectedIds = selectRepresentativeIds(primaryIds, responses, 6, signalIds.length ? signalIds : fallbackIds)
   return selectedIds.flatMap((agentId) => {
     const response = byId.get(agentId)
     return response ? [personaRows([response])[0]] : []
   })
 }
 
-function selectRepresentativeIds(agentIds: number[], responses: AgentRespondedEvent[], limit: number): number[] {
-  const initial = orderedUnique(agentIds).slice(0, limit)
-  const selected = new Set(initial)
-  const represented = new Set(
-    responses.flatMap((response) => (selected.has(response.agent_id) && response.stance ? [response.stance] : [])),
+function representativeClusterLeadIds(rows: Array<{ agentIds: number[] }>, byId: Map<number, AgentRespondedEvent>): number[] {
+  return orderedUnique(
+    rows.flatMap((row) => {
+      const agentId = row.agentIds.find((id) => byId.has(id))
+      return agentId == null ? [] : [agentId]
+    }),
   )
-  const present = new Set(responses.flatMap((response) => (response.stance ? [response.stance] : [])))
-  const additions = (["oppose", "neutral", "support"] as Stance[]).flatMap((stance) => {
-    if (!present.has(stance) || represented.has(stance)) return []
-    const response = responses.find((item) => item.stance === stance)
-    return response ? [response.agent_id] : []
-  })
-  const required = new Set(additions)
-  const output = orderedUnique(initial.concat(additions))
-  while (output.length > limit) {
-    let removableIndex = -1
-    for (let index = output.length - 1; index >= 0; index -= 1) {
-      if (!required.has(output[index])) {
-        removableIndex = index
-        break
-      }
+}
+
+function selectRepresentativeIds(
+  agentIds: number[],
+  responses: AgentRespondedEvent[],
+  limit: number,
+  fillAgentIds: number[] = agentIds,
+): number[] {
+  const byId = new Map(responses.map((response) => [response.agent_id, response]))
+  const output: number[] = []
+  const required = new Set<number>()
+  const add = (agentId: number, options: { force?: boolean; required?: boolean } = {}) => {
+    if (output.includes(agentId) || !byId.has(agentId)) return false
+    if (output.length >= limit) {
+      if (!options.required) return false
+      const removableIndex = lastRemovableIndex(output, required)
+      if (removableIndex < 0) return false
+      output.splice(removableIndex, 1)
     }
-    if (removableIndex < 0) break
-    output.splice(removableIndex, 1)
+    if (!options.force && isTooSimilarToSelected(agentId, output, byId)) return false
+    output.push(agentId)
+    if (options.required) required.add(agentId)
+    return true
   }
+
+  orderedUnique(agentIds).forEach((agentId) => add(agentId, { force: true }))
+  const represented = () =>
+    new Set(responses.flatMap((response) => (output.includes(response.agent_id) && response.stance ? [response.stance] : [])))
+  const present = new Set(responses.flatMap((response) => (response.stance ? [response.stance] : [])))
+  ;(["oppose", "neutral", "support"] as Stance[]).forEach((stance) => {
+    if (!present.has(stance) || represented().has(stance)) return
+    const response = responses.find((item) => item.stance === stance)
+    if (response) add(response.agent_id, { force: true, required: true })
+  })
+  orderedUnique(fillAgentIds).forEach((agentId) => add(agentId))
   return output
 }
+
+function lastRemovableIndex(output: number[], required: Set<number>): number {
+  for (let index = output.length - 1; index >= 0; index -= 1) {
+    if (!required.has(output[index])) return index
+  }
+  return -1
+}
+
+function isTooSimilarToSelected(agentId: number, selectedIds: number[], byId: Map<number, AgentRespondedEvent>): boolean {
+  const response = byId.get(agentId)
+  if (!response) return false
+  return selectedIds.some((selectedId) => responseSimilarity(response, byId.get(selectedId)) >= 0.45)
+}
+
+function responseSimilarity(left: AgentRespondedEvent, right?: AgentRespondedEvent): number {
+  if (!right) return 0
+  const leftTokens = importantTokens(responseSelectionText(left))
+  const rightTokens = importantTokens(responseSelectionText(right))
+  if (Math.min(leftTokens.size, rightTokens.size) < 3) return 0
+  let shared = 0
+  leftTokens.forEach((token) => {
+    if (rightTokens.has(token)) shared += 1
+  })
+  return shared / Math.min(leftTokens.size, rightTokens.size)
+}
+
+function responseSelectionText(response: AgentRespondedEvent): string {
+  return [response.blind_spot, response.expected_complaint, response.rationale].filter(Boolean).join(" ")
+}
+
+function importantTokens(text: string): Set<string> {
+  const tokens = text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []
+  return new Set(tokens.filter((token) => token.length >= 3 && !SIMILARITY_STOPWORDS.has(token)))
+}
+
+const SIMILARITY_STOPWORDS = new Set([
+  "and",
+  "are",
+  "but",
+  "for",
+  "get",
+  "how",
+  "need",
+  "not",
+  "the",
+  "this",
+  "that",
+  "with",
+])
 
 function orderedUnique(values: number[]): number[] {
   const seen = new Set<number>()

@@ -174,6 +174,36 @@ describe("buildDashboard", () => {
     expect(vm.personas.find((persona) => persona.stance === "oppose")?.rationale).toBe("나는 적용되는 교통수단이 없다.")
   })
 
+  it("prioritizes different clusters and stances over repeated similar representatives", () => {
+    const run = {
+      policy: "policy",
+      n_agents: 7,
+      aggregate: {
+        total: { support: 5, neutral: 1, oppose: 1 },
+        blind_spot_clusters: [
+          { representative_quote: "app signup is hard", count: 3, agent_ids: [0, 1, 2] },
+          { representative_quote: "rural bus trips are excluded", count: 1, agent_ids: [3] },
+        ],
+        complaint_clusters: [{ representative_quote: "where do I get the refund?", count: 1, agent_ids: [4] }],
+      },
+      responses: [
+        { agent_id: 0, stance: "support", rationale: "I support it but app signup is hard.", blind_spot: "app signup is hard" },
+        { agent_id: 1, stance: "support", rationale: "App registration and signup are difficult.", blind_spot: "app signup is difficult" },
+        { agent_id: 2, stance: "support", rationale: "The app signup process is hard to follow.", blind_spot: "app signup is hard to follow" },
+        { agent_id: 3, stance: "support", rationale: "Rural buses are not covered.", blind_spot: "rural bus trips are excluded" },
+        { agent_id: 4, stance: "support", rationale: "I need refund instructions.", expected_complaint: "where do I get the refund?" },
+        { agent_id: 5, stance: "oppose", rationale: "I mostly use transport that is excluded." },
+        { agent_id: 6, stance: "neutral", rationale: "I need to compare the signup burden and refund amount." },
+      ],
+    } as any
+
+    const vm = buildDashboard(run)
+
+    expect(vm.personas.map((persona) => persona.agentId)).toEqual([0, 3, 4, 5, 6])
+    expect(vm.personas.map((persona) => persona.agentId)).not.toContain(1)
+    expect(vm.personas.map((persona) => persona.agentId)).not.toContain(2)
+  })
+
   it("keeps minority stance representatives when signal responses exceed the display limit", () => {
     const run = {
       policy: "policy",
