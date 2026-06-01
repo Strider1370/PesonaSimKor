@@ -15,6 +15,7 @@ from app.services.llm_client import (
     build_summary_llm_payload,
     normalize_summary,
     refill_summary_short_fields,
+    structure_policy,
     stream_openai_agent_response,
     stream_openai_summary_clusters,
 )
@@ -215,6 +216,8 @@ async def simulation_stream(req: SimulateRequest):
     n_agents = req.n_agents
     responses: list[dict] = []
     try:
+        structured_policy = structure_policy(policy)
+        yield sse_event("policy_structured", structured_policy)
         personas, sampling_plan = sample_personas_with_plan(n_agents)
         yield sse_event("sampling_plan", sampling_plan)
         prepared_agents = []

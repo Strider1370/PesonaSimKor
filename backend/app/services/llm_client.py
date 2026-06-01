@@ -138,6 +138,74 @@ def parse_json_object(text: str) -> dict[str, Any]:
     raise ValueError("No JSON object found")
 
 
+STRUCTURED_POLICY_FIELDS = ("policy_name", "target", "apply_method", "exclusions", "context")
+
+
+def _policy_field(value: Any, source: Any) -> dict:
+    normalized_source = source if source in {"stated", "inferred"} else "inferred"
+    if value is None:
+        normalized_value = None
+    elif isinstance(value, str):
+        stripped = value.strip()
+        normalized_value = stripped if stripped and stripped.lower() != "null" else None
+    else:
+        normalized_value = str(value).strip() or None
+    return {"value": normalized_value, "source": normalized_source}
+
+
+def fallback_structured_policy(policy_text: str) -> dict:
+    stripped = policy_text.strip()
+    first_line = next((line.strip() for line in stripped.splitlines() if line.strip()), "") or "제목 없음"
+    return {
+        "policy_name": {"value": first_line, "source": "stated"},
+        "target": {"value": None, "source": "stated"},
+        "apply_method": {"value": None, "source": "stated"},
+        "exclusions": {"value": None, "source": "stated"},
+        "context": {"value": stripped or None, "source": "stated"},
+    }
+
+
+def _structure_policy_raw(policy_text: str) -> str:
+    from openai import OpenAI
+
+    client = OpenAI(api_key=get_openai_api_key())
+    response = client.chat.completions.create(
+        model=DEFAULT_OPENAI_MODEL,
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "Extract only neutral execution details from a Korean policy draft. "
+                    "Do not evaluate risks or invent problems. Return JSON with fields "
+                    "policy_name, target, apply_method, exclusions, context. Each field must be "
+                    '{"value":"string or null","source":"stated or inferred"}.'
+                ),
+            },
+            {"role": "user", "content": policy_text},
+        ],
+    )
+    return response.choices[0].message.content or ""
+
+
+def structure_policy(policy_text: str) -> dict:
+    try:
+        parsed = parse_json_object(_structure_policy_raw(policy_text))
+        structured = {}
+        for field in STRUCTURED_POLICY_FIELDS:
+            raw = parsed.get(field)
+            if isinstance(raw, dict):
+                structured[field] = _policy_field(raw.get("value"), raw.get("source"))
+            else:
+                structured[field] = _policy_field(raw, "inferred")
+        if not structured["policy_name"]["value"]:
+            fallback = fallback_structured_policy(policy_text)
+            structured["policy_name"] = fallback["policy_name"]
+        return structured
+    except Exception:
+        return fallback_structured_policy(policy_text)
+
+
 def clean_optional_text(value: Any) -> str | None:
     if not isinstance(value, str):
         return None

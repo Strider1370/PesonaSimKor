@@ -232,6 +232,17 @@ def test_parse_json_object_handles_nested_json():
     assert parsed == {"a": {"b": 1}, "c": 2}
 
 
+def test_structure_policy_fallback_on_parse_error(monkeypatch):
+    from app.services import llm_client
+
+    monkeypatch.setattr(llm_client, "_structure_policy_raw", lambda text: "not-json")
+
+    out = llm_client.structure_policy("청년 월세 한시 지원\n대상: 만19-34")
+
+    assert out["policy_name"]["source"] == "stated"
+    assert out["policy_name"]["value"]
+
+
 def test_summary_prompt_explicitly_limits_recheck_loops():
     payload = build_summary_llm_payload("policy", [{"stance": "support", "rationale": "ok"}])
     system_prompt = payload["messages"][0]["content"]
@@ -810,7 +821,8 @@ def test_simulate_stream_event_order_with_summary_stream(monkeypatch):
     assert response.headers["content-type"].startswith("text/event-stream")
     events = [line.removeprefix("event: ") for line in response.text.splitlines() if line.startswith("event: ")]
 
-    assert events[0] == "sampling_plan"
+    assert events[0] == "policy_structured"
+    assert events[1] == "sampling_plan"
     assert events.count("agent_sampled") == 5
     assert events.count("llm_prompt") == 5
     assert "llm_status" in events
