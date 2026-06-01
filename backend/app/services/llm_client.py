@@ -42,6 +42,11 @@ caveat는 가장 중요한 유보점 하나만 쓰십시오.
 이 페르소나가 정책 방향에 동의하거나 반대하면서도 가장 먼저 걸릴 법한 한 가지 걱정만 쓰십시오.
 해당되는 유보점이 없으면 null을 반환하십시오."""
 
+EXPECTED_COMPLAINT_RULES = """expected_complaint 판정 기준:
+시행 후 이 페르소나가 실제로 제기할 문의나 불만을 한 문장으로 쓰십시오.
+대상 여부, 신청 방식, 서류, 제외 조건처럼 실제 민원 창구에 물을 법한 내용이어야 합니다.
+해당되는 문의나 불만이 없으면 null을 반환하십시오."""
+
 BLIND_SPOT_RULES = """blind_spot 판정 기준:
 blind_spot은 필수가 아닙니다. 아래 세 조건을 모두 만족할 때만 작성하십시오.
 
@@ -67,6 +72,8 @@ SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 
 
 {CAVEAT_RULES}
 
+{EXPECTED_COMPLAINT_RULES}
+
 {BLIND_SPOT_RULES}
 
 {{
@@ -74,6 +81,7 @@ SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 
   "stance_strength": "강함" 또는 "기울어짐" 또는 "약함",
   "rationale": "최종 선택 방향의 핵심 이유. 이 페르소나가 체감할 만한 1~2개 이유만 쓰십시오.",
   "caveat": "가장 중요한 유보점 하나. 없으면 null.",
+  "expected_complaint": "시행 후 실제로 제기할 문의나 불만 한 문장. 없으면 null.",
   "blind_spot": "직접성·특수성·비중복성을 모두 만족하는 사각지대. 없으면 null.",
   "affected_group": "blind_spot이 있을 때 가장 직접적으로 영향받는 집단. 없으면 null.",
   "reframing": "정책 전제나 방향 자체에 동의하지 않는 부분이 있으면 반문하십시오. 없으면 null.",
@@ -153,7 +161,7 @@ def parse_agent_response(text: str, model_provider: str = "openai") -> dict:
 
     result = {"stance": stance, "rationale": rationale.strip()}
 
-    for field in ("stance_strength", "caveat"):
+    for field in ("stance_strength", "caveat", "expected_complaint"):
         value = clean_optional_text(parsed.get(field))
         if value:
             result[field] = value

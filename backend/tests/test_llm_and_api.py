@@ -154,6 +154,22 @@ def test_parse_agent_response_keeps_caveat_and_stance_strength():
     }
 
 
+def test_parse_agent_response_keeps_expected_complaint():
+    raw = '{"stance":"중립","rationale":"r","expected_complaint":"나는 대상자인가요?"}'
+
+    parsed = parse_agent_response(raw)
+
+    assert parsed["expected_complaint"] == "나는 대상자인가요?"
+
+
+def test_parse_agent_response_omits_null_expected_complaint():
+    raw = '{"stance":"중립","rationale":"r","expected_complaint":null}'
+
+    parsed = parse_agent_response(raw)
+
+    assert "expected_complaint" not in parsed
+
+
 def test_parse_agent_response_drops_null_optional_blind_spot_fields():
     parsed = parse_agent_response(
         '{"stance":"찬성","rationale":"정책 방향은 받아들입니다.",'
