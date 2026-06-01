@@ -682,6 +682,47 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
 
   return (
     <div className="experiment-layout">
+      <section className="control-panel experiment-settings">
+        <div className="settings-grid">
+          <label className="field compact-field">
+            <span>모델</span>
+            <select disabled={isRunning} value={openAiModelName} onChange={(event) => setOpenAiModelName(event.target.value)}>
+              <option value="gpt-5-mini">gpt-5-mini</option>
+              <option value="gpt-5">gpt-5</option>
+              <option value="gpt-4o">gpt-4o</option>
+              <option value="gpt-4o-mini">gpt-4o-mini</option>
+            </select>
+          </label>
+          <label className="field compact-field">
+            <span>페르소나</span>
+            <select disabled={isRunning} value={personaDepth} onChange={(event) => setPersonaDepth(event.target.value as "minimal" | "standard" | "full")}>
+              <option value="minimal">최소</option>
+              <option value="standard">중간</option>
+              <option value="full">풍부</option>
+            </select>
+          </label>
+          <label className="field compact-field">
+            <span>반복</span>
+            <select disabled={isRunning} value={repeatCount} onChange={(event) => setRepeatCount(Number(event.target.value) as 1 | 3 | 5)}>
+              <option value="1">1회</option>
+              <option value="3">3회</option>
+              <option value="5">5회</option>
+            </select>
+          </label>
+          <label className="field compact-field">
+            <span>에이전트 수</span>
+            <input
+              type="number"
+              min={5}
+              max={100}
+              value={nAgents}
+              disabled={isRunning}
+              onChange={(event) => setNAgents(clamp(Number(event.target.value), 5, 100))}
+            />
+          </label>
+        </div>
+      </section>
+
       <section className="control-panel policy-slots">
         <div className="section-head">
           <div>

@@ -41,7 +41,7 @@ describe("Topbar", () => {
 })
 
 describe("main settings", () => {
-  it("does not expose internal model and level controls", () => {
+  it("shows experiment controls without level or prompt guide noise", () => {
     vi.stubGlobal("window", {
       location: { pathname: "/" },
       history: { pushState: () => {} },
@@ -62,10 +62,10 @@ describe("main settings", () => {
     expect(html).not.toContain("L2: 민원")
     expect(html).not.toContain("L3: 반문")
     expect(html).not.toContain("L4: 대안")
-    expect(html).not.toContain("모델")
-    expect(html).not.toContain("페르소나")
-    expect(html).not.toContain("반복")
-    expect(html).not.toContain("에이전트 수")
+    expect(html).toContain("모델")
+    expect(html).toContain("페르소나")
+    expect(html).toContain("반복")
+    expect(html).toContain("에이전트 수")
     expect(html).not.toContain("OpenAI는 백엔드")
   })
 })
