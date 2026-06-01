@@ -27,6 +27,7 @@ export type DashboardPersona = {
   agentId: number
   stance: Stance
   meta: string
+  metaParts: string[]
   rationale: string
   blindSpot: string | null
   expectedComplaint: string | null
@@ -271,6 +272,7 @@ function personaRows(responses: AgentRespondedEvent[]): DashboardPersona[] {
     agentId: response.agent_id,
     stance: response.stance,
     meta: personaMeta(response),
+    metaParts: personaMetaParts(response),
     rationale: response.rationale ?? "",
     blindSpot: textValue(response.blind_spot),
     expectedComplaint: textValue(response.expected_complaint),
@@ -336,14 +338,17 @@ function orderedAgentIds(rows: Array<{ agentIds: number[] }>): number[] {
 }
 
 function personaMeta(response: AgentRespondedEvent): string {
+  return personaMetaParts(response).join(" · ")
+}
+
+function personaMetaParts(response: AgentRespondedEvent): string[] {
   return [
     response.age ? `${response.age}세` : "",
     [response.province, response.district].filter(Boolean).join(" "),
     response.occupation,
     response.family_type,
   ]
-    .filter(Boolean)
-    .join(" · ")
+    .filter((item): item is string => typeof item === "string" && item.length > 0)
 }
 
 function firstPolicyLine(policy: string): string {

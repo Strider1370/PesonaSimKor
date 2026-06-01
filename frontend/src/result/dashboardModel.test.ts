@@ -31,6 +31,7 @@ describe("buildDashboard", () => {
     expect(vm.concerns[0].denominator).toBe(1)
     expect(vm.complaints[0].quote).toBe("대상자인가요?")
     expect(vm.personas[0].agentId).toBe(0)
+    expect(vm.personas[0].metaParts).toEqual(["27세"])
   })
 
   it("consolidates similar blind spots and adds reasons to affected groups", () => {

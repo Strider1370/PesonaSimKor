@@ -142,25 +142,40 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
             {filteredPersonas.map((persona) => (
               <article key={persona.agentId} className="raw-response-card">
                 <div>
-                  <span>{persona.meta || `#${persona.agentId}`}</span>
+                  <span className="persona-meta-badges">
+                    {(persona.metaParts.length ? persona.metaParts : [`#${persona.agentId}`]).map((part) => (
+                      <span key={part} className="persona-meta-badge">
+                        {part}
+                      </span>
+                    ))}
+                  </span>
                   <strong className={`stance-pill ${persona.stance}`}>{STANCE_LABELS[persona.stance]}</strong>
                 </div>
                 {persona.blindSpot && (
-                  <p>
-                    <b>우려</b>
-                    {persona.blindSpot}
+                  <p className="response-signal concern">
+                    <b>
+                      <span aria-hidden="true">!</span>
+                      우려
+                    </b>
+                    <span>{persona.blindSpot}</span>
                   </p>
                 )}
                 {persona.expectedComplaint && (
-                  <p>
-                    <b>예상 민원</b>
-                    {persona.expectedComplaint}
+                  <p className="response-signal complaint">
+                    <b>
+                      <span aria-hidden="true">?</span>
+                      예상 민원
+                    </b>
+                    <span>{persona.expectedComplaint}</span>
                   </p>
                 )}
                 {!persona.blindSpot && !persona.expectedComplaint && persona.rationale && (
-                  <p>
-                    <b>입장 근거</b>
-                    {persona.rationale}
+                  <p className="response-signal rationale">
+                    <b>
+                      <span aria-hidden="true">•</span>
+                      입장 근거
+                    </b>
+                    <span>{persona.rationale}</span>
                   </p>
                 )}
               </article>
