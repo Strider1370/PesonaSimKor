@@ -335,6 +335,7 @@ def format_summary_response_row(response: dict) -> str:
             f"  stance: {response.get('stance', '')}",
             f"  rationale: {response.get('rationale', '')}",
             f"  caveat: {response.get('caveat') or 'null'}",
+            f"  expected_complaint: {response.get('expected_complaint') or 'null'}",
             f"  blind_spot: {response.get('blind_spot') or 'null'}",
             f"  affected_group: {response.get('affected_group') or 'null'}",
             f"  reframing: {response.get('reframing') or 'null'}",
@@ -352,13 +353,19 @@ def build_summary_llm_payload(policy: str, responses: list[dict], model_name: st
                 "role": "system",
                 "content": (
                     "Summarize Korean policy reaction rationales. "
-                    "Return only a valid JSON object with headline and exactly three arrays: "
-                    "concern_clusters, support_clusters, and blind_spot_clusters. "
+                    "Return only a valid JSON object with headline and these arrays: "
+                    "concern_clusters, support_clusters, blind_spot_clusters, complaint_clusters, and affected_group_clusters. "
                     "Concern and support clusters must have label, short_label, count, and examples. "
                     "Blind spot clusters must have affected_group, short_title, count, blind_spot_examples, and agent_ids. "
+                    "Complaint clusters must have short_title, count, complaint_examples, and agent_ids. "
+                    "Affected group clusters must have affected_group, short_title, count, examples, and agent_ids. "
                     "For blind_spot_clusters, use only response items with a non-null blind_spot field. "
+                    "For complaint_clusters, use only response items with a non-null expected_complaint field. "
+                    "For affected_group_clusters, use only response items with a non-null affected_group field. "
                     "Do not infer, invent, generalize, or add blind spots from rationale, caveat, reframing, policy context, or outside knowledge. "
                     "If there are no responses with a non-null blind_spot, blind_spot_clusters must be []. "
+                    "If there are no responses with a non-null expected_complaint, complaint_clusters must be []. "
+                    "If there are no responses with a non-null affected_group, affected_group_clusters must be []. "
                     "Examples and agent_ids must use the N from the 'Response #N' marker. Do not invent or infer ids. "
                     "Keep one-person blind spots as single clusters with count=1. "
                     "Do not force-merge similar-looking blind spots when affected_group or effect path differs. "
@@ -376,7 +383,10 @@ def build_summary_llm_payload(policy: str, responses: list[dict], model_name: st
                     '"concern_clusters":[{"label":"string","short_label":"string","count":1,"examples":["string"]}],'
                     '"support_clusters":[{"label":"string","short_label":"string","count":1,"examples":["string"]}],'
                     '"blind_spot_clusters":[{"affected_group":"string","short_title":"string","count":1,'
-                    '"blind_spot_examples":["string"],"agent_ids":[0]}]}'
+                    '"blind_spot_examples":["string"],"agent_ids":[0]}],'
+                    '"complaint_clusters":[{"short_title":"string","count":1,"complaint_examples":["string"],"agent_ids":[0]}],'
+                    '"affected_group_clusters":[{"affected_group":"string","short_title":"string","count":1,'
+                    '"examples":["string"],"agent_ids":[0]}]}'
                 ),
             },
         ],
@@ -546,6 +556,23 @@ def normalize_blind_spot_cluster_item(item: Any) -> dict | None:
     }
 
 
+def normalize_agent_id_cluster_item(item: Any, title_field: str = "short_title") -> dict | None:
+    if not isinstance(item, dict):
+        return None
+    raw_agent_ids = item.get("agent_ids")
+    agent_ids = [int(agent_id) for agent_id in raw_agent_ids if str(agent_id).isdigit()] if isinstance(raw_agent_ids, list) else []
+    normalized = {
+        title_field: str(item.get(title_field) or "").strip(),
+        "count": max(0, int(item.get("count") or 0)),
+        "agent_ids": agent_ids,
+    }
+    for key in ("affected_group", "examples", "complaint_examples"):
+        if key in item:
+            value = item.get(key)
+            normalized[key] = value if isinstance(value, list) else str(value or "").strip()
+    return normalized
+
+
 def compact_korean_label(value: str, limit: int) -> str:
     cleaned = " ".join(str(value).split())
     if len(cleaned) <= limit:
@@ -632,6 +659,26 @@ def attach_inferred_based(clusters: list[dict], responses: list[dict]) -> list[d
     return clusters
 
 
+def reconcile_agent_id_clusters(clusters: list, responses: list[dict], examples_key: str | None = None) -> list[dict]:
+    actual_ids = {int(response["agent_id"]) for response in responses if "agent_id" in response}
+    if not isinstance(clusters, list):
+        return []
+    normalized_clusters = []
+    for cluster in clusters:
+        if not isinstance(cluster, dict):
+            continue
+        raw_ids = cluster.get("agent_ids")
+        if not isinstance(raw_ids, list) and examples_key:
+            raw_ids = extract_agent_ids_from_examples(cluster.get(examples_key, []))
+        if not isinstance(raw_ids, list):
+            raw_ids = []
+        clean_ids = sorted({int(agent_id) for agent_id in raw_ids if str(agent_id).isdigit() and int(agent_id) in actual_ids})
+        cluster["agent_ids"] = clean_ids
+        cluster["count"] = len(clean_ids)
+        normalized_clusters.append(cluster)
+    return normalized_clusters
+
+
 def apply_refilled_summary_fields(summary: dict, refill: dict) -> None:
     for key, field in (("concern_clusters", "short_label"), ("support_clusters", "short_label")):
         refill_items = refill.get(key, [])
@@ -713,15 +760,28 @@ def normalize_summary(summary: dict, responses: list[dict], refill_missing=None)
             cluster["short_title"] = compact_korean_label(affected_group, 14)
             cluster["title_fallback"] = True
 
-        raw_ids = cluster.get("agent_ids")
-        if not isinstance(raw_ids, list):
-            raw_ids = extract_agent_ids_from_examples(cluster.get("blind_spot_examples", []))
-        clean_ids = sorted({int(agent_id) for agent_id in raw_ids if str(agent_id).isdigit() and int(agent_id) in actual_ids})
-        cluster["agent_ids"] = clean_ids
-        cluster["count"] = len(clean_ids)
+    blind_spots = reconcile_agent_id_clusters(blind_spots, responses, examples_key="blind_spot_examples")
     attach_representative_quotes(blind_spots, responses, field="blind_spot")
     attach_inferred_based(blind_spots, responses)
     normalized["blind_spot_clusters"] = blind_spots
+
+    complaint_clusters = reconcile_agent_id_clusters(
+        normalized.get("complaint_clusters", []),
+        responses,
+        examples_key="complaint_examples",
+    )
+    attach_representative_quotes(complaint_clusters, responses, field="expected_complaint")
+    attach_inferred_based(complaint_clusters, responses)
+    normalized["complaint_clusters"] = complaint_clusters
+
+    affected_group_clusters = reconcile_agent_id_clusters(
+        normalized.get("affected_group_clusters", []),
+        responses,
+        examples_key="examples",
+    )
+    attach_representative_quotes(affected_group_clusters, responses, field="affected_group")
+    attach_inferred_based(affected_group_clusters, responses)
+    normalized["affected_group_clusters"] = affected_group_clusters
     return normalized
 
 
@@ -730,6 +790,8 @@ def summary_from_text(raw_output: str) -> dict:
     concerns = parsed.get("concern_clusters", [])
     support = parsed.get("support_clusters", [])
     blind_spots = parsed.get("blind_spot_clusters", [])
+    complaints = parsed.get("complaint_clusters", [])
+    affected_groups = parsed.get("affected_group_clusters", [])
     concern_clusters = [
         cluster
         for cluster in (normalize_summary_cluster_item(item) for item in concerns)
@@ -745,10 +807,20 @@ def summary_from_text(raw_output: str) -> dict:
         for cluster in (normalize_blind_spot_cluster_item(item) for item in blind_spots)
         if cluster is not None
     ] if isinstance(blind_spots, list) else []
+    complaint_clusters = [
+        cluster
+        for cluster in (normalize_agent_id_cluster_item(item) for item in complaints)
+        if cluster is not None
+    ] if isinstance(complaints, list) else []
+    affected_group_clusters = [
+        cluster
+        for cluster in (normalize_agent_id_cluster_item(item) for item in affected_groups)
+        if cluster is not None
+    ] if isinstance(affected_groups, list) else []
     headline = parsed.get("headline")
     if not isinstance(headline, str):
         headline = None
-    has_clusters = bool(concern_clusters or support_clusters or blind_spot_clusters)
+    has_clusters = bool(concern_clusters or support_clusters or blind_spot_clusters or complaint_clusters or affected_group_clusters)
     return {
         "status": "completed" if has_clusters else "empty",
         "message": "요약이 생성되었습니다." if has_clusters else "요약 모델이 빈 cluster 배열을 반환했습니다.",
@@ -756,6 +828,8 @@ def summary_from_text(raw_output: str) -> dict:
         "concern_clusters": concern_clusters,
         "support_clusters": support_clusters,
         "blind_spot_clusters": blind_spot_clusters,
+        "complaint_clusters": complaint_clusters,
+        "affected_group_clusters": affected_group_clusters,
         "raw_output": raw_output,
     }
 
@@ -768,5 +842,7 @@ def failed_summary(message: str, raw_output: str = "") -> dict:
         "concern_clusters": [],
         "support_clusters": [],
         "blind_spot_clusters": [],
+        "complaint_clusters": [],
+        "affected_group_clusters": [],
         "raw_output": raw_output,
     }

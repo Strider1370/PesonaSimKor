@@ -296,6 +296,12 @@ async def simulation_stream(req: SimulateRequest):
         aggregate["concern_clusters"] = summary.get("concern_clusters", [])
         aggregate["support_clusters"] = summary.get("support_clusters", [])
         aggregate["blind_spot_clusters"] = summary.get("blind_spot_clusters", []) if aggregate["blind_spot_raw"] else []
+        aggregate["complaint_clusters"] = (
+            summary.get("complaint_clusters", []) if any(response.get("expected_complaint") for response in responses) else []
+        )
+        aggregate["affected_group_clusters"] = (
+            summary.get("affected_group_clusters", []) if any(response.get("affected_group") for response in responses) else []
+        )
         yield sse_event(
             "summary_status",
             {

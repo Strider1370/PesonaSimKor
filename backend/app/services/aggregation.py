@@ -45,6 +45,8 @@ def compute_aggregate(responses: list[dict]) -> dict:
         "by_region": by_region,
         "concern_clusters": [],
         "support_clusters": [],
+        "complaint_clusters": [],
+        "affected_group_clusters": [],
     }
 
     result["blind_spot_raw"] = [

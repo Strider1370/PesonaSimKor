@@ -468,6 +468,19 @@ def test_inferred_based_uses_direct_empty_proxy():
     assert compute_inferred_based([1], responses) is False
 
 
+def test_normalize_summary_emits_complaint_clusters():
+    responses = [
+        {"agent_id": 0, "expected_complaint": "대상자인가요?"},
+        {"agent_id": 1, "expected_complaint": "앱 말고 신청법?"},
+    ]
+    raw = {"complaint_clusters": [{"short_title": "자격", "agent_ids": [0, 99], "count": 2}]}
+
+    out = normalize_summary(raw, responses)
+
+    assert out["complaint_clusters"][0]["agent_ids"] == [0]
+    assert out["complaint_clusters"][0]["representative_quote"] == "대상자인가요?"
+
+
 def test_normalize_summary_uses_refill_callback_before_fallback():
     summary = {
         "status": "completed",
@@ -517,9 +530,11 @@ def test_summary_prompt_requests_blind_spot_clusters_schema():
     full_prompt = "\n".join(message["content"] for message in payload["messages"])
 
     assert "blind_spot_clusters" in full_prompt
+    assert "complaint_clusters" in full_prompt
+    assert "affected_group_clusters" in full_prompt
     assert "affected_group" in full_prompt
+    assert "expected_complaint" in full_prompt
     assert "blind_spot_examples" in full_prompt
-    assert "exactly three arrays" in full_prompt
     assert "non-null blind_spot" in full_prompt
     assert "blind_spot_clusters must be []" in full_prompt
 
