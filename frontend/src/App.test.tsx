@@ -67,6 +67,9 @@ describe("main settings", () => {
     expect(html).not.toContain('value="on"')
     expect(html).not.toContain("주제")
     expect(html).not.toContain("프리셋")
+    expect(html).not.toContain("입력 프롬프트 기준")
+    expect(html).not.toContain("OpenAI schema")
+    expect(html).not.toContain("출력 필드")
   })
 })
 

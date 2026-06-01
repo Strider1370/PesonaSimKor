@@ -139,62 +139,6 @@ h1 {
   color: #1d4ed8;
 }
 
-.prompt-guide {
-  border: 1px solid #d5dde5;
-  border-radius: 8px;
-  padding: 16px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
-}
-
-.prompt-guide .section-head {
-  margin-bottom: 12px;
-}
-
-.prompt-guide .section-head > span {
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: #eef2ff;
-  color: #334e68;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.prompt-guide-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.prompt-guide article {
-  min-width: 0;
-  border: 1px solid #e5eaf0;
-  border-radius: 6px;
-  padding: 12px;
-  background: #f8fafc;
-}
-
-.prompt-guide h3 {
-  margin-bottom: 8px;
-  font-size: 15px;
-}
-
-.prompt-guide ul {
-  margin: 0;
-  padding-left: 18px;
-  color: #52616f;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.prompt-guide p {
-  margin-bottom: 0;
-  color: #52616f;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-
 .control-panel,
 .progress-panel,
 .panel {
@@ -1110,7 +1054,6 @@ th {
 
   .content-grid,
   .stance-summary,
-  .prompt-guide-grid,
   .settings-grid,
   .archive-actions {
     grid-template-columns: 1fr;

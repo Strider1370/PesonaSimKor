@@ -440,44 +440,6 @@ export function ExperimentLevels() {
   )
 }
 
-function ExperimentPromptGuide() {
-  const outputFields = "stance, stance_strength, rationale, caveat, blind_spot, affected_group, reframing, persona_link"
-
-  return (
-    <section className="prompt-guide" aria-label="입력 프롬프트 기준">
-      <div className="section-head">
-        <div>
-          <h2>입력 프롬프트 기준</h2>
-          <p>실험 응답은 아래 기준으로 stance와 blind_spot을 분리해서 생성합니다.</p>
-        </div>
-        <span>OpenAI schema</span>
-      </div>
-      <div className="prompt-guide-grid">
-        <article>
-          <h3>stance</h3>
-          <ul>
-            <li>최종 선택 방향을 기준으로 찬성, 반대, 중립을 고릅니다.</li>
-            <li>우려나 보완 요구만으로 중립을 선택하지 않습니다.</li>
-            <li>조건부 동의나 조건부 반대는 caveat에 분리합니다.</li>
-          </ul>
-        </article>
-        <article>
-          <h3>blind_spot</h3>
-          <ul>
-            <li>직접성, 특수성, 비중복성을 모두 만족할 때만 작성합니다.</li>
-            <li>일반 찬반 쟁점이나 페르소나를 억지로 연결한 이야기는 제외합니다.</li>
-            <li>세 조건 중 하나라도 부족하면 blind_spot과 affected_group은 null입니다.</li>
-          </ul>
-        </article>
-        <article>
-          <h3>출력 필드</h3>
-          <p>{outputFields}</p>
-        </article>
-      </div>
-    </section>
-  )
-}
-
 function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   const [slots, setSlots] = useState(createInitialSlots)
   const [nAgents, setNAgents] = useState(30)
@@ -750,7 +712,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   return (
     <div className="experiment-layout">
       <ExperimentLevels />
-      <ExperimentPromptGuide />
       <section className="control-panel experiment-settings">
         <div className="settings-grid">
           <label className="field compact-field">
