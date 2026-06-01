@@ -27,6 +27,7 @@ export type DashboardPersona = {
   agentId: number
   stance: Stance
   meta: string
+  headlineParts: string[]
   metaParts: string[]
   rationale: string
   blindSpot: string | null
@@ -272,6 +273,7 @@ function personaRows(responses: AgentRespondedEvent[]): DashboardPersona[] {
     agentId: response.agent_id,
     stance: response.stance,
     meta: personaMeta(response),
+    headlineParts: personaHeadlineParts(response),
     metaParts: personaMetaParts(response),
     rationale: response.rationale ?? "",
     blindSpot: textValue(response.blind_spot),
@@ -338,13 +340,19 @@ function orderedAgentIds(rows: Array<{ agentIds: number[] }>): number[] {
 }
 
 function personaMeta(response: AgentRespondedEvent): string {
-  return personaMetaParts(response).join(" · ")
+  return personaHeadlineParts(response).concat(personaMetaParts(response)).join(" · ")
+}
+
+function personaHeadlineParts(response: AgentRespondedEvent): string[] {
+  return [
+    `응답자 #${response.agent_id}`,
+    response.age ? `${response.age}세` : "",
+    [response.province, response.district].filter(Boolean).join(" "),
+  ].filter((item): item is string => typeof item === "string" && item.length > 0)
 }
 
 function personaMetaParts(response: AgentRespondedEvent): string[] {
   return [
-    response.age ? `${response.age}세` : "",
-    [response.province, response.district].filter(Boolean).join(" "),
     response.occupation,
     response.family_type,
   ]

@@ -256,10 +256,22 @@
   margin-bottom: 8px;
 }
 
-.persona-card-title {
+.persona-headline-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  min-width: 0;
+}
+
+.persona-headline-badge {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: #ffffff;
   color: #111827;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
+  line-height: 1.4;
 }
 
 .persona-meta-badges {

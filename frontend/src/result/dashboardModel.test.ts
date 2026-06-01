@@ -19,7 +19,18 @@ describe("buildDashboard", () => {
         ],
         complaint_clusters: [{ representative_quote: "대상자인가요?", count: 1, agent_ids: [1] }],
       },
-      responses: [{ agent_id: 0, stance: "oppose", blind_spot: "가구 조건이 좁다", age: 27 }],
+      responses: [
+        {
+          agent_id: 0,
+          stance: "oppose",
+          blind_spot: "가구 조건이 좁다",
+          age: 27,
+          province: "경기",
+          district: "파주시",
+          occupation: "무직",
+          family_type: "3세대 동거",
+        },
+      ],
       structuredPolicy: { policy_name: { value: "청년 월세", source: "stated" } },
     } as any
 
@@ -31,7 +42,8 @@ describe("buildDashboard", () => {
     expect(vm.concerns[0].denominator).toBe(1)
     expect(vm.complaints[0].quote).toBe("대상자인가요?")
     expect(vm.personas[0].agentId).toBe(0)
-    expect(vm.personas[0].metaParts).toEqual(["27세"])
+    expect(vm.personas[0].headlineParts).toEqual(["응답자 #0", "27세", "경기 파주시"])
+    expect(vm.personas[0].metaParts).toEqual(["무직", "3세대 동거"])
   })
 
   it("consolidates similar blind spots and adds reasons to affected groups", () => {

@@ -142,7 +142,13 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
             {filteredPersonas.map((persona) => (
               <article key={persona.agentId} className="raw-response-card">
                 <div>
-                  <span className="persona-card-title">응답자 #{persona.agentId}</span>
+                  <span className="persona-headline-badges">
+                    {persona.headlineParts.map((part) => (
+                      <span key={part} className="persona-headline-badge">
+                        {part}
+                      </span>
+                    ))}
+                  </span>
                   <strong className={`stance-pill ${persona.stance}`}>{STANCE_LABELS[persona.stance]}</strong>
                 </div>
                 {persona.blindSpot && (
@@ -172,13 +178,15 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
                     <span>{persona.rationale}</span>
                   </p>
                 )}
-                <div className="persona-meta-badges">
-                  {(persona.metaParts.length ? persona.metaParts : [`#${persona.agentId}`]).map((part) => (
-                    <span key={part} className="persona-meta-badge">
-                      {part}
-                    </span>
-                  ))}
-                </div>
+                {persona.metaParts.length > 0 && (
+                  <div className="persona-meta-badges">
+                    {persona.metaParts.map((part) => (
+                      <span key={part} className="persona-meta-badge">
+                        {part}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </article>
             ))}
           </div>
