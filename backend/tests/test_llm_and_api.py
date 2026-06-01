@@ -456,6 +456,18 @@ def test_cluster_representative_quote_is_verbatim_and_deterministic():
     assert out[0]["denominator"] == 3
 
 
+def test_inferred_based_uses_direct_empty_proxy():
+    from app.services.llm_client import compute_inferred_based
+
+    responses = [
+        {"agent_id": 0, "persona_link": {"direct": "", "inferred": "추론"}},
+        {"agent_id": 1, "persona_link": {"direct": "명시", "inferred": ""}},
+    ]
+
+    assert compute_inferred_based([0, 0], responses) is True
+    assert compute_inferred_based([1], responses) is False
+
+
 def test_normalize_summary_uses_refill_callback_before_fallback():
     summary = {
         "status": "completed",
@@ -956,6 +968,7 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
             "title_fallback": True,
             "denominator": 5,
             "representative_quote": "월세 전환 때 보증금 흐름 불안",
+            "inferred_based": False,
         }
     ]
     assert aggregate_payloads[-1]["blind_spot_clusters"][0]["short_title"]

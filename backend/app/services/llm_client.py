@@ -601,6 +601,37 @@ def attach_representative_quotes(clusters: list[dict], responses: list[dict], fi
     return clusters
 
 
+def compute_inferred_based(agent_ids: list[int], responses: list[dict], threshold: float = 0.5) -> bool:
+    if not agent_ids:
+        return False
+    indexed = response_by_agent_id(responses)
+    inferred_count = 0
+    total = 0
+    for agent_id in agent_ids:
+        try:
+            response = indexed.get(int(agent_id))
+        except (TypeError, ValueError):
+            response = None
+        if not response:
+            continue
+        total += 1
+        persona_link = response.get("persona_link")
+        if not isinstance(persona_link, dict):
+            continue
+        direct = clean_optional_text(persona_link.get("direct"))
+        inferred = clean_optional_text(persona_link.get("inferred"))
+        if direct is None and inferred is not None:
+            inferred_count += 1
+    return bool(total and inferred_count / total >= threshold)
+
+
+def attach_inferred_based(clusters: list[dict], responses: list[dict]) -> list[dict]:
+    for cluster in clusters:
+        if isinstance(cluster, dict):
+            cluster["inferred_based"] = compute_inferred_based(cluster.get("agent_ids", []), responses)
+    return clusters
+
+
 def apply_refilled_summary_fields(summary: dict, refill: dict) -> None:
     for key, field in (("concern_clusters", "short_label"), ("support_clusters", "short_label")):
         refill_items = refill.get(key, [])
@@ -689,6 +720,7 @@ def normalize_summary(summary: dict, responses: list[dict], refill_missing=None)
         cluster["agent_ids"] = clean_ids
         cluster["count"] = len(clean_ids)
     attach_representative_quotes(blind_spots, responses, field="blind_spot")
+    attach_inferred_based(blind_spots, responses)
     normalized["blind_spot_clusters"] = blind_spots
     return normalized
 
