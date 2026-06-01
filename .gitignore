@@ -11,3 +11,5 @@ frontend/vite.config.d.ts
 **/__pycache__/
 *.pyc
 **/.pytest_cache/
+.superpowers/
+exports/
