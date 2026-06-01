@@ -440,6 +440,22 @@ def test_normalize_summary_removes_unknown_agent_ids_and_corrects_count():
     assert normalized["blind_spot_clusters"][0]["count"] == 2
 
 
+def test_cluster_representative_quote_is_verbatim_and_deterministic():
+    from app.services.llm_client import attach_representative_quotes
+
+    responses = [
+        {"agent_id": 0, "blind_spot": "가구 조건이 좁다"},
+        {"agent_id": 1, "blind_spot": "동거 청년이 빠진다고 본다 길게 적음"},
+        {"agent_id": 2, "blind_spot": "앱만 된다"},
+    ]
+    clusters = [{"agent_ids": [0, 1, 2], "count": 3}]
+
+    out = attach_representative_quotes(clusters, responses, field="blind_spot")
+
+    assert out[0]["representative_quote"] == "가구 조건이 좁다"
+    assert out[0]["denominator"] == 3
+
+
 def test_normalize_summary_uses_refill_callback_before_fallback():
     summary = {
         "status": "completed",
@@ -934,10 +950,12 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
         {
             "affected_group": "수도권 맞벌이 가구",
             "short_title": "수도권 맞벌이 가구",
-            "count": 5,
+            "count": 1,
             "blind_spot_examples": ["(응답자 0) 월세 전환 때 보증금 흐름 불안"],
             "agent_ids": [0],
             "title_fallback": True,
+            "denominator": 5,
+            "representative_quote": "월세 전환 때 보증금 흐름 불안",
         }
     ]
     assert aggregate_payloads[-1]["blind_spot_clusters"][0]["short_title"]

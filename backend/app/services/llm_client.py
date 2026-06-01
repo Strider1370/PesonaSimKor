@@ -563,6 +563,44 @@ def extract_agent_ids_from_examples(examples: list) -> list[int]:
     return sorted(set(ids))
 
 
+def response_by_agent_id(responses: list[dict]) -> dict[int, dict]:
+    indexed = {}
+    for response in responses:
+        if "agent_id" not in response:
+            continue
+        try:
+            indexed[int(response["agent_id"])] = response
+        except (TypeError, ValueError):
+            continue
+    return indexed
+
+
+def attach_representative_quotes(clusters: list[dict], responses: list[dict], field: str) -> list[dict]:
+    indexed = response_by_agent_id(responses)
+    denominator = sum(1 for response in responses if clean_optional_text(response.get(field)))
+    for cluster in clusters:
+        if not isinstance(cluster, dict):
+            continue
+        candidates = []
+        for agent_id in cluster.get("agent_ids", []):
+            try:
+                normalized_id = int(agent_id)
+            except (TypeError, ValueError):
+                continue
+            quote = clean_optional_text(indexed.get(normalized_id, {}).get(field))
+            if quote:
+                candidates.append((normalized_id, quote))
+        cluster["denominator"] = denominator
+        if not candidates:
+            cluster["representative_quote"] = ""
+            continue
+        lengths = sorted(len(quote) for _, quote in candidates)
+        median_length = lengths[len(lengths) // 2]
+        agent_id, quote = min(candidates, key=lambda item: (abs(len(item[1]) - median_length), item[0]))
+        cluster["representative_quote"] = quote
+    return clusters
+
+
 def apply_refilled_summary_fields(summary: dict, refill: dict) -> None:
     for key, field in (("concern_clusters", "short_label"), ("support_clusters", "short_label")):
         refill_items = refill.get(key, [])
@@ -649,8 +687,8 @@ def normalize_summary(summary: dict, responses: list[dict], refill_missing=None)
             raw_ids = extract_agent_ids_from_examples(cluster.get("blind_spot_examples", []))
         clean_ids = sorted({int(agent_id) for agent_id in raw_ids if str(agent_id).isdigit() and int(agent_id) in actual_ids})
         cluster["agent_ids"] = clean_ids
-        reported_count = max(0, int(cluster.get("count") or 0))
-        cluster["count"] = max(reported_count, len(clean_ids))
+        cluster["count"] = len(clean_ids)
+    attach_representative_quotes(blind_spots, responses, field="blind_spot")
     normalized["blind_spot_clusters"] = blind_spots
     return normalized
 
