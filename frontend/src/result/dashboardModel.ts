@@ -287,22 +287,38 @@ function representativePersonaRows(
   const fallbackIds = responses
     .filter((response) => response.blind_spot || response.expected_complaint)
     .map((response) => response.agent_id)
-  const selectedIds = (signalIds.length ? signalIds : fallbackIds).slice(0, 6)
+  const selectedIds = includeMissingStanceRepresentatives(signalIds.length ? signalIds : fallbackIds, responses).slice(0, 6)
   return selectedIds.flatMap((agentId) => {
     const response = byId.get(agentId)
     return response ? [personaRows([response])[0]] : []
   })
 }
 
-function orderedAgentIds(rows: Array<{ agentIds: number[] }>): number[] {
-  const seen = new Set<number>()
-  return rows.flatMap((row) =>
-    row.agentIds.flatMap((agentId) => {
-      if (seen.has(agentId)) return []
-      seen.add(agentId)
-      return [agentId]
-    }),
+function includeMissingStanceRepresentatives(agentIds: number[], responses: AgentRespondedEvent[]): number[] {
+  const selected = new Set(agentIds)
+  const represented = new Set(
+    responses.flatMap((response) => (selected.has(response.agent_id) && response.stance ? [response.stance] : [])),
   )
+  const present = new Set(responses.flatMap((response) => (response.stance ? [response.stance] : [])))
+  const additions = (["oppose", "neutral", "support"] as Stance[]).flatMap((stance) => {
+    if (!present.has(stance) || represented.has(stance)) return []
+    const response = responses.find((item) => item.stance === stance)
+    return response ? [response.agent_id] : []
+  })
+  return orderedUnique(agentIds.concat(additions))
+}
+
+function orderedUnique(values: number[]): number[] {
+  const seen = new Set<number>()
+  return values.flatMap((value) => {
+    if (seen.has(value)) return []
+    seen.add(value)
+    return [value]
+  })
+}
+
+function orderedAgentIds(rows: Array<{ agentIds: number[] }>): number[] {
+  return orderedUnique(rows.flatMap((row) => row.agentIds))
 }
 
 function personaMeta(response: AgentRespondedEvent): string {

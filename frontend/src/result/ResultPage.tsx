@@ -151,7 +151,12 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
                     {persona.expectedComplaint}
                   </p>
                 )}
-                {!persona.blindSpot && !persona.expectedComplaint && persona.rationale && <p>{persona.rationale}</p>}
+                {!persona.blindSpot && !persona.expectedComplaint && persona.rationale && (
+                  <p>
+                    <b>입장 근거</b>
+                    {persona.rationale}
+                  </p>
+                )}
               </article>
             ))}
           </div>
