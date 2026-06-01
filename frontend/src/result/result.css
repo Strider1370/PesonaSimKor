@@ -256,11 +256,18 @@
   margin-bottom: 8px;
 }
 
+.persona-card-title {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .persona-meta-badges {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
   min-width: 0;
+  margin-top: 10px;
 }
 
 .persona-meta-badge {
