@@ -18,24 +18,6 @@ FAILURE_FALLBACK = {
 
 DEFAULT_OPENAI_MODEL = "gpt-5-mini"
 
-SYSTEM_PROMPT_OPENAI = """당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
-해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
-[여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
-반드시 아래 JSON 형식으로만 답하십시오. 다른 텍스트는 절대 포함하지 마십시오.
-반드시 한국어로만 답하십시오.
-
-{
-  "stance": "찬성" 또는 "반대" 또는 "중립",
-  "rationale": "입장 이유 (2문장, 이 페르소나의 관점에서)",
-  "blind_spot": "당신의 구체적인 삶의 맥락에서만 보이는 예상치 못한 문제 (1~2문장)",
-  "affected_group": "가장 타격받을 집단",
-  "reframing": "이 정책의 전제나 방향 자체에 동의하지 않는 부분이 있다면 반문하십시오. 없으면 null.",
-  "persona_link": {
-    "direct": "페르소나 텍스트에서 직접 언급된 근거만 쓰십시오. 예: '아파트 거주, 자녀 등교'",
-    "inferred": "텍스트에 없지만 맥락에서 합리적으로 추론한 것. 예: '운전자 업무 -> 교통비 민감'. 고정관념은 피하십시오."
-  }
-}"""
-
 
 STANCE_RULES = """stance 판정 기준:
 stance는 응답자의 최종 선택 방향입니다. 우려, 조건, 보완 요구가 있다는 이유만으로 중립을 선택하지 마십시오.
@@ -74,23 +56,8 @@ blind_spot은 전문가적 정책 분석이 아닙니다.
 세 조건 중 하나라도 부족하면 blind_spot은 null로 반환하십시오.
 blind_spot이 null이면 affected_group도 null로 반환하십시오."""
 
-
-def render_prior_text(prior: dict) -> str:
-    national = prior["national"]
-    group_phrases = ", ".join(
-        f'{g["label"]} 찬성 {g["support"]}%·반대 {g["oppose"]}%' for g in prior["groups"]
-    )
-    return (
-        f'실제 설문조사({prior["source"]})에 따르면, "{prior["question"]}"에 대해 '
-        f'전국 응답은 찬성 {national["support"]}%, 반대 {national["oppose"]}%, '
-        f'유보 {national["undecided"]}%입니다.\n'
-        f'당신이 속한 집단의 실제 여론은 다음과 같습니다: {group_phrases}.\n'
-        f'이는 참고 정보일 뿐이며, 반드시 당신의 구체적인 직업과 생활 맥락에서 스스로 판단해 답하십시오.'
-    )
-
 SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
 해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
-[여론 참고]가 주어지면, 그것은 당신이 속한 집단의 실제 설문 여론입니다. 무조건 따르지 말고, 당신의 생활 맥락과 비교해 판단하십시오.
 반드시 아래 JSON 형식으로만 답하십시오. 다른 텍스트는 절대 포함하지 마십시오.
 반드시 한국어로만 답하십시오.
 
@@ -218,10 +185,8 @@ def parse_agent_response(text: str, model_provider: str = "openai") -> dict:
 def build_agent_prompt(
     persona: dict,
     policy: str,
-    prior: dict | None = None,
     persona_depth: str = "standard",
 ) -> str:
-    prior_text = render_prior_text(prior) if prior else "none"
     if persona_depth == "minimal":
         structured_profile = {
             "age": persona.get("age"),
@@ -248,57 +213,6 @@ def build_agent_prompt(
 
 [Narrative Context]
 {narrative_text}
-
-[여론 참고]
-{prior_text}
-
-[Policy]
-{policy}
-
-이 정책에 대한 당신의 입장은 찬성, 반대, 중립 중 어느 쪽에 가깝습니까?
-그리고 이 정책이 당신 같은 처지의 사람에게 예상치 못한 문제를 일으킬 수 있다면 무엇인지,
-당신의 구체적인 직업과 생활 상황에서만 보이는 부분을 말해주십시오.
-
-반드시 시스템 메시지에서 요구한 JSON 구조와 일치하는 JSON만 반환하십시오.
-일반적인 정책 분석이 아니라 이 시민의 생활 맥락에서 답하십시오."""
-
-
-def build_agent_prompt(
-    persona: dict,
-    policy: str,
-    prior: dict | None = None,
-    persona_depth: str = "standard",
-) -> str:
-    prior_text = render_prior_text(prior) if prior else "none"
-    if persona_depth == "minimal":
-        structured_profile = {
-            "age": persona.get("age"),
-            "gender": persona.get("gender"),
-            "region": persona.get("region"),
-        }
-        narrative_context = {}
-    else:
-        structured_profile = persona.get(
-            "structured_profile",
-            {
-                "age": persona.get("age"),
-                "gender": persona.get("gender"),
-                "district": persona.get("region"),
-                "education_level": persona.get("education"),
-                "occupation": persona.get("job"),
-            },
-        )
-        narrative_context = persona.get("narrative_context", {"persona": persona.get("background", "")})
-    structured_text = "\n".join(f"{key}: {value}" for key, value in structured_profile.items() if value not in ("", None))
-    narrative_text = "\n".join(f"{key}: {value}" for key, value in narrative_context.items() if value not in ("", None))
-    return f"""[Structured Profile]
-{structured_text}
-
-[Narrative Context]
-{narrative_text}
-
-[여론 참고]
-{prior_text}
 
 [Policy]
 {policy}
@@ -311,13 +225,12 @@ def build_agent_prompt(
 def build_agent_messages(
     persona: dict,
     policy: str,
-    prior: dict | None = None,
     persona_depth: str = "standard",
     model_provider: str = "openai",
 ) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": SYSTEM_PROMPT_OPENAI},
-        {"role": "user", "content": build_agent_prompt(persona, policy, prior, persona_depth)},
+        {"role": "user", "content": build_agent_prompt(persona, policy, persona_depth)},
     ]
 
 
@@ -325,7 +238,6 @@ def build_agent_messages(
 def build_agent_llm_payload(
     persona: dict,
     policy: str,
-    prior: dict | None = None,
     model_name: str | None = None,
     thinking: bool = False,
     persona_depth: str = "standard",
@@ -335,7 +247,7 @@ def build_agent_llm_payload(
         "agent_id": persona["agent_id"],
         "model": model_name or DEFAULT_OPENAI_MODEL,
         "format": "json",
-        "messages": build_agent_messages(persona, policy, prior, persona_depth, model_provider),
+        "messages": build_agent_messages(persona, policy, persona_depth, model_provider),
     }
 
 
@@ -461,7 +373,6 @@ def has_repeated_tail(text: str, window: int = 80, repeats: int = 3) -> bool:
 def stream_openai_agent_response(
     persona: dict,
     policy: str,
-    prior: dict | None = None,
     model_name: str = DEFAULT_OPENAI_MODEL,
     persona_depth: str = "standard",
     thinking: bool = False,
@@ -474,7 +385,7 @@ def stream_openai_agent_response(
         stream = client.chat.completions.create(
             model=model_name,
             response_format={"type": "json_object"},
-            messages=build_agent_messages(persona, policy, prior, persona_depth),
+            messages=build_agent_messages(persona, policy, persona_depth),
             **openai_reasoning_options(thinking),
             stream=True,
         )

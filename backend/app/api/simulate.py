@@ -19,7 +19,6 @@ from app.services.llm_client import (
     stream_openai_summary_clusters,
 )
 from app.services.persona_sampler import sample_personas_with_plan
-from app.services.prior_service import get_prior
 
 router = APIRouter()
 HEARTBEAT_INTERVAL_SECONDS = 2.0
@@ -49,7 +48,7 @@ def sampled_event_from_persona(persona: dict) -> dict:
     }
 
 
-def response_event_from_result(persona: dict, result: dict, prior: dict | None = None) -> dict:
+def response_event_from_result(persona: dict, result: dict) -> dict:
     event = {
         "agent_id": persona["agent_id"],
         "age_group": persona["age_group"],
@@ -64,8 +63,6 @@ def response_event_from_result(persona: dict, result: dict, prior: dict | None =
         "reframing": result.get("reframing"),
         "persona_link": result.get("persona_link"),
     }
-    if prior:
-        event["prior"] = prior
     return event
 
 
@@ -110,7 +107,6 @@ async def stream_with_heartbeat(source, *args, **kwargs):
 async def stream_configured_agent_response_with_heartbeat(
     persona: dict,
     policy: str,
-    prior: dict | None,
     model_name: str,
     thinking: bool,
     persona_depth: str,
@@ -119,7 +115,6 @@ async def stream_configured_agent_response_with_heartbeat(
         stream_openai_agent_response,
         persona,
         policy,
-        prior,
         model_name,
         persona_depth=persona_depth,
         thinking=thinking,
@@ -137,14 +132,13 @@ async def stream_configured_summary_clusters_with_heartbeat(
         yield event
 
 
-async def stream_agent_sse_events(req: SimulateRequest, policy: str, persona: dict, prior: dict | None):
+async def stream_agent_sse_events(req: SimulateRequest, policy: str, persona: dict):
     yield ("llm_status", {"agent_id": persona["agent_id"], "status": "started"})
     result = {"stance": "neutral", "rationale": "Response generation failed."}
     llm_failed = False
     async for llm_event in stream_configured_agent_response_with_heartbeat(
         persona,
         policy,
-        prior,
         req.model_name,
         req.thinking,
         req.persona_depth,
@@ -176,27 +170,27 @@ async def stream_agent_sse_events(req: SimulateRequest, policy: str, persona: di
             if not llm_failed:
                 yield ("llm_status", {"agent_id": persona["agent_id"], "status": "completed"})
 
-    yield ("agent_responded", response_event_from_result(persona, result, prior))
+    yield ("agent_responded", response_event_from_result(persona, result))
 
 
 async def stream_openai_agent_sse_events_parallel(
     req: SimulateRequest,
     policy: str,
-    prepared_agents: list[tuple[dict, dict | None]],
+    prepared_agents: list[dict],
 ):
     send, receive = anyio.create_memory_object_stream[tuple[str, dict]](100)
     semaphore = anyio.Semaphore(openai_agent_concurrency())
 
-    async def run_one(persona: dict, prior: dict | None) -> None:
+    async def run_one(persona: dict) -> None:
         async with semaphore:
-            async for event in stream_agent_sse_events(req, policy, persona, prior):
+            async for event in stream_agent_sse_events(req, policy, persona):
                 await send.send(event)
 
     async def produce() -> None:
         async with send:
             async with anyio.create_task_group() as task_group:
-                for persona, prior in prepared_agents:
-                    task_group.start_soon(run_one, persona, prior)
+                for persona in prepared_agents:
+                    task_group.start_soon(run_one, persona)
 
     async with anyio.create_task_group() as task_group:
         task_group.start_soon(produce)
@@ -215,26 +209,17 @@ async def simulation_stream(req: SimulateRequest):
         prepared_agents = []
         for persona in personas:
             yield sse_event("agent_sampled", sampled_event_from_persona(persona))
-            prior = get_prior(
-                req.topic_id,
-                {
-                    "age_group": persona["age_group"],
-                    "gender": persona["gender"],
-                    "province": persona.get("structured_profile", {}).get("province"),
-                },
-            )
             yield sse_event(
                 "llm_prompt",
                 build_agent_llm_payload(
                     persona,
                     policy,
-                    prior,
                     model_name=req.model_name,
                     thinking=req.thinking,
                     persona_depth=req.persona_depth,
                 ),
             )
-            prepared_agents.append((persona, prior))
+            prepared_agents.append(persona)
 
         async for event_name, event_data in stream_openai_agent_sse_events_parallel(req, policy, prepared_agents):
             if event_name == "agent_responded":

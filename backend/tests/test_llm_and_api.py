@@ -19,54 +19,10 @@ from app.services.llm_client import (
     normalize_summary,
     parse_agent_response,
     parse_json_object,
-    render_prior_text,
     summary_from_text,
     stream_openai_agent_response,
     stream_openai_summary_clusters,
 )
-
-
-def test_render_prior_text_is_natural_language_not_json():
-    prior = {
-        "topic": "신규 원전 건설",
-        "source": "한국갤럽 데일리 오피니언 제648호",
-        "question": "신규 원전을 건설해야 한다 / 건설하지 말아야 한다",
-        "national": {"support": 54, "oppose": 25, "undecided": 21},
-        "groups": [
-            {"label": "남성", "support": 70, "oppose": 20, "undecided": 10},
-            {"label": "60대", "support": 69, "oppose": 16, "undecided": 14},
-            {"label": "서울", "support": 60, "oppose": 20, "undecided": 20},
-        ],
-    }
-    text = render_prior_text(prior)
-    assert text.startswith("실제 설문조사(")
-    assert "전국 응답은 찬성 54%" in text
-    assert "남성 찬성 70%·반대 20%" in text
-    assert "60대 찬성 69%" in text
-    assert "{" not in text  # not a JSON dump
-
-
-def test_build_agent_prompt_renders_prior_as_opinion_section():
-    persona = {
-        "agent_id": 1,
-        "age": 65,
-        "gender": "male",
-        "region": "Seoul",
-        "structured_profile": {"province": "서울", "occupation": "teacher"},
-        "narrative_context": {"persona": "은퇴를 앞둔 교사."},
-    }
-    prior = {
-        "topic": "신규 원전 건설",
-        "source": "한국갤럽 제648호",
-        "question": "신규 원전을 건설해야 한다",
-        "national": {"support": 54, "oppose": 25, "undecided": 21},
-        "groups": [{"label": "남성", "support": 70, "oppose": 20, "undecided": 10}],
-    }
-    prompt = build_agent_prompt(persona, "원전 정책", prior)
-    assert "[여론 참고]" in prompt
-    assert "[Prior]" not in prompt
-    assert "남성 찬성 70%" in prompt
-    assert '{"' not in prompt  # prior is not injected as JSON
 
 
 def empty_summary():
@@ -671,14 +627,11 @@ def test_simulate_request_rejects_local_provider():
         raise AssertionError("Expected validation error")
 
 
-def test_simulate_request_accepts_topic_id():
+def test_simulate_request_has_no_topic_id():
     from app.models.schemas import SimulateRequest
 
-    req = SimulateRequest(policy="p", topic_id="2_1")
-    assert req.topic_id == "2_1"
-
-    req_default = SimulateRequest(policy="p")
-    assert req_default.topic_id is None
+    req = SimulateRequest(policy="청년 월세 지원", n_agents=5)
+    assert not hasattr(req, "topic_id")
 
 
 def test_simulate_request_rejects_invalid_provider_and_depth():
@@ -851,62 +804,6 @@ def test_simulate_stream_includes_llm_input_payload(monkeypatch):
     assert "think" not in llm_payloads[0]
     assert llm_payloads[0]["messages"][0]["role"] == "system"
     assert "policy" in llm_payloads[0]["messages"][1]["content"]
-
-
-def test_simulate_stream_passes_topic_id_and_province_to_get_prior(monkeypatch):
-    from app.api import simulate as simulate_api
-
-    captured = []
-
-    def fake_get_prior(topic_id, persona_axes):
-        captured.append((topic_id, persona_axes))
-        return None
-
-    patch_fast_simulation(monkeypatch, simulate_api)
-    monkeypatch.setattr(simulate_api, "get_prior", fake_get_prior)
-
-    client = TestClient(app)
-    response = client.post("/api/simulate", json={"policy": "원전 정책", "n_agents": 5, "topic_id": "2_1"})
-
-    assert response.status_code == 200
-    assert captured, "get_prior was not called"
-    topic_id, axes = captured[0]
-    assert topic_id == "2_1"
-    assert axes["province"] == "서울"
-    assert axes["gender"] in {"male", "female"}
-    assert axes["age_group"] == "20s"
-
-
-def test_simulate_stream_includes_prior_in_agent_response_event(monkeypatch):
-    from app.api import simulate as simulate_api
-
-    prior = {
-        "topic": "사형제 유지",
-        "source": "한국갤럽 데일리 오피니언 제504호",
-        "question": "사형 제도 유지/폐지 찬반",
-        "national": {"support": 69, "oppose": 23, "undecided": 8},
-        "groups": [
-            {"label": "여성", "support": 66, "oppose": 25, "undecided": 9},
-            {"label": "70대+", "support": 75, "oppose": 18, "undecided": 7},
-            {"label": "호남", "support": 62, "oppose": 28, "undecided": 10},
-        ],
-    }
-
-    patch_fast_simulation(monkeypatch, simulate_api)
-    monkeypatch.setattr(simulate_api, "get_prior", lambda topic_id, persona_axes: prior)
-
-    client = TestClient(app)
-    response = client.post("/api/simulate", json={"policy": "사형제 정책", "n_agents": 5, "topic_id": "1_1"})
-
-    agent_responses = []
-    current_event = None
-    for line in response.text.splitlines():
-        if line.startswith("event: "):
-            current_event = line.removeprefix("event: ")
-        elif current_event == "agent_responded" and line.startswith("data: "):
-            agent_responses.append(json.loads(line.removeprefix("data: ")))
-
-    assert agent_responses[0]["prior"] == prior
 
 
 def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(monkeypatch):

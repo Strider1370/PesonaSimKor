@@ -10,7 +10,6 @@ class SimulateRequest(BaseModel):
     model_name: str = "gpt-5-mini"
     thinking: bool = False
     persona_depth: Literal["minimal", "standard", "full"] = "standard"
-    topic_id: str | None = None
 
     @field_validator("policy")
     @classmethod
