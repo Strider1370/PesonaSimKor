@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import App, { ExperimentLevels, ResponseCard, Topbar, pageFromPathname } from "./App"
+import App, { ExperimentLevels, ResponseCard, Topbar, currentRunFromSnapshot, pageFromPathname } from "./App"
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -67,6 +67,43 @@ describe("main settings", () => {
     expect(html).not.toContain('value="on"')
     expect(html).not.toContain("주제")
     expect(html).not.toContain("프리셋")
+  })
+})
+
+describe("snapshot loading", () => {
+  it("maps a loaded snapshot into the dashboard current run", () => {
+    const currentRun = currentRunFromSnapshot({
+      id: "snapshot-1",
+      createdAt: "2026-06-01T00:00:00.000Z",
+      name: "saved",
+      settings: { nAgents: 1, modelProvider: "openai", modelName: "gpt-5-mini" },
+      slots: [{ id: "A", presetId: "", policy: "청년 월세" }],
+      structuredPolicy: { policy_name: { value: "월세 지원", source: "stated" } },
+      results: [
+        {
+          slotId: "A",
+          presetId: "",
+          total: { support: 0, oppose: 0, neutral: 1 },
+          responses: [{ agent_id: 0, stance: "neutral", expected_complaint: "대상자?" } as any],
+          aggregate: {
+            total: { support: 0, oppose: 0, neutral: 1 },
+            by_age: {},
+            by_gender: {},
+            by_region: {},
+            concern_clusters: [],
+            support_clusters: [],
+            blind_spot_clusters: [],
+            complaint_clusters: [{ representative_quote: "대상자?", count: 1, agent_ids: [0] }],
+            reframing_list: [],
+          } as any,
+        },
+      ],
+    })
+
+    expect(currentRun?.policy).toBe("청년 월세")
+    expect(currentRun?.structuredPolicy?.policy_name?.value).toBe("월세 지원")
+    expect(currentRun?.responses[0].expected_complaint).toBe("대상자?")
+    expect((currentRun?.aggregate as any).complaint_clusters[0].representative_quote).toBe("대상자?")
   })
 })
 

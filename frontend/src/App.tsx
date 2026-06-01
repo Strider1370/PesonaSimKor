@@ -50,7 +50,7 @@ import {
   listExperimentSnapshots,
   saveExperimentSnapshot,
 } from "./lib/experimentStorage"
-import { saveCurrentRun, saveExperimentRunAsCurrentRun, useCurrentRunStore } from "./lib/currentRunStore"
+import { CurrentRun, saveCurrentRun, saveExperimentRunAsCurrentRun, useCurrentRunStore } from "./lib/currentRunStore"
 import { ResultPage } from "./result/ResultPage"
 
 type Phase = "idle" | "running" | "done" | "error" | "stopped"
@@ -675,6 +675,11 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
     if (snapshot.settings.personaDepth) setPersonaDepth(snapshot.settings.personaDepth)
     setRuns(restoreSnapshotRuns(snapshot.results))
     setSelectedTraceSlot(snapshot.slots[0]?.id ?? null)
+    const currentRun = currentRunFromSnapshot(snapshot)
+    if (currentRun) {
+      saveCurrentRun(currentRun)
+      onOpenResult()
+    }
   }
 
   function deleteSnapshot(id: string) {
@@ -1304,6 +1309,25 @@ function isExperimentSnapshot(value: unknown): value is ExperimentSnapshot {
     Array.isArray(snapshot.slots) &&
     Array.isArray(snapshot.results)
   )
+}
+
+export function currentRunFromSnapshot(snapshot: ExperimentSnapshot): CurrentRun | null {
+  const result = snapshot.results.find((item) => item.aggregate)
+  if (!result?.aggregate) return null
+  const slot = snapshot.slots.find((item) => item.id === result.slotId)
+  if (!slot?.policy.trim()) return null
+
+  return {
+    policy: slot.policy.trim(),
+    n_agents: snapshot.settings.nAgents,
+    model_name: snapshot.settings.modelName ?? DEFAULT_MODEL_NAME,
+    model_provider: snapshot.settings.modelProvider === "openai" ? "openai" : DEFAULT_MODEL_PROVIDER,
+    aggregate: result.aggregate,
+    sampledAgents: result.sampledAgents ?? [],
+    responses: result.responses ?? [],
+    structuredPolicy: snapshot.structuredPolicy,
+    completedAt: snapshot.createdAt,
+  }
 }
 
 function emptyExperimentRun(): ExperimentRunState {
