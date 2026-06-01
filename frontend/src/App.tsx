@@ -1,7 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react"
 import { useRef } from "react"
-import presetsData from "./data/presets.json"
-
 import {
   AggregateEvent,
   AgentSampledEvent,
@@ -14,7 +12,6 @@ import {
   LlmPromptEvent,
   LlmStatusEvent,
   LlmTokenEvent,
-  PriorEvent,
   RegionGroup,
   SamplingPlanEvent,
   Stance,
@@ -36,21 +33,14 @@ import {
   downloadCsv,
 } from "./lib/experimentCsv"
 import {
-  ExperimentPreset,
-  PresetSelection,
   PolicySlotId,
   addPolicySlot,
   buildSnapshotResults,
-  compareWithRealOpinion,
   computeStabilityReport,
   createInitialSlots,
-  getPresetOptions,
   removePolicySlot,
   restoreSnapshotRuns,
   resolveVisibleSlotId,
-  resolvePresetSelection,
-  selectionFromPreset,
-  updateSlotFromPreset,
   updateSlotPolicy,
 } from "./lib/experiment"
 import {
@@ -97,15 +87,8 @@ const REGION_LABELS: Record<RegionGroup, string> = {
 }
 
 const EMPTY_COUNTS: StanceCounts = { support: 0, oppose: 0, neutral: 0 }
-const PRESETS = presetsData as ExperimentPreset[]
-const PRESET_OPTIONS = getPresetOptions(PRESETS)
 const DEFAULT_MODEL_PROVIDER = "openai" as const
 const DEFAULT_MODEL_NAME = "gpt-5-mini"
-const PRIOR_TOPIC_IDS = new Set(["1_1", "1_2", "2_1"])
-
-export function formatPresetTopicLabel(topic: { id: string; label: string }) {
-  return PRIOR_TOPIC_IDS.has(topic.id) ? `${topic.label} (prior 있음)` : topic.label
-}
 
 export default function App() {
   const [page, setPage] = useState<Page>(() => pageFromLocation())
@@ -399,7 +382,7 @@ export function Topbar({
     <header className="topbar">
       <div>
         <h1>KoreanSim</h1>
-        <p>프리셋 정책 프롬프트를 비교 실행해 LLM 반응 차이를 확인합니다.</p>
+        <p>정책 초안을 입력해 실행 과정에서 놓치기 쉬운 집단과 예상 민원을 확인합니다.</p>
       </div>
       <div className="topbar-status">
         {page === "main" ? (
@@ -416,11 +399,11 @@ export function Topbar({
   )
 }
 
-export function ExperimentLevels({ hasPrior }: { hasPrior: boolean }) {
-  const activeLevels = getActiveLevels(hasPrior)
+export function ExperimentLevels() {
+  const activeLevels = getActiveLevels()
   const levels = [
     { id: 1, label: "다양성" },
-    { id: 2, label: "Prior 대응" },
+    { id: 2, label: "민원" },
     { id: 3, label: "반문" },
     { id: 4, label: "대안" },
   ]
@@ -482,22 +465,8 @@ function ExperimentPromptGuide() {
   )
 }
 
-function currentPresetSelection(
-  slots: ReturnType<typeof createInitialSlots>,
-  selections: Partial<Record<PolicySlotId, PresetSelection>>,
-  slotId: PolicySlotId,
-): PresetSelection | null {
-  const explicitSelection = selections[slotId]
-  if (explicitSelection) return explicitSelection
-
-  const presetId = slots.find((slot) => slot.id === slotId)?.presetId
-  const preset = PRESETS.find((item) => item.id === presetId)
-  return preset ? selectionFromPreset(preset) : null
-}
-
 function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   const [slots, setSlots] = useState(createInitialSlots)
-  const [presetSelections, setPresetSelections] = useState<Partial<Record<PolicySlotId, PresetSelection>>>({})
   const [nAgents, setNAgents] = useState(30)
   const [repeatCount, setRepeatCount] = useState<1 | 3 | 5>(1)
   const [openAiModelName, setOpenAiModelName] = useState("gpt-5-mini")
@@ -512,7 +481,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   const controllersRef = useRef<Partial<Record<PolicySlotId, AbortController>>>({})
   const activeSlots = slots.filter((slot) => slot.policy.trim())
   const isRunning = Object.values(runs).some((run) => run?.phase === "running")
-  const hasPrior = slots.some((slot) => slot.topicId && PRIOR_TOPIC_IDS.has(slot.topicId))
   const effectiveModelName = openAiModelName
 
   useEffect(() => {
@@ -527,7 +495,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   }
 
   async function runSlot(slotId: PolicySlotId, policy: string) {
-    const topicId = slots.find((slot) => slot.id === slotId)?.topicId
     const controller = new AbortController()
     controllersRef.current[slotId] = controller
     setRun(slotId, () => ({ ...emptyExperimentRun(), phase: "running", aggregateRuns: [], currentRunIndex: 0 }))
@@ -547,7 +514,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
             n_agents: nAgents,
             model_name: effectiveModelName,
             persona_depth: personaDepth,
-            topic_id: topicId ?? null,
           },
           controller.signal,
         )) {
@@ -642,32 +608,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
     Object.values(controllersRef.current).forEach((controller) => controller?.abort())
   }
 
-  function applyPresetSelection(slotId: PolicySlotId, nextSelection: PresetSelection) {
-    const preset = resolvePresetSelection(PRESETS, nextSelection)
-    setPresetSelections((prev) => ({ ...prev, [slotId]: nextSelection }))
-    if (preset) {
-      setSlots(updateSlotFromPreset(slots, slotId, preset))
-    }
-  }
-
-  function applyPresetTopic(slotId: PolicySlotId, topicId: string) {
-    const topicOptions = PRESET_OPTIONS.byTopic[topicId]
-    if (!topicOptions) return
-    applyPresetSelection(slotId, {
-      topicId,
-      variant: topicOptions.variants[0]?.id ?? "base",
-      framing: topicOptions.framings[0]?.id ?? "neutral",
-      context: topicOptions.contexts[0]?.id ?? "no_context",
-      stanceFormat: topicOptions.stanceFormats[0]?.id ?? "explicit",
-    })
-  }
-
-  function updatePresetToggle(slotId: PolicySlotId, patch: Partial<Omit<PresetSelection, "topicId">>) {
-    const current = currentPresetSelection(slots, presetSelections, slotId)
-    if (!current) return
-    applyPresetSelection(slotId, { ...current, ...patch })
-  }
-
   function refreshSavedSnapshots() {
     setSavedSnapshots(listExperimentSnapshots())
   }
@@ -708,14 +648,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
 
   function loadSnapshot(snapshot: ExperimentSnapshot) {
     setSlots(snapshot.slots)
-    setPresetSelections(
-      Object.fromEntries(
-        snapshot.slots.flatMap((slot) => {
-          const preset = PRESETS.find((item) => item.id === slot.presetId)
-          return preset ? [[slot.id, selectionFromPreset(preset)]] : []
-        }),
-      ),
-    )
     setNAgents(snapshot.settings.nAgents)
     setRepeatCount((snapshot.settings.repeatCount === 3 || snapshot.settings.repeatCount === 5 ? snapshot.settings.repeatCount : 1) as 1 | 3 | 5)
     if (snapshot.settings.modelName) {
@@ -791,7 +723,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
 
   return (
     <div className="experiment-layout">
-      <ExperimentLevels hasPrior={hasPrior} />
+      <ExperimentLevels />
       <ExperimentPromptGuide />
       <section className="control-panel experiment-settings">
         <div className="settings-grid">
@@ -851,7 +783,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
         <div className="section-head">
           <div>
             <h2>정책 슬롯</h2>
-            <p>프리셋을 선택하면 슬롯의 정책 프롬프트가 자동으로 채워집니다.</p>
+            <p>실제 집행형 정책안을 자유 텍스트로 입력합니다.</p>
           </div>
           <button type="button" className="secondary-button" disabled={slots.length >= 3 || isRunning} onClick={() => setSlots(addPolicySlot(slots))}>
             슬롯 추가
@@ -874,33 +806,13 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
                 </button>
               </div>
               <label className="field">
-                <span>주제</span>
-                <select
-                  value={presetSelections[slot.id]?.topicId ?? ""}
-                  disabled={isRunning}
-                  onChange={(event) => applyPresetTopic(slot.id, event.target.value)}
-                >
-                  <option value="">직접 입력</option>
-                  {PRESET_OPTIONS.topics.map((topic) => (
-                    <option value={topic.id} key={topic.id}>
-                      {formatPresetTopicLabel(topic)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <SlotPresetToggles
-                disabled={isRunning}
-                selection={presetSelections[slot.id]}
-                onChange={(patch) => updatePresetToggle(slot.id, patch)}
-              />
-              <label className="field">
-                <span>프롬프트</span>
+                <span>정책안</span>
                 <textarea
                   value={slot.policy}
                   rows={9}
                   disabled={isRunning}
                   onChange={(event) => setSlots(updateSlotPolicy(slots, slot.id, event.target.value))}
-                  placeholder="프리셋을 선택하거나 정책 프롬프트를 직접 입력하세요."
+                  placeholder="예: 청년 월세 한시 지원. 대상, 신청 방식, 제외 조건을 가능한 만큼 적어주세요."
                 />
               </label>
             </article>
@@ -1010,105 +922,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   )
 }
 
-function PresetTogglePicker({
-  disabled,
-  selection,
-  topicOptions,
-  onChange,
-}: {
-  disabled: boolean
-  selection: PresetSelection
-  topicOptions: (typeof PRESET_OPTIONS.byTopic)[string]
-  onChange: (patch: Partial<Omit<PresetSelection, "topicId">>) => void
-}) {
-  if (!topicOptions) return null
-  return (
-    <div className="preset-toggle-panel">
-      <ToggleGroup
-        label="정책 변형"
-        value={selection.variant}
-        options={topicOptions.variants}
-        disabled={disabled}
-        onChange={(variant) => onChange({ variant })}
-      />
-      <ToggleGroup
-        label="프레이밍"
-        value={selection.framing}
-        options={topicOptions.framings}
-        disabled={disabled}
-        onChange={(framing) => onChange({ framing })}
-      />
-      <ToggleGroup
-        label="배경"
-        value={selection.context}
-        options={topicOptions.contexts}
-        disabled={disabled}
-        onChange={(context) => onChange({ context })}
-      />
-      <ToggleGroup
-        label="응답 방식"
-        value={selection.stanceFormat}
-        options={topicOptions.stanceFormats}
-        disabled={disabled}
-        onChange={(stanceFormat) => onChange({ stanceFormat })}
-      />
-    </div>
-  )
-}
-
-function SlotPresetToggles({
-  disabled,
-  selection,
-  onChange,
-}: {
-  disabled: boolean
-  selection: PresetSelection | undefined
-  onChange: (patch: Partial<Omit<PresetSelection, "topicId">>) => void
-}) {
-  if (!selection) return null
-  return (
-    <PresetTogglePicker
-      disabled={disabled}
-      selection={selection}
-      topicOptions={PRESET_OPTIONS.byTopic[selection.topicId]}
-      onChange={onChange}
-    />
-  )
-}
-
-function ToggleGroup({
-  label,
-  value,
-  options,
-  disabled,
-  onChange,
-}: {
-  label: string
-  value: string
-  options: { id: string; label: string }[]
-  disabled: boolean
-  onChange: (value: string) => void
-}) {
-  return (
-    <div className="toggle-group">
-      <span>{label}</span>
-      <div>
-        {options.map((option) => (
-          <button
-            type="button"
-            key={option.id}
-            className={option.id === value ? "active" : ""}
-            disabled={disabled}
-            onClick={() => onChange(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 function ExperimentResults({
   slots,
   runs,
@@ -1186,14 +999,12 @@ function ExperimentResults({
       <div className="experiment-result-grid">
         {visibleSlots.map((slot) => {
           const run = runs[slot.id]
-          const preset = PRESETS.find((item) => item.id === slot.presetId)
           return (
             <article className="slot-result" key={slot.id}>
               <h3>슬롯 {slot.id}</h3>
               {run?.error && <div className="error-box">{run.error}</div>}
               {!run?.aggregate && <p className="empty">집계 대기 중입니다.</p>}
               {run && <StabilityResult aggregates={run.aggregateRuns} />}
-              {preset && <RealOpinionBadge aggregate={run?.aggregate ?? null} preset={preset} />}
             </article>
           )
         })}
@@ -1248,7 +1059,6 @@ export function ResponseCard({
           {response.caveat && <span>조건/유의점 {response.caveat}</span>}
         </div>
       )}
-      {response.prior && <PriorBadges prior={response.prior} />}
       <p>{response.rationale}</p>
       {(response.blind_spot || response.affected_group) && (
         <div className="response-insights">
@@ -1285,26 +1095,6 @@ export function ResponseCard({
       )}
     </article>
   )
-}
-
-function PriorBadges({ prior }: { prior: PriorEvent }) {
-  return (
-    <div className="response-prior" aria-label="여론 prior">
-      <span className="prior-label">prior 있음</span>
-      <span>{formatNationalPrior(prior.national)}</span>
-      {prior.groups.map((group) => (
-        <span key={group.label}>{formatGroupPrior(group)}</span>
-      ))}
-    </div>
-  )
-}
-
-function formatNationalPrior(prior: PriorEvent["national"]) {
-  return `전국 찬 ${prior.support} · 반 ${prior.oppose} · 유보 ${prior.undecided}`
-}
-
-function formatGroupPrior(group: PriorEvent["groups"][number]) {
-  return `${group.label} 찬 ${group.support} · 반 ${group.oppose}`
 }
 
 function ExperimentTrace({
@@ -1476,48 +1266,6 @@ function StabilityResult({ aggregates }: { aggregates: AggregateEvent[] }) {
       </table>
     </div>
   )
-}
-
-function RealOpinionBadge({ aggregate, preset }: { aggregate: AggregateEvent | null; preset: ExperimentPreset }) {
-  const comparison = compareWithRealOpinion(aggregate, preset.real_opinion)
-  if (!comparison) return null
-  return (
-    <div className="real-opinion-badge">
-      <h3>실제 여론 비교</h3>
-      <p>
-        {comparison.realOpinion.source} · {comparison.realOpinion.year}
-      </p>
-      <table>
-        <thead>
-          <tr>
-            <th>구분</th>
-            <th>시뮬레이션</th>
-            <th>참고값</th>
-            <th>차이</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>찬성</td>
-            <td>{comparison.support.simulated}%</td>
-            <td>{comparison.support.actual}%</td>
-            <td>{formatDiff(comparison.support.diff)}%p</td>
-          </tr>
-          <tr>
-            <td>반대</td>
-            <td>{comparison.oppose.simulated}%</td>
-            <td>{comparison.oppose.actual}%</td>
-            <td>{formatDiff(comparison.oppose.diff)}%p</td>
-          </tr>
-        </tbody>
-      </table>
-      <p>{comparison.realOpinion.note}</p>
-    </div>
-  )
-}
-
-function formatDiff(value: number) {
-  return value > 0 ? `+${value}` : String(value)
 }
 
 function safeCsvFilename(value: string) {
@@ -1816,10 +1564,8 @@ function safeClusters(value: unknown): { label: string; count: number; examples:
     })
 }
 
-function getActiveLevels(hasPrior: boolean): number[] {
-  const levels = [1, 3]
-  if (hasPrior) levels.push(2)
-  return levels
+function getActiveLevels(): number[] {
+  return [1, 2, 3]
 }
 
 function safeBlindSpotClusters(value: unknown): { affected_group: string; count: number; blind_spot_examples: string[] }[] {

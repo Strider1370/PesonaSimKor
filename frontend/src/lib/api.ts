@@ -36,25 +36,6 @@ export type AgentRespondedEvent = {
     direct: string
     inferred: string
   }
-  prior?: PriorEvent
-}
-
-export type PriorEvent = {
-  topic: string
-  source: string
-  question: string
-  national: PriorDistribution
-  groups: PriorGroupDistribution[]
-}
-
-export type PriorDistribution = {
-  support: number
-  oppose: number
-  undecided: number
-}
-
-export type PriorGroupDistribution = PriorDistribution & {
-  label: string
 }
 
 export type LlmPromptEvent = {
@@ -200,7 +181,6 @@ export type SimulateRequest = {
   model_provider?: "openai"
   model_name?: string
   persona_depth?: "minimal" | "standard" | "full"
-  topic_id?: string | null
 }
 
 export type HealthStatus = {
@@ -274,7 +254,7 @@ export async function* simulate(request: SimulateRequest, signal?: AbortSignal):
   const response = await fetch(`${API_BASE_URL}/api/simulate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
+    body: JSON.stringify(buildSimulateBody(request)),
     signal,
   })
 
@@ -302,6 +282,11 @@ export async function* simulate(request: SimulateRequest, signal?: AbortSignal):
       yield event as SimulateEvent
     }
   }
+}
+
+export function buildSimulateBody(request: SimulateRequest): SimulateRequest {
+  const { policy, n_agents, model_provider, model_name, persona_depth } = request
+  return { policy, n_agents, model_provider, model_name, persona_depth }
 }
 
 export async function getHealth(): Promise<HealthStatus> {

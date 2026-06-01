@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { getHealth, listProjectCsvExports, loadProjectCsvExport, parseSseChunk, saveProjectCsvExport } from "./api"
+import { buildSimulateBody, getHealth, listProjectCsvExports, loadProjectCsvExport, parseSseChunk, saveProjectCsvExport } from "./api"
 import type { SimulateRequest } from "./api"
 
 afterEach(() => {
@@ -96,6 +96,13 @@ describe("parseSseChunk", () => {
 
     expect("ollama_reachable" in health).toBe(false)
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/healthz"), { cache: "no-store" })
+  })
+
+  it("simulate payload omits topic_id and prior", () => {
+    const body = buildSimulateBody({ policy: "청년 월세 지원", n_agents: 5, model_name: "gpt-5-mini" })
+
+    expect(body).not.toHaveProperty("topic_id")
+    expect(body).not.toHaveProperty("prior")
   })
 
   it("saves csv exports to the project folder", async () => {
