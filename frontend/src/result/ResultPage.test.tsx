@@ -98,6 +98,7 @@ describe("ResultPage", () => {
     expect(html).not.toContain("실제 의견수렴을 대체하지 않습니다")
     expect(html).toContain("청년 월세")
     expect(html).toContain("페르소나 3명")
+    expect(html).toContain("정책 요약 펼치기")
     expect(html).toContain("입장 분포")
     expect(html).toContain("찬성")
     expect(html).toContain("중립")
@@ -136,7 +137,7 @@ describe("ResultPage", () => {
 
     const html = renderToStaticMarkup(<ResultPage run={run} onDebug={() => {}} />)
 
-    expect(html).toContain('data-source="inferred"')
-    expect(html).toContain("앱 신청")
+    expect(html).not.toContain('data-source="inferred"')
+    expect(html).not.toContain("앱 신청")
   })
 })

@@ -20,6 +20,7 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
   const storedRun = useCurrentRunStore((state) => state.currentRun) ?? getCurrentRunSnapshot()
   const currentRun = run ?? storedRun
   const [selectedAgentIds, setSelectedAgentIds] = useState<number[] | null>(null)
+  const [showPolicySummary, setShowPolicySummary] = useState(false)
 
   const vm = useMemo(() => (currentRun ? buildDashboard(currentRun) : null), [currentRun])
   const filteredPersonas = useMemo(
@@ -46,8 +47,13 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
         <div>
           <h1>{vm.policyHeader.name}</h1>
           <span className="persona-count">페르소나 {vm.nAgents}명</span>
+          {vm.policyHeader.fields.length > 0 && (
+            <button type="button" className="policy-summary-toggle" onClick={() => setShowPolicySummary((value) => !value)}>
+              {showPolicySummary ? "정책 요약 접기" : "정책 요약 펼치기"}
+            </button>
+          )}
         </div>
-        {vm.policyHeader.fields.length > 0 && (
+        {showPolicySummary && vm.policyHeader.fields.length > 0 && (
           <dl className="policy-fields">
             {vm.policyHeader.fields.map((field) => (
               <div key={field.key} data-source={field.source}>

@@ -75,6 +75,17 @@
   font-weight: 800;
 }
 
+.policy-summary-toggle {
+  min-width: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 5px 9px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .dashboard-card {
   padding: 16px;
 }
