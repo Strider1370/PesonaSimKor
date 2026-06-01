@@ -103,6 +103,31 @@ describe("buildDashboard", () => {
     expect(vm.affectedGroups[0].reason).toContain("가구원 동의")
   })
 
+  it("uses district only when it already includes province", () => {
+    const run = {
+      policy: "policy",
+      n_agents: 1,
+      aggregate: {
+        total: { support: 1, neutral: 0, oppose: 0 },
+        blind_spot_clusters: [{ representative_quote: "우려", count: 1, agent_ids: [0] }],
+      },
+      responses: [
+        {
+          agent_id: 0,
+          stance: "support",
+          blind_spot: "우려",
+          age: 62,
+          province: "충청남",
+          district: "충청남-논산시",
+        },
+      ],
+    } as any
+
+    const vm = buildDashboard(run)
+
+    expect(vm.personas[0].headlineParts).toEqual(["응답자 #0", "62세", "충청남-논산시"])
+  })
+
   it("keeps representative personas focused on concern and complaint responses", () => {
     const run = {
       policy: "policy",

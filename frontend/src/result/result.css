@@ -259,11 +259,14 @@
 .persona-headline-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  align-items: flex-start;
+  gap: 6px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .persona-headline-badge {
+  flex: 0 0 auto;
   border: 1px solid #d1d5db;
   border-radius: 999px;
   padding: 2px 7px;
@@ -272,12 +275,25 @@
   font-size: 12px;
   font-weight: 800;
   line-height: 1.4;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.persona-headline-badge:first-child {
+  min-width: 70px;
+  text-align: center;
+}
+
+.persona-headline-badge:nth-child(2) {
+  min-width: 44px;
+  text-align: center;
 }
 
 .persona-meta-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  justify-content: flex-start;
+  gap: 6px;
   min-width: 0;
   margin-top: 10px;
 }

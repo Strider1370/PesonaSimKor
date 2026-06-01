@@ -347,8 +347,15 @@ function personaHeadlineParts(response: AgentRespondedEvent): string[] {
   return [
     `응답자 #${response.agent_id}`,
     response.age ? `${response.age}세` : "",
-    [response.province, response.district].filter(Boolean).join(" "),
+    personaRegion(response),
   ].filter((item): item is string => typeof item === "string" && item.length > 0)
+}
+
+function personaRegion(response: AgentRespondedEvent): string {
+  const province = textValue(response.province)
+  const district = textValue(response.district)
+  if (district && province && district.includes(province)) return district
+  return [province, district].filter(Boolean).join(" ")
 }
 
 function personaMetaParts(response: AgentRespondedEvent): string[] {
