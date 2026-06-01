@@ -111,6 +111,10 @@ test("loads a saved pivot snapshot into the data-only dashboard", async ({ page 
 
   await page.getByRole("button", { name: "불러오기" }).last().click()
 
+  await expect(page.getByText("결과 비교")).toBeVisible()
+  await expect(page).not.toHaveURL(/\/result$/)
+  await page.getByRole("button", { name: "결과" }).first().click()
+
   await expect(page.getByText("입장 분포")).toBeVisible()
   await expect(page.getByRole("button", { name: /나는 대상자인가요/ })).toBeVisible()
   await page.getByRole("button", { name: "정책 요약 펼치기" }).click()

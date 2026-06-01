@@ -640,7 +640,6 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
     const currentRun = currentRunFromSnapshot(snapshot)
     if (currentRun) {
       saveCurrentRun(currentRun)
-      onOpenResult()
     }
   }
 
