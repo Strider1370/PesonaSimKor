@@ -6,7 +6,6 @@ const HEADERS = [
   "name",
   "created_at",
   "slot_id",
-  "preset_id",
   "n_agents",
   "repeat_count",
   "model_provider",
@@ -20,24 +19,19 @@ const HEADERS = [
   "oppose_stddev",
   "neutral_mean",
   "neutral_stddev",
-  "real_source",
-  "real_year",
-  "real_support",
-  "sim_support",
-  "support_diff",
-  "real_oppose",
-  "sim_oppose",
-  "oppose_diff",
-  "real_note",
   "row_type",
   "run_index",
   "agent_id",
   "age",
   "age_group",
   "gender",
+  "province",
+  "district",
   "region",
   "region_group",
   "job",
+  "occupation",
+  "family_type",
   "model",
   "status",
   "category",
@@ -48,10 +42,15 @@ const HEADERS = [
   "caveat",
   "blind_spot",
   "affected_group",
+  "expected_complaint",
   "reframing",
   "persona_link_direct",
   "persona_link_inferred",
   "count",
+  "denominator",
+  "representative_quote",
+  "inferred_based",
+  "agent_ids",
   "examples",
   "text",
   "message",
@@ -62,6 +61,9 @@ const HEADERS = [
 ]
 
 type CsvRow = Partial<Record<(typeof HEADERS)[number], unknown>>
+type PivotClusterRow = Record<string, unknown> & {
+  agent_ids?: unknown[]
+}
 
 export function csvEscape(value: unknown): string {
   const text = value == null ? "" : String(value)
@@ -116,9 +118,12 @@ function buildResultRows(snapshot: ExperimentSnapshot, result: ExperimentSnapsho
         age: agent.age,
         age_group: agent.age_group,
         gender: agent.gender,
+        province: agent.province,
+        district: agent.district,
         region: agent.region,
         region_group: agent.region_group,
         job: agent.job,
+        family_type: agent.family_type,
         json_payload: jsonString(agent),
       }),
     )
@@ -128,8 +133,13 @@ function buildResultRows(snapshot: ExperimentSnapshot, result: ExperimentSnapsho
     rows.push(
       baseRow(snapshot, result, "agent_response", {
         agent_id: response.agent_id,
+        age: response.age,
         age_group: response.age_group,
         gender: response.gender,
+        province: response.province,
+        district: response.district,
+        occupation: response.occupation,
+        family_type: response.family_type,
         region_group: response.region_group,
         stance: response.stance,
         stance_strength: response.stance_strength,
@@ -137,6 +147,7 @@ function buildResultRows(snapshot: ExperimentSnapshot, result: ExperimentSnapsho
         caveat: response.caveat,
         blind_spot: response.blind_spot,
         affected_group: response.affected_group,
+        expected_complaint: response.expected_complaint,
         reframing: response.reframing,
         persona_link_direct: response.persona_link?.direct,
         persona_link_inferred: response.persona_link?.inferred,
@@ -273,7 +284,40 @@ function aggregateRows(
         run_index: runIndex,
         affected_group: cluster.affected_group,
         count: cluster.count,
+        denominator: cluster.denominator,
+        representative_quote: cluster.representative_quote,
+        inferred_based: cluster.inferred_based,
+        agent_ids: cluster.agent_ids.join(" | "),
         examples: cluster.blind_spot_examples.join(" | "),
+        json_payload: jsonString(cluster),
+      }),
+    )
+  })
+
+  ;((aggregate as unknown as { complaint_clusters?: PivotClusterRow[] }).complaint_clusters ?? []).forEach((cluster) => {
+    rows.push(
+      baseRow(snapshot, result, "complaint_cluster", {
+        run_index: runIndex,
+        count: cluster.count,
+        denominator: cluster.denominator,
+        representative_quote: cluster.representative_quote,
+        inferred_based: cluster.inferred_based,
+        agent_ids: Array.isArray(cluster.agent_ids) ? cluster.agent_ids.join(" | ") : "",
+        json_payload: jsonString(cluster),
+      }),
+    )
+  })
+
+  ;((aggregate as unknown as { affected_group_clusters?: PivotClusterRow[] }).affected_group_clusters ?? []).forEach((cluster) => {
+    rows.push(
+      baseRow(snapshot, result, "affected_group_cluster", {
+        run_index: runIndex,
+        affected_group: cluster.affected_group ?? cluster.representative_quote ?? cluster.label,
+        count: cluster.count,
+        denominator: cluster.denominator,
+        representative_quote: cluster.representative_quote,
+        inferred_based: cluster.inferred_based,
+        agent_ids: Array.isArray(cluster.agent_ids) ? cluster.agent_ids.join(" | ") : "",
         json_payload: jsonString(cluster),
       }),
     )
@@ -314,7 +358,6 @@ function baseRow(snapshot: ExperimentSnapshot, result: ExperimentSnapshotResult,
     name: snapshot.name,
     created_at: snapshot.createdAt,
     slot_id: result.slotId,
-    preset_id: result.presetId,
     n_agents: snapshot.settings.nAgents,
     repeat_count: snapshot.settings.repeatCount ?? 1,
     model_provider: snapshot.settings.modelProvider ?? "openai",
@@ -328,15 +371,6 @@ function baseRow(snapshot: ExperimentSnapshot, result: ExperimentSnapshotResult,
     oppose_stddev: result.stability?.opposeStddev ?? "",
     neutral_mean: result.stability?.neutralMean ?? "",
     neutral_stddev: result.stability?.neutralStddev ?? "",
-    real_source: result.realOpinion?.source ?? "",
-    real_year: result.realOpinion?.year ?? "",
-    real_support: result.realOpinion?.supportActual ?? "",
-    sim_support: result.realOpinion?.supportSimulated ?? "",
-    support_diff: result.realOpinion?.supportDiff ?? "",
-    real_oppose: result.realOpinion?.opposeActual ?? "",
-    sim_oppose: result.realOpinion?.opposeSimulated ?? "",
-    oppose_diff: result.realOpinion?.opposeDiff ?? "",
-    real_note: result.realOpinion?.note ?? "",
     row_type: rowType,
     ...extra,
   }

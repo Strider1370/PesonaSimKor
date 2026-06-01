@@ -14,11 +14,11 @@ describe("experiment CSV", () => {
       createdAt: "2026-05-28T10:00:00.000Z",
       name: "test",
       settings: { nAgents: 30, repeatCount: 3, modelProvider: "openai", modelName: "gpt-5-mini" },
-      slots: [{ id: "A", presetId: "preset-a", policy: "policy A" }],
+      slots: [{ id: "A", presetId: "", policy: "policy A" }],
       results: [
         {
           slotId: "A",
-          presetId: "preset-a",
+          presetId: "",
           total: { support: 6, oppose: 3, neutral: 1 },
           stability: {
             supportMean: 60,
@@ -28,17 +28,6 @@ describe("experiment CSV", () => {
             neutralMean: 10,
             neutralStddev: 1,
           },
-          realOpinion: {
-            source: "Gallup",
-            year: 2022,
-            supportActual: 69,
-            supportSimulated: 60,
-            supportDiff: -9,
-            opposeActual: 23,
-            opposeSimulated: 30,
-            opposeDiff: 7,
-            note: "reference",
-          },
         },
       ],
     }
@@ -47,9 +36,32 @@ describe("experiment CSV", () => {
 
     expect(csv).toContain("snapshot_id,name,created_at")
     expect(csv).toContain("snapshot-1,test,2026-05-28T10:00:00.000Z")
-    expect(csv).toContain("A,preset-a,30,3,openai,gpt-5-mini")
+    expect(csv).toContain("A,30,3,openai,gpt-5-mini")
     expect(csv).toContain("6,3,1")
-    expect(csv).toContain("Gallup,2022,69,60,-9")
+    expect(csv).not.toContain("Gallup,2022,69,60,-9")
+  })
+
+  it("csv header drops prior/preset and adds expected_complaint", () => {
+    const snapshot: ExperimentSnapshot = {
+      id: "snapshot-1",
+      createdAt: "2026-06-01T00:00:00.000Z",
+      name: "pivot",
+      settings: { nAgents: 1, repeatCount: 1, modelProvider: "openai", modelName: "gpt-5-mini" },
+      slots: [{ id: "A", presetId: "", policy: "policy A" }],
+      results: [
+        {
+          slotId: "A",
+          presetId: "",
+          total: { support: 0, oppose: 0, neutral: 1 },
+          responses: [{ agent_id: 0, stance: "neutral", expected_complaint: "대상자?" } as any],
+        },
+      ],
+    }
+
+    const header = buildExperimentCsv(snapshot).split("\n")[0]
+
+    expect(header).not.toMatch(/real_source|real_year|preset_id/)
+    expect(header).toMatch(/expected_complaint/)
   })
 
   it("exports visible experiment detail rows", () => {
@@ -98,6 +110,7 @@ describe("experiment CSV", () => {
               caveat: "caveat",
               blind_spot: "blind spot",
               affected_group: "affected group",
+              expected_complaint: "complaint",
               reframing: "reframing",
               persona_link: { direct: "direct", inferred: "inferred" },
             },
@@ -122,6 +135,9 @@ describe("experiment CSV", () => {
                 affected_group: "affected group",
                 short_title: "affected group",
                 count: 1,
+                denominator: 1,
+                representative_quote: "blind spot",
+                inferred_based: false,
                 blind_spot_examples: ["blind spot"],
                 agent_ids: [1],
               },
@@ -142,6 +158,8 @@ describe("experiment CSV", () => {
     expect(csv).toContain("caveat")
     expect(csv).toContain("blind spot")
     expect(csv).toContain("affected group")
+    expect(csv).toContain("complaint")
+    expect(csv).toContain("representative_quote")
     expect(csv).toContain("persona_link_direct")
     expect(csv).toContain("llm_prompt")
     expect(csv).toContain("summary_status")

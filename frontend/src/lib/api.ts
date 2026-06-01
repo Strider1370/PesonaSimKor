@@ -153,9 +153,20 @@ export type BlindSpotCluster = {
   affected_group: string
   short_title: string
   count: number
+  denominator?: number
+  representative_quote?: string
+  inferred_based?: boolean
   blind_spot_examples: string[]
   agent_ids: number[]
   title_fallback?: boolean
+}
+
+export type ComplaintCluster = {
+  representative_quote: string
+  count: number
+  denominator?: number
+  inferred_based?: boolean
+  agent_ids: number[]
 }
 
 export type ReframingItem = {
@@ -180,6 +191,8 @@ export type AggregateEvent = {
   support_clusters: SupportCluster[]
   blind_spot_raw?: BlindSpotRawItem[]
   blind_spot_clusters: BlindSpotCluster[]
+  complaint_clusters?: ComplaintCluster[]
+  affected_group_clusters?: ComplaintCluster[]
   reframing_list: ReframingItem[]
 }
 
