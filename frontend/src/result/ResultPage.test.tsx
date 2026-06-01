@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { clearCurrentRun, saveCurrentRun } from "../lib/currentRunStore"
+import { clearCurrentRun } from "../lib/currentRunStore"
 import { ResultPage } from "./ResultPage"
 
 const storage = vi.hoisted(() => {
@@ -20,6 +20,71 @@ beforeEach(() => {
   clearCurrentRun()
 })
 
+const fixtureRun = {
+  policy: "청년 월세 한시 지원",
+  n_agents: 3,
+  model_name: "gpt-5-mini",
+  model_provider: "openai",
+  completedAt: "2026-06-01T00:00:00.000Z",
+  sampledAgents: [],
+  structuredPolicy: {
+    policy_name: { value: "청년 월세", source: "stated" },
+  },
+  responses: [
+    {
+      agent_id: 0,
+      age: 27,
+      gender: "female",
+      province: "경기",
+      district: "파주시",
+      occupation: "무직",
+      family_type: "3세대 동거",
+      age_group: "20s",
+      region_group: "capital",
+      stance: "oppose",
+      rationale: "가족이랑 같이 사는 청년은 빠지는 느낌이에요.",
+      blind_spot: "가구 조건이 좁다",
+      expected_complaint: "나는 대상자인가요?",
+    },
+    {
+      agent_id: 1,
+      age: 33,
+      gender: "male",
+      province: "서울",
+      district: "마포구",
+      occupation: "사무원",
+      family_type: "1인 가구",
+      age_group: "30s",
+      region_group: "capital",
+      stance: "support",
+      rationale: "월세 부담을 낮춰줘서 필요합니다.",
+    },
+  ],
+  aggregate: {
+    total: { support: 1, oppose: 1, neutral: 1 },
+    by_age: {},
+    by_gender: {},
+    by_region: {},
+    concern_clusters: [{ label: "LLM 요약 라벨", short_label: "요약", count: 1, examples: [] }],
+    support_clusters: [],
+    blind_spot_clusters: [
+      {
+        affected_group: "동거 청년",
+        short_title: "표시하면 안 되는 요약",
+        representative_quote: "가구 조건이 좁다",
+        count: 1,
+        denominator: 1,
+        inferred_based: true,
+        blind_spot_examples: ["가구 조건이 좁다"],
+        agent_ids: [0],
+      },
+    ],
+    complaint_clusters: [{ representative_quote: "나는 대상자인가요?", count: 1, denominator: 1, agent_ids: [0] }],
+    affected_group_clusters: [{ representative_quote: "동거 청년", count: 1, denominator: 1, agent_ids: [0] }],
+    reframing_list: [],
+  },
+} as any
+
 describe("ResultPage", () => {
   it("renders empty state when no current run exists", () => {
     const html = renderToStaticMarkup(<ResultPage onDebug={() => {}} />)
@@ -27,79 +92,30 @@ describe("ResultPage", () => {
     expect(html).toContain("/에서 먼저 실행하세요")
   })
 
-  it("renders header and hero stats from current run", () => {
-    saveCurrentRun({
-      policy:
-        "[정책 설명]\n현행 사형제를 유지하고, 법률상 사형 선고가 가능한 제도를 계속 둔다.\n\n[제시 관점]\n한국은 법률상 사형제를 유지하고 있으나 장기간 집행하지 않은 상태입니다.",
-      n_agents: 5,
-      model_name: "gpt-5-mini",
-      model_provider: "openai",
-      completedAt: "2026-05-30T00:00:00.000Z",
-      sampledAgents: [
-        { agent_id: 7, age: 52, gender: "female", region: "서울-은평구", job: "간호조무사", age_group: "50s", region_group: "capital" },
-      ],
-      responses: [],
-      aggregate: {
-        total: { support: 3, oppose: 1, neutral: 1 },
-        by_age: { "40s": { support: 2, oppose: 1, neutral: 0 } },
-        by_gender: { female: { support: 2, oppose: 1, neutral: 0 } },
-        by_region: { capital: { support: 2, oppose: 1, neutral: 0 } },
-        concern_clusters: [{ label: "생활비 부담", short_label: "생활비", count: 1, examples: ["월 지출이 늘어날 수 있다는 걱정"] }],
-        support_clusters: [{ label: "활동 보장", short_label: "활동", count: 3, examples: ["아이들이 수업과 놀이를 위축되지 않고 이어갈 수 있다는 응답"] }],
-        blind_spot_clusters: [
-          {
-            affected_group: "야간근무 보호자",
-            short_title: "야간근무 보호자",
-            count: 1,
-            blind_spot_examples: ["낮 시간 안내를 챙기기 어렵습니다."],
-            agent_ids: [7],
-          },
-        ],
-        reframing_list: [{ text: "소음만 볼 게 아니라 아이들 활동권도 봐야 합니다.", age_group: "50s", gender: "female", region_group: "capital" }],
-      },
-    })
+  it("renders data-only dashboard blocks and verbatim response labels", () => {
+    const html = renderToStaticMarkup(<ResultPage run={fixtureRun} onDebug={() => {}} />)
 
-    const html = renderToStaticMarkup(<ResultPage onDebug={() => {}} />)
-
-    expect(html).toContain("KoreanSim")
-    expect(html).toContain("현행 사형제를 유지하고, 법률상 사형 선고가 가능한 제도를 계속 둔다.")
-    expect(html).not.toContain("[정책 설명]")
-    expect(html).not.toContain("[제시 관점]")
-    expect(html).not.toContain("장기간 집행하지 않은 상태")
-    expect(html).not.toContain("실험으로 보내기")
-    expect(html).not.toContain("디버그</button>")
-    expect(html).not.toContain("재실행")
+    expect(html).toContain("실제 의견수렴을 대체하지 않습니다")
+    expect(html).toContain("청년 월세")
+    expect(html).toContain("페르소나 3명")
+    expect(html).toContain("입장 분포")
     expect(html).toContain("찬성")
-    expect(html).toContain("3")
-    expect(html).toContain("사각지대")
-    expect(html).toContain("gpt-5-mini")
-    expect(html).toContain("찬반 클러스터")
-    expect(html).toContain("- 응답 수")
-    expect(html).not.toContain("의견 지형도")
-    expect(html).toContain("찬성 클러스터")
-    expect(html).toContain("반대 클러스터")
-    expect(html).toContain("활동")
-    expect(html).toContain('<span class="opinion-cluster-detail">활동 보장</span>')
-    expect(html).toContain("아이들이 수업과 놀이를 위축되지 않고 이어갈 수 있다는 응답")
-    expect(html).toContain("3명")
-    expect(html).toContain("생활비")
-    expect(html).toContain('<span class="opinion-cluster-detail">생활비 부담</span>')
-    expect(html).toContain("월 지출이 늘어날 수 있다는 걱정")
-    expect(html).toContain("1명")
-    expect(html).not.toContain("찬반 × 언급 수")
-    expect(html).toContain("생활비")
-    expect(html).toContain("활동")
-    expect(html).toContain("인구 분포별 찬반")
-    expect(html).toContain("좌(찬성) · 우(반대)")
-    expect(html).toContain("막대 길이 = 응답자 수")
-    expect(html).toContain("40대")
-    expect(html).toContain("사각지대")
-    expect(html).toContain("1건")
-    expect(html).toContain("야간근무 보호자")
-    expect(html).toContain("50대 여")
-    expect(html).toContain("은평구")
-    expect(html).toContain("정책 전제에 대한 반문")
-    expect(html).toContain("1건 / 5명")
-    expect(html).toContain("아이들 활동권")
+    expect(html).toContain("중립")
+    expect(html).toContain("반대")
+    expect(html).toContain("반복된 우려")
+    expect(html).toContain("가구 조건이 좁다")
+    expect(html).toContain("1명 중")
+    expect(html).toContain("추론 기반")
+    expect(html).toContain("예상 민원")
+    expect(html).toContain("나는 대상자인가요?")
+    expect(html).toContain("불리하다고 지목된 집단")
+    expect(html).toContain("동거 청년")
+    expect(html).toContain("페르소나 응답 원문")
+    expect(html).toContain("27세 · 경기 파주시 · 무직 · 3세대 동거")
+    expect(html).toContain("가족이랑 같이 사는 청년")
+    expect(html).not.toContain("표시하면 안 되는 요약")
+    expect(html).not.toContain("LLM 요약 라벨")
+    expect(html).not.toContain("심각도")
+    expect(html).not.toContain("위험도")
   })
 })
