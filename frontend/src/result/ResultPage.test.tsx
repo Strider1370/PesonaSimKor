@@ -38,6 +38,7 @@ describe("ResultPage", () => {
       sampledAgents: [
         { agent_id: 7, age: 52, gender: "female", region: "서울-은평구", job: "간호조무사", age_group: "50s", region_group: "capital" },
       ],
+      responses: [],
       aggregate: {
         total: { support: 3, oppose: 1, neutral: 1 },
         by_age: { "40s": { support: 2, oppose: 1, neutral: 0 } },

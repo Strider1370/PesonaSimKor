@@ -36,6 +36,7 @@ describe("currentRunStore", () => {
         reframing_list: [],
       },
       sampledAgents: [],
+      responses: [],
       completedAt: "2026-05-30T00:00:00.000Z",
     })
 
@@ -70,5 +71,30 @@ describe("currentRunStore", () => {
     expect(currentRun?.n_agents).toBe(30)
     expect(currentRun?.model_provider).toBe("openai")
     expect(currentRun?.sampledAgents[0].agent_id).toBe(1)
+  })
+
+  it("persists experiment responses and structured policy", () => {
+    saveExperimentRunAsCurrentRun({
+      policy: "청년 월세",
+      nAgents: 1,
+      modelName: "gpt-5-mini",
+      aggregate: {
+        total: { support: 0, oppose: 0, neutral: 1 },
+        by_age: {},
+        by_gender: {},
+        by_region: {},
+        concern_clusters: [],
+        support_clusters: [],
+        blind_spot_clusters: [],
+        reframing_list: [],
+      },
+      sampledAgents: [],
+      responses: [{ agent_id: 0, stance: "neutral" }],
+      structuredPolicy: { policy_name: { value: "청년 월세", source: "stated" } },
+    } as any)
+
+    const currentRun = getCurrentRunSnapshot()
+    expect(currentRun?.responses?.[0].agent_id).toBe(0)
+    expect(currentRun?.structuredPolicy?.policy_name.value).toBe("청년 월세")
   })
 })

@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
-import type { AgentSampledEvent, AggregateEvent, SimulateRequest } from "./api"
+import type { AgentRespondedEvent, AgentSampledEvent, AggregateEvent, SimulateRequest, StructuredPolicy } from "./api"
 
 export type CurrentRun = {
   policy: string
@@ -9,6 +9,8 @@ export type CurrentRun = {
   model_provider: "openai"
   aggregate: AggregateEvent
   sampledAgents: AgentSampledEvent[]
+  responses: AgentRespondedEvent[]
+  structuredPolicy?: StructuredPolicy
   completedAt: string
 }
 
@@ -48,6 +50,8 @@ export function saveExperimentRunAsCurrentRun({
   modelProvider = "openai",
   aggregate,
   sampledAgents,
+  responses = [],
+  structuredPolicy,
   completedAt = new Date().toISOString(),
 }: {
   policy: string
@@ -56,6 +60,8 @@ export function saveExperimentRunAsCurrentRun({
   modelProvider?: "openai"
   aggregate: AggregateEvent
   sampledAgents: AgentSampledEvent[]
+  responses?: AgentRespondedEvent[]
+  structuredPolicy?: StructuredPolicy
   completedAt?: string
 }) {
   saveCurrentRun({
@@ -65,6 +71,8 @@ export function saveExperimentRunAsCurrentRun({
     model_provider: modelProvider,
     aggregate,
     sampledAgents,
+    responses,
+    structuredPolicy,
     completedAt,
   })
   useCurrentRunStore.getState().setDraftRequest({

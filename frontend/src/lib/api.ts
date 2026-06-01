@@ -18,18 +18,27 @@ export type AgentSampledEvent = {
   job: string
   age_group: AgeGroup
   region_group: RegionGroup
+  province?: string
+  district?: string
+  family_type?: string
 }
 
 export type AgentRespondedEvent = {
   agent_id: number
+  age?: number
   age_group: AgeGroup
   gender: Gender
+  province?: string
+  district?: string
+  occupation?: string
+  family_type?: string
   region_group: RegionGroup
   stance: Stance
   stance_strength?: string
   rationale: string
   caveat?: string
   blind_spot?: string
+  expected_complaint?: string
   affected_group?: string
   reframing?: string
   persona_link?: {
@@ -37,6 +46,23 @@ export type AgentRespondedEvent = {
     inferred: string
   }
 }
+
+export type StructuredPolicySource = "stated" | "inferred"
+
+export type StructuredPolicyField = {
+  value: string | null
+  source: StructuredPolicySource
+}
+
+export type StructuredPolicy = {
+  policy_name?: StructuredPolicyField
+  target?: StructuredPolicyField
+  apply_method?: StructuredPolicyField
+  exclusions?: StructuredPolicyField
+  context?: StructuredPolicyField
+}
+
+export type PolicyStructuredEvent = StructuredPolicy
 
 export type LlmPromptEvent = {
   agent_id: number
@@ -158,6 +184,7 @@ export type AggregateEvent = {
 }
 
 export type SimulateEvent =
+  | { type: "policy_structured"; data: PolicyStructuredEvent }
   | { type: "sampling_plan"; data: SamplingPlanEvent }
   | { type: "agent_sampled"; data: AgentSampledEvent }
   | { type: "llm_prompt"; data: LlmPromptEvent }

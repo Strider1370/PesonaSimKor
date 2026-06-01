@@ -16,6 +16,7 @@ import {
   SamplingPlanEvent,
   Stance,
   StanceCounts,
+  StructuredPolicy,
   SummaryErrorEvent,
   SummaryHeartbeatEvent,
   SummaryPromptEvent,
@@ -104,6 +105,7 @@ export default function App() {
   const [llmErrors, setLlmErrors] = useState<Record<number, LlmErrorEvent>>({})
   const [llmActivityAt, setLlmActivityAt] = useState<Record<number, number>>({})
   const [responses, setResponses] = useState<AgentRespondedEvent[]>([])
+  const [structuredPolicy, setStructuredPolicy] = useState<StructuredPolicy | undefined>(undefined)
   const [summaryPrompt, setSummaryPrompt] = useState<SummaryPromptEvent | null>(null)
   const [summaryStatus, setSummaryStatus] = useState<SummaryStatusEvent | null>(null)
   const [summaryOutput, setSummaryOutput] = useState("")
@@ -182,6 +184,8 @@ export default function App() {
     const modelProvider = DEFAULT_MODEL_PROVIDER
     const modelName = DEFAULT_MODEL_NAME
     const sampledForRun: AgentSampledEvent[] = []
+    const responsesForRun: AgentRespondedEvent[] = []
+    let structuredPolicyForRun: StructuredPolicy | undefined
 
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -195,6 +199,7 @@ export default function App() {
     setLlmErrors({})
     setLlmActivityAt({})
     setResponses([])
+    setStructuredPolicy(undefined)
     setSummaryPrompt(null)
     setSummaryStatus(null)
     setSummaryOutput("")
@@ -207,7 +212,10 @@ export default function App() {
     try {
       for await (const event of simulate({ policy: trimmed, n_agents: requestedAgents }, controller.signal)) {
         const activityAt = Date.now()
-        if (event.type === "sampling_plan") {
+        if (event.type === "policy_structured") {
+          structuredPolicyForRun = event.data
+          setStructuredPolicy(event.data)
+        } else if (event.type === "sampling_plan") {
           setSamplingPlan(event.data)
         } else if (event.type === "agent_sampled") {
           sampledForRun.push(event.data)
@@ -228,6 +236,7 @@ export default function App() {
           appendLlmToken(event.data, setLlmOutputs)
           setLlmActivityAt((prev) => ({ ...prev, [event.data.agent_id]: activityAt }))
         } else if (event.type === "agent_responded") {
+          responsesForRun.push(event.data)
           setResponses((prev) => [...prev, event.data])
         } else if (event.type === "summary_prompt") {
           setSummaryPrompt(event.data)
@@ -251,6 +260,8 @@ export default function App() {
             model_provider: modelProvider,
             aggregate: event.data,
             sampledAgents: sampledForRun.slice(),
+            responses: responsesForRun.slice(),
+            structuredPolicy: structuredPolicyForRun,
             completedAt: new Date().toISOString(),
           })
           useCurrentRunStore.getState().setDraftRequest({
@@ -298,6 +309,7 @@ export default function App() {
     setLlmErrors({})
     setLlmActivityAt({})
     setResponses([])
+    setStructuredPolicy(undefined)
     setSummaryPrompt(null)
     setSummaryStatus(null)
     setSummaryOutput("")
@@ -350,6 +362,7 @@ type ExperimentRunState = {
   llmHeartbeats: Record<number, LlmHeartbeatEvent>
   llmErrors: Record<number, LlmErrorEvent>
   responses: AgentRespondedEvent[]
+  structuredPolicy?: StructuredPolicy
   summaryPrompt: SummaryPromptEvent | null
   summaryStatus: SummaryStatusEvent | null
   summaryOutput: string
@@ -517,7 +530,9 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
           },
           controller.signal,
         )) {
-          if (event.type === "sampling_plan") {
+          if (event.type === "policy_structured") {
+            setRun(slotId, (prev) => ({ ...prev, structuredPolicy: event.data }))
+          } else if (event.type === "sampling_plan") {
             setRun(slotId, (prev) => ({ ...prev, samplingPlan: event.data }))
           } else if (event.type === "agent_sampled") {
             setRun(slotId, (prev) => ({
@@ -717,6 +732,8 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
       modelProvider: DEFAULT_MODEL_PROVIDER,
       aggregate: run.aggregate,
       sampledAgents: run.sampledAgents,
+      responses: run.responses,
+      structuredPolicy: run.structuredPolicy,
     })
     onOpenResult()
   }
@@ -1297,6 +1314,7 @@ function emptyExperimentRun(): ExperimentRunState {
     llmHeartbeats: {},
     llmErrors: {},
     responses: [],
+    structuredPolicy: undefined,
     summaryPrompt: null,
     summaryStatus: null,
     summaryOutput: "",
