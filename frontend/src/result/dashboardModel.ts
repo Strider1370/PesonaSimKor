@@ -72,7 +72,7 @@ export function buildDashboard(run: CurrentRun): DashboardModel {
     concerns: consolidateClusters(rawConcerns),
     complaints: clusterRows(aggregate.complaint_clusters),
     affectedGroups: affectedGroupRows(aggregate.affected_group_clusters ?? aggregate.affected_groups, rawConcerns),
-    personas: personaRows(run.responses ?? []),
+    personas: representativePersonaRows(run.responses ?? [], rawConcerns, clusterRows(aggregate.complaint_clusters)),
   }
 }
 
@@ -275,6 +275,34 @@ function personaRows(responses: AgentRespondedEvent[]): DashboardPersona[] {
     blindSpot: textValue(response.blind_spot),
     expectedComplaint: textValue(response.expected_complaint),
   }))
+}
+
+function representativePersonaRows(
+  responses: AgentRespondedEvent[],
+  concerns: RawDashboardCluster[],
+  complaints: RawDashboardCluster[],
+): DashboardPersona[] {
+  const byId = new Map(responses.map((response) => [response.agent_id, response]))
+  const signalIds = orderedAgentIds([...concerns, ...complaints])
+  const fallbackIds = responses
+    .filter((response) => response.blind_spot || response.expected_complaint)
+    .map((response) => response.agent_id)
+  const selectedIds = (signalIds.length ? signalIds : fallbackIds).slice(0, 6)
+  return selectedIds.flatMap((agentId) => {
+    const response = byId.get(agentId)
+    return response ? [personaRows([response])[0]] : []
+  })
+}
+
+function orderedAgentIds(rows: Array<{ agentIds: number[] }>): number[] {
+  const seen = new Set<number>()
+  return rows.flatMap((row) =>
+    row.agentIds.flatMap((agentId) => {
+      if (seen.has(agentId)) return []
+      seen.add(agentId)
+      return [agentId]
+    }),
+  )
 }
 
 function personaMeta(response: AgentRespondedEvent): string {

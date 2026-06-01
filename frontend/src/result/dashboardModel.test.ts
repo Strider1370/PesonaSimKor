@@ -89,4 +89,28 @@ describe("buildDashboard", () => {
     })
     expect(vm.affectedGroups[0].reason).toContain("가구원 동의")
   })
+
+  it("keeps representative personas focused on concern and complaint responses", () => {
+    const run = {
+      policy: "policy",
+      n_agents: 4,
+      aggregate: {
+        total: { support: 4, neutral: 0, oppose: 0 },
+        blind_spot_clusters: [{ representative_quote: "앱 가입이 어렵다", count: 1, agent_ids: [2] }],
+        complaint_clusters: [{ representative_quote: "어디서 신청하나요?", count: 1, agent_ids: [1] }],
+      },
+      responses: [
+        { agent_id: 0, stance: "support", rationale: "그냥 좋습니다." },
+        { agent_id: 1, stance: "support", rationale: "조건은 좋다.", expected_complaint: "어디서 신청하나요?" },
+        { agent_id: 2, stance: "support", rationale: "혜택은 있다.", blind_spot: "앱 가입이 어렵다" },
+        { agent_id: 3, stance: "support", rationale: "찬성합니다." },
+      ],
+    } as any
+
+    const vm = buildDashboard(run)
+
+    expect(vm.personas.map((persona) => persona.agentId)).toEqual([2, 1])
+    expect(vm.personas.map((persona) => persona.rationale)).not.toContain("그냥 좋습니다.")
+    expect(vm.personas.map((persona) => persona.rationale)).not.toContain("찬성합니다.")
+  })
 })

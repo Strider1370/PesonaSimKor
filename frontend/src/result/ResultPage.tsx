@@ -126,26 +126,40 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
 
       <section className="raw-response-section">
         <div className="raw-response-head">
-          <h2>페르소나 응답 원문</h2>
+          <h2>대표 응답</h2>
           {selectedAgentIds && (
             <button type="button" className="secondary-filter-button" onClick={() => setSelectedAgentIds(null)}>
               전체 보기
             </button>
           )}
         </div>
-        <div className="raw-response-grid">
-          {filteredPersonas.map((persona) => (
-            <article key={persona.agentId} className="raw-response-card">
-              <div>
-                <span>{persona.meta || `#${persona.agentId}`}</span>
-                <strong className={`stance-pill ${persona.stance}`}>{STANCE_LABELS[persona.stance]}</strong>
-              </div>
-              <p>{persona.rationale}</p>
-              {persona.blindSpot && <p>{persona.blindSpot}</p>}
-              {persona.expectedComplaint && <p>{persona.expectedComplaint}</p>}
-            </article>
-          ))}
-        </div>
+        {filteredPersonas.length === 0 ? (
+          <p className="dashboard-empty">우려나 민원이 연결된 대표 응답 없음</p>
+        ) : (
+          <div className="raw-response-grid">
+            {filteredPersonas.map((persona) => (
+              <article key={persona.agentId} className="raw-response-card">
+                <div>
+                  <span>{persona.meta || `#${persona.agentId}`}</span>
+                  <strong className={`stance-pill ${persona.stance}`}>{STANCE_LABELS[persona.stance]}</strong>
+                </div>
+                {persona.blindSpot && (
+                  <p>
+                    <b>우려</b>
+                    {persona.blindSpot}
+                  </p>
+                )}
+                {persona.expectedComplaint && (
+                  <p>
+                    <b>예상 민원</b>
+                    {persona.expectedComplaint}
+                  </p>
+                )}
+                {!persona.blindSpot && !persona.expectedComplaint && persona.rationale && <p>{persona.rationale}</p>}
+              </article>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   )
