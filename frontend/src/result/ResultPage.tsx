@@ -59,10 +59,6 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
         )}
       </header>
 
-      <p className="dashboard-caution">
-        실제 의견수렴을 대체하지 않습니다. 아래는 가공·평가 없이 모델 응답을 집계한 결과이며, 해석은 담당자의 몫입니다.
-      </p>
-
       <section className="dashboard-card stance-card">
         <div className="section-title">
           <h2>입장 분포</h2>

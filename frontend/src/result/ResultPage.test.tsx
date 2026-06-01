@@ -95,7 +95,7 @@ describe("ResultPage", () => {
   it("renders data-only dashboard blocks and verbatim response labels", () => {
     const html = renderToStaticMarkup(<ResultPage run={fixtureRun} onDebug={() => {}} />)
 
-    expect(html).toContain("실제 의견수렴을 대체하지 않습니다")
+    expect(html).not.toContain("실제 의견수렴을 대체하지 않습니다")
     expect(html).toContain("청년 월세")
     expect(html).toContain("페르소나 3명")
     expect(html).toContain("입장 분포")
