@@ -661,6 +661,29 @@ def test_simulate_request_rejects_invalid_provider_and_depth():
         raise AssertionError("Expected validation error")
 
 
+def test_response_event_includes_complaint_and_demographics():
+    from app.api.simulate import response_event_from_result
+
+    persona = {
+        "agent_id": 0,
+        "age": 27,
+        "gender": "male",
+        "province": "경기",
+        "district": "파주시",
+        "occupation": "무직",
+        "family_type": "3세대 가구",
+        "age_group": "20s",
+        "region_group": "incheon_gyeonggi",
+    }
+    result = {"stance": "neutral", "rationale": "r", "expected_complaint": "대상자인가요?"}
+
+    ev = response_event_from_result(persona, result)
+
+    assert ev["expected_complaint"] == "대상자인가요?"
+    for key in ("age", "province", "district", "occupation", "family_type"):
+        assert key in ev
+
+
 def test_get_openai_api_key_requires_env(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 

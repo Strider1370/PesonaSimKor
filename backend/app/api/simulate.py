@@ -37,27 +37,38 @@ def openai_agent_concurrency() -> int:
 
 
 def sampled_event_from_persona(persona: dict) -> dict:
+    profile = persona.get("structured_profile", {})
     return {
         "agent_id": persona["agent_id"],
         "age": persona["age"],
         "gender": persona["gender"],
+        "province": persona.get("province") or profile.get("province"),
+        "district": persona.get("district") or profile.get("district"),
         "region": persona["region"],
         "job": persona["job"],
+        "family_type": persona.get("family_type") or profile.get("family_type"),
         "age_group": persona["age_group"],
         "region_group": persona["region_group"],
     }
 
 
 def response_event_from_result(persona: dict, result: dict) -> dict:
+    profile = persona.get("structured_profile", {})
     event = {
         "agent_id": persona["agent_id"],
+        "age": persona.get("age"),
         "age_group": persona["age_group"],
         "gender": persona["gender"],
+        "province": persona.get("province") or profile.get("province"),
+        "district": persona.get("district") or profile.get("district"),
+        "occupation": persona.get("occupation") or profile.get("occupation") or persona.get("job"),
+        "family_type": persona.get("family_type") or profile.get("family_type"),
         "region_group": persona["region_group"],
         "stance": result.get("stance", "neutral"),
         "stance_strength": result.get("stance_strength"),
         "rationale": result.get("rationale", ""),
         "caveat": result.get("caveat"),
+        "expected_complaint": result.get("expected_complaint"),
         "blind_spot": result.get("blind_spot"),
         "affected_group": result.get("affected_group"),
         "reframing": result.get("reframing"),
