@@ -56,6 +56,38 @@ describe("experiment snapshot storage", () => {
     expect(loadExperimentSnapshot(saved.id)).toBeNull()
   })
 
+  it("snapshot round-trips structuredPolicy and responses", () => {
+    const saved = saveExperimentSnapshot({
+      name: "pivot",
+      settings: { nAgents: 1, repeatCount: 1 },
+      slots: [{ id: "A", presetId: "", policy: "청년 월세" }],
+      results: [
+        {
+          slotId: "A",
+          presetId: "",
+          total: { support: 0, oppose: 0, neutral: 1 },
+          responses: [
+            {
+              agent_id: 0,
+              age_group: "20s",
+              gender: "female",
+              region_group: "capital",
+              stance: "neutral",
+              rationale: "대상인지 궁금합니다.",
+              expected_complaint: "대상자?",
+            },
+          ],
+        },
+      ],
+      structuredPolicy: { policy_name: { value: "월세", source: "stated" } },
+    })
+
+    const loaded = loadExperimentSnapshot(saved.id)
+
+    expect(loaded?.structuredPolicy?.policy_name?.value).toBe("월세")
+    expect(loaded?.results[0].responses?.[0].expected_complaint).toBe("대상자?")
+  })
+
   it("returns an empty list when localStorage contains invalid JSON", () => {
     localStorage.setItem("koreansim.experiment.snapshots.v1", "not json")
 

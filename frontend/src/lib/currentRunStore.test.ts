@@ -95,6 +95,6 @@ describe("currentRunStore", () => {
 
     const currentRun = getCurrentRunSnapshot()
     expect(currentRun?.responses?.[0].agent_id).toBe(0)
-    expect(currentRun?.structuredPolicy?.policy_name.value).toBe("청년 월세")
+    expect(currentRun?.structuredPolicy?.policy_name?.value).toBe("청년 월세")
   })
 })

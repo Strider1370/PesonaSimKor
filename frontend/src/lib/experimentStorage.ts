@@ -11,6 +11,7 @@ import type {
   SummaryHeartbeatEvent,
   SummaryPromptEvent,
   SummaryStatusEvent,
+  StructuredPolicy,
 } from "./api"
 
 export type ExperimentSnapshotSlot = {
@@ -81,6 +82,7 @@ export type ExperimentSnapshotInput = {
   settings: ExperimentSnapshotSettings
   slots: ExperimentSnapshotSlot[]
   results: ExperimentSnapshotResult[]
+  structuredPolicy?: StructuredPolicy
 }
 
 export type ExperimentSnapshot = ExperimentSnapshotInput & {

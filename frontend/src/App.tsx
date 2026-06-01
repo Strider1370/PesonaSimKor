@@ -641,6 +641,9 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
     const snapshotSlots = slots
       .filter((slot) => slot.policy.trim())
       .map((slot) => ({ id: slot.id, presetId: slot.presetId, policy: slot.policy }))
+    const structuredPolicy = snapshotSlots
+      .map((slot) => runs[slot.id]?.structuredPolicy)
+      .find((item): item is StructuredPolicy => Boolean(item))
     return {
       name: snapshotName.trim() || `Experiment ${new Date().toLocaleString()}`,
       settings: {
@@ -652,6 +655,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
       },
       slots: snapshotSlots,
       results: buildSnapshotResults(snapshotSlots, runs),
+      structuredPolicy,
     }
   }
 
