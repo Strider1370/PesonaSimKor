@@ -47,6 +47,16 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
           <h1>{vm.policyHeader.name}</h1>
           <span className="persona-count">페르소나 {vm.nAgents}명</span>
         </div>
+        {vm.policyHeader.fields.length > 0 && (
+          <dl className="policy-fields">
+            {vm.policyHeader.fields.map((field) => (
+              <div key={field.key} data-source={field.source}>
+                <dt>{field.label}</dt>
+                <dd>{field.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </header>
 
       <p className="dashboard-caution">

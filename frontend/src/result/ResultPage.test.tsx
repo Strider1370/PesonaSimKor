@@ -118,4 +118,19 @@ describe("ResultPage", () => {
     expect(html).not.toContain("심각도")
     expect(html).not.toContain("위험도")
   })
+
+  it("marks inferred policy fields", () => {
+    const run = {
+      ...fixtureRun,
+      structuredPolicy: {
+        policy_name: { value: "월세 지원", source: "stated" },
+        apply_method: { value: "앱 신청", source: "inferred" },
+      },
+    } as any
+
+    const html = renderToStaticMarkup(<ResultPage run={run} onDebug={() => {}} />)
+
+    expect(html).toContain('data-source="inferred"')
+    expect(html).toContain("앱 신청")
+  })
 })

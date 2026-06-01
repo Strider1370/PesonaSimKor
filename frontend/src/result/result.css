@@ -32,6 +32,40 @@
   line-height: 1.2;
 }
 
+.policy-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.policy-fields div {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.policy-fields div[data-source="inferred"] {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.policy-fields dt {
+  margin-bottom: 3px;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.policy-fields dd {
+  margin: 0;
+  color: #111827;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 .persona-count {
   border-radius: 999px;
   padding: 3px 9px;
