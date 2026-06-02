@@ -150,6 +150,23 @@ OPTIONAL_NARRATIVE_FIELDS = (
     "cultural_background", "skills_and_expertise", "arts_persona",
     "travel_persona", "culinary_persona", "sports_persona", "hobbies_and_interests",
 )
+OPTIONAL_FIELD_KEYWORDS = {
+    "cultural_background": ("다문화", "이주", "외국인", "문화배경", "종교"),
+    "skills_and_expertise": ("디지털", "기술", "직업훈련", "교육", "자격", "역량", "전문성"),
+    "arts_persona": ("문화예술", "문화", "예술", "공연", "전시", "영화", "도서", "문화누리"),
+    "travel_persona": ("여행", "관광", "숙박"),
+    "culinary_persona": ("음식", "식품", "외식", "급식", "식사", "미식"),
+    "sports_persona": ("체육", "스포츠", "운동", "체력", "생활체육"),
+    "hobbies_and_interests": ("취미", "여가", "동호회"),
+}
+
+
+def _infer_optional_fields_from_policy_text(policy_text: str) -> tuple[str, ...]:
+    return tuple(
+        field
+        for field in OPTIONAL_NARRATIVE_FIELDS
+        if any(keyword in policy_text for keyword in OPTIONAL_FIELD_KEYWORDS[field])
+    )
 
 
 def compute_included_fields(persona_depth: str, optional_fields: tuple[str, ...]) -> list[str]:
@@ -232,6 +249,8 @@ def structure_policy(policy_text: str) -> dict:
         if isinstance(requested, list):
             requested_set = {str(item) for item in requested}
             chosen = tuple(key for key in OPTIONAL_NARRATIVE_FIELDS if key in requested_set)
+        if not chosen:
+            chosen = _infer_optional_fields_from_policy_text(policy_text)
         structured["relevant_optional_fields"] = chosen
         if not structured["policy_name"]["value"]:
             fallback = fallback_structured_policy(policy_text)

@@ -394,6 +394,25 @@ def test_structure_policy_filters_optional_fields(monkeypatch):
     assert isinstance(out["relevant_optional_fields"], tuple)
 
 
+def test_structure_policy_infers_obvious_optional_fields_when_model_returns_empty(monkeypatch):
+    import app.services.llm_client as llm
+
+    raw = (
+        '{"policy_name":{"value":"culture travel sports voucher","source":"stated"},'
+        '"target":{"value":null,"source":"inferred"},'
+        '"apply_method":{"value":null,"source":"inferred"},'
+        '"exclusions":{"value":null,"source":"inferred"},'
+        '"context":{"value":null,"source":"inferred"},'
+        '"relevant_optional_fields":[]}'
+    )
+    monkeypatch.setattr(llm, "_structure_policy_raw", lambda _t: raw)
+
+    out = llm.structure_policy("문화예술 공연 전시 국내 여행 체육 활동 바우처")
+
+    assert out["relevant_optional_fields"] == ("arts_persona", "travel_persona", "sports_persona")
+    assert isinstance(out["relevant_optional_fields"], tuple)
+
+
 def test_structure_policy_fallback_has_empty_optional(monkeypatch):
     import app.services.llm_client as llm
 
