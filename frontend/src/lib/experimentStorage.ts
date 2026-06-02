@@ -12,7 +12,7 @@ import type {
   SummaryPromptEvent,
   SummaryStatusEvent,
   PersonaDepth,
-  StructuredPolicy,
+  StructuredPolicyWithPromptFields,
 } from "./api"
 
 export type ExperimentSnapshotSlot = {
@@ -76,6 +76,7 @@ export type ExperimentSnapshotResult = {
   summaryError?: SummaryErrorEvent | null
   aggregate?: AggregateEvent | null
   aggregateRuns?: AggregateEvent[]
+  structuredPolicy?: StructuredPolicyWithPromptFields
 }
 
 export type ExperimentSnapshotInput = {
@@ -83,7 +84,7 @@ export type ExperimentSnapshotInput = {
   settings: ExperimentSnapshotSettings
   slots: ExperimentSnapshotSlot[]
   results: ExperimentSnapshotResult[]
-  structuredPolicy?: StructuredPolicy
+  structuredPolicy?: StructuredPolicyWithPromptFields
 }
 
 export type ExperimentSnapshot = ExperimentSnapshotInput & {

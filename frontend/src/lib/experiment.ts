@@ -12,6 +12,7 @@ import type {
   SummaryHeartbeatEvent,
   SummaryPromptEvent,
   SummaryStatusEvent,
+  StructuredPolicyWithPromptFields,
 } from "./api"
 
 export type ExperimentPreset = {
@@ -253,6 +254,7 @@ export function compareWithRealOpinion(aggregate: MinimalAggregate | null, realO
 type SnapshotRunInput = {
   aggregate?: MinimalAggregate | null
   aggregateRuns?: MinimalAggregate[]
+  structuredPolicy?: StructuredPolicyWithPromptFields
   samplingPlan?: SamplingPlanEvent | null
   sampledAgents?: AgentSampledEvent[]
   llmPrompts?: LlmPromptEvent[]
@@ -286,6 +288,7 @@ export type RestoredSnapshotRun = {
   summaryError: SummaryErrorEvent | null
   aggregate: AggregateEvent | null
   aggregateRuns: AggregateEvent[]
+  structuredPolicy?: StructuredPolicyWithPromptFields
   currentRunIndex: number
   error: string | null
 }
@@ -322,6 +325,7 @@ export function buildSnapshotResults(
         summaryError: run.summaryError ?? null,
         aggregate: run.aggregate as AggregateEvent,
         aggregateRuns: aggregateRuns as AggregateEvent[],
+        structuredPolicy: run.structuredPolicy,
       },
     ]
   })
@@ -352,6 +356,7 @@ export function restoreSnapshotRuns(results: ExperimentSnapshotResult[]): Partia
           summaryError: result.summaryError ?? null,
           aggregate,
           aggregateRuns,
+          structuredPolicy: result.structuredPolicy,
           currentRunIndex: Math.max(0, aggregateRuns.length - 1),
           error: null,
         },

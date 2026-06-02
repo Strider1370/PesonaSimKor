@@ -1256,7 +1256,8 @@ export function currentRunFromSnapshot(snapshot: ExperimentSnapshot): CurrentRun
     aggregate: result.aggregate,
     sampledAgents: result.sampledAgents ?? [],
     responses: result.responses ?? [],
-    structuredPolicy: snapshot.structuredPolicy,
+    structuredPolicy: result.structuredPolicy ?? snapshot.structuredPolicy,
+    persona_depth: snapshot.settings.personaDepth ?? "standard",
     completedAt: snapshot.createdAt,
   }
 }
