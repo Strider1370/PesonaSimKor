@@ -95,6 +95,43 @@ def test_normalize_record_narrative_context_has_core_and_optional():
         assert k in nc
 
 
+_PERSONA = {
+    "agent_id": 0, "age": 41, "gender": "female", "region": "Mapo",
+    "structured_profile": {
+        "age": 41, "gender": "female", "province": "Seoul", "district": "Mapo",
+        "occupation": "unemployed", "family_type": "spouse_children", "marital_status": "married",
+        "housing_type": "owned", "education_level": "bachelors", "bachelors_field": "social_science",
+    },
+    "narrative_context": {
+        "persona": "P", "professional_persona": "PP", "family_persona": "FP",
+        "career_goals_and_ambitions": "G", "cultural_background": "C",
+        "skills_and_expertise": "SE", "arts_persona": "AP", "travel_persona": "TP",
+        "culinary_persona": "CP", "sports_persona": "SP", "hobbies_and_interests": "H",
+    },
+}
+
+
+def test_prompt_minimal_has_structured_no_narrative_no_noise():
+    p = build_agent_prompt(_PERSONA, "policy", "minimal")
+    assert "occupation" in p and "Mapo" in p
+    assert "PP" not in p and "professional_persona" not in p
+    assert "military_status" not in p and "country" not in p
+
+
+def test_prompt_standard_core_plus_selected_optional_only():
+    p = build_agent_prompt(_PERSONA, "policy", "standard", optional_fields=("arts_persona",))
+    assert "PP" in p and "FP" in p
+    assert "AP" in p
+    assert "TP" not in p and "SP" not in p
+    assert "CP" not in p
+
+
+def test_prompt_full_includes_all_optional_ignoring_arg():
+    p = build_agent_prompt(_PERSONA, "policy", "full", optional_fields=())
+    for v in ("AP", "TP", "CP", "SP", "SE", "C", "H"):
+        assert v in p
+
+
 def test_parse_valid_agent_response_json():
     parsed = parse_agent_response('{"stance": "support", "rationale": "ok"}')
 
@@ -634,11 +671,12 @@ def test_agent_prompt_includes_structured_profile_and_selected_narratives():
         },
     }
 
-    prompt = build_agent_prompt(persona, "policy")
+    prompt = build_agent_prompt(persona, "policy", optional_fields=("cultural_background",))
 
     assert "[Structured Profile]" in prompt
     assert "marital_status: married" in prompt
     assert "housing_type: apartment" in prompt
+    assert "country" not in prompt
     assert "[Narrative Context]" in prompt
     assert "cultural_background: Local community context." in prompt
 
@@ -665,8 +703,8 @@ def test_build_agent_prompt_minimal_depth_excludes_job_and_narrative():
 
     assert "age: 35" in prompt
     assert "gender: female" in prompt
-    assert "region: Seoul" in prompt
-    assert "teacher" not in prompt
+    assert "district: Seoul" in prompt
+    assert "occupation: teacher" in prompt
     assert "housing loan" not in prompt
 
 

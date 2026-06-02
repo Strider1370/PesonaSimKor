@@ -273,28 +273,27 @@ def build_agent_prompt(
     persona: dict,
     policy: str,
     persona_depth: str = "standard",
+    optional_fields: tuple[str, ...] | None = None,
 ) -> str:
+    profile = persona.get("structured_profile") or {}
+    structured_profile = {key: profile.get(key) for key in STRUCTURED_PROFILE_KEYS}
     if persona_depth == "minimal":
-        structured_profile = {
-            "age": persona.get("age"),
-            "gender": persona.get("gender"),
-            "region": persona.get("region"),
-        }
-        narrative_context = {}
+        narrative_keys: tuple[str, ...] = ()
     else:
-        structured_profile = persona.get(
-            "structured_profile",
-            {
-                "age": persona.get("age"),
-                "gender": persona.get("gender"),
-                "district": persona.get("region"),
-                "education_level": persona.get("education"),
-                "occupation": persona.get("job"),
-            },
-        )
-        narrative_context = persona.get("narrative_context", {"persona": persona.get("background", "")})
+        if persona_depth == "full":
+            chosen_optional = OPTIONAL_NARRATIVE_FIELDS
+        else:
+            allowed = set(optional_fields or ())
+            chosen_optional = tuple(key for key in OPTIONAL_NARRATIVE_FIELDS if key in allowed)
+        narrative_keys = CORE_NARRATIVE_KEYS + chosen_optional
+
+    context = persona.get("narrative_context") or {}
     structured_text = "\n".join(f"{key}: {value}" for key, value in structured_profile.items() if value not in ("", None))
-    narrative_text = "\n".join(f"{key}: {value}" for key, value in narrative_context.items() if value not in ("", None))
+    narrative_text = "\n".join(
+        f"{key}: {context.get(key)}"
+        for key in narrative_keys
+        if context.get(key) not in ("", None)
+    )
     return f"""[Structured Profile]
 {structured_text}
 
