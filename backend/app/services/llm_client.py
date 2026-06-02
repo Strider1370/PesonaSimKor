@@ -139,6 +139,17 @@ def parse_json_object(text: str) -> dict[str, Any]:
 
 
 STRUCTURED_POLICY_FIELDS = ("policy_name", "target", "apply_method", "exclusions", "context")
+STRUCTURED_PROFILE_KEYS = (
+    "age", "gender", "province", "district", "occupation",
+    "family_type", "marital_status", "housing_type", "education_level", "bachelors_field",
+)
+CORE_NARRATIVE_KEYS = (
+    "professional_persona", "family_persona", "persona", "career_goals_and_ambitions",
+)
+OPTIONAL_NARRATIVE_FIELDS = (
+    "cultural_background", "skills_and_expertise", "arts_persona",
+    "travel_persona", "culinary_persona", "sports_persona", "hobbies_and_interests",
+)
 
 
 def _policy_field(value: Any, source: Any) -> dict:

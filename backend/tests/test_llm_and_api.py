@@ -14,11 +14,14 @@ from app.services.llm_client import (
     build_agent_messages,
     build_agent_prompt,
     build_summary_llm_payload,
+    CORE_NARRATIVE_KEYS,
     failed_summary,
     get_openai_api_key,
     normalize_summary,
+    OPTIONAL_NARRATIVE_FIELDS,
     parse_agent_response,
     parse_json_object,
+    STRUCTURED_PROFILE_KEYS,
     summary_from_text,
     stream_openai_agent_response,
     stream_openai_summary_clusters,
@@ -44,6 +47,20 @@ def summary_stream():
             {"type": "final", "summary": empty_summary()},
         ]
     )
+
+
+def test_persona_field_constants_are_disjoint_and_exclude_noise():
+    assert "military_status" not in STRUCTURED_PROFILE_KEYS
+    assert "country" not in STRUCTURED_PROFILE_KEYS
+    assert len(STRUCTURED_PROFILE_KEYS) == 10
+    assert set(CORE_NARRATIVE_KEYS) == {
+        "professional_persona", "family_persona", "persona", "career_goals_and_ambitions",
+    }
+    # Conditional _list variants are intentionally not loaded.
+    assert all(not k.endswith("_list") for k in OPTIONAL_NARRATIVE_FIELDS)
+    # All sets are disjoint.
+    assert set(STRUCTURED_PROFILE_KEYS).isdisjoint(CORE_NARRATIVE_KEYS)
+    assert set(CORE_NARRATIVE_KEYS).isdisjoint(OPTIONAL_NARRATIVE_FIELDS)
 
 
 def test_parse_valid_agent_response_json():
