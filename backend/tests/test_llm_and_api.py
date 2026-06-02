@@ -132,6 +132,21 @@ def test_prompt_full_includes_all_optional_ignoring_arg():
         assert v in p
 
 
+def test_messages_thread_optional_fields():
+    msgs = build_agent_messages(_PERSONA, "policy", "standard", optional_fields=("arts_persona",))
+    assert "AP" in msgs[1]["content"] and "TP" not in msgs[1]["content"]
+
+
+def test_payload_thread_optional_fields():
+    payload = build_agent_llm_payload(
+        _PERSONA,
+        "policy",
+        persona_depth="standard",
+        optional_fields=("arts_persona",),
+    )
+    assert "AP" in payload["messages"][1]["content"]
+
+
 def test_parse_valid_agent_response_json():
     parsed = parse_agent_response('{"stance": "support", "rationale": "ok"}')
 

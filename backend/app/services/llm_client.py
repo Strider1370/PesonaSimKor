@@ -313,10 +313,11 @@ def build_agent_messages(
     policy: str,
     persona_depth: str = "standard",
     model_provider: str = "openai",
+    optional_fields: tuple[str, ...] | None = None,
 ) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": SYSTEM_PROMPT_OPENAI},
-        {"role": "user", "content": build_agent_prompt(persona, policy, persona_depth)},
+        {"role": "user", "content": build_agent_prompt(persona, policy, persona_depth, optional_fields)},
     ]
 
 
@@ -328,12 +329,13 @@ def build_agent_llm_payload(
     thinking: bool = False,
     persona_depth: str = "standard",
     model_provider: str = "openai",
+    optional_fields: tuple[str, ...] | None = None,
 ) -> dict:
     return {
         "agent_id": persona["agent_id"],
         "model": model_name or DEFAULT_OPENAI_MODEL,
         "format": "json",
-        "messages": build_agent_messages(persona, policy, persona_depth, model_provider),
+        "messages": build_agent_messages(persona, policy, persona_depth, model_provider, optional_fields),
     }
 
 
@@ -473,6 +475,7 @@ def stream_openai_agent_response(
     model_name: str = DEFAULT_OPENAI_MODEL,
     persona_depth: str = "standard",
     thinking: bool = False,
+    optional_fields: tuple[str, ...] | None = None,
 ):
     raw_output = ""
     try:
@@ -482,7 +485,7 @@ def stream_openai_agent_response(
         stream = client.chat.completions.create(
             model=model_name,
             response_format={"type": "json_object"},
-            messages=build_agent_messages(persona, policy, persona_depth),
+            messages=build_agent_messages(persona, policy, persona_depth, optional_fields=optional_fields),
             **openai_reasoning_options(thinking),
             stream=True,
         )
