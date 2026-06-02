@@ -1014,6 +1014,13 @@ def sample_personas(n: int):
             "background": "A",
             "age_group": "20s",
             "region_group": "capital",
+            "narrative_context": {
+                "persona": "P",
+                "professional_persona": "PP",
+                "family_persona": "FP",
+                "career_goals_and_ambitions": "G",
+                "arts_persona": "AP",
+            },
             "structured_profile": {"province": "서울"},
         }
         for index in range(n)
@@ -1028,13 +1035,63 @@ def patch_fast_simulation(monkeypatch, simulate_api, agent_stream=None, summary=
         "stream_openai_agent_response",
         agent_stream
         or (
-            lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard": iter(
+            lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", **kwargs: iter(
                 [{"type": "token", "content": "raw"}, {"type": "final", "response": {"stance": "support", "rationale": "ok"}}]
             )
         ),
     )
     monkeypatch.setattr(simulate_api, "stream_openai_summary_clusters", lambda policy, responses, model_name=None, thinking=False: summary or summary_stream())
     monkeypatch.setattr(simulate_api, "refill_summary_short_fields", lambda *args, **kwargs: {})
+
+
+def _collect_sse(body: str):
+    events = []
+    for block in body.split("\n\n"):
+        event_type, data = None, []
+        for line in block.splitlines():
+            if line.startswith("event:"):
+                event_type = line[6:].strip()
+            elif line.startswith("data:"):
+                data.append(line[5:].strip())
+        if event_type and data:
+            events.append({"type": event_type, "data": json.loads("\n".join(data))})
+    return events
+
+
+def test_policy_structured_event_emits_included_fields(monkeypatch):
+    from app.api import simulate as simulate_api
+
+    monkeypatch.setattr(
+        simulate_api,
+        "structure_policy",
+        lambda _p: {
+            "policy_name": {"value": "culture", "source": "stated"},
+            "target": {"value": None, "source": "inferred"},
+            "apply_method": {"value": None, "source": "inferred"},
+            "exclusions": {"value": None, "source": "inferred"},
+            "context": {"value": None, "source": "inferred"},
+            "relevant_optional_fields": ("arts_persona",),
+        },
+    )
+    patch_fast_simulation(monkeypatch, simulate_api)
+    seen = []
+
+    def capturing_stream(persona, policy, model_name=None, persona_depth="standard", thinking=False, optional_fields=None, **kwargs):
+        seen.append(optional_fields)
+        yield {"type": "final", "response": {"stance": "neutral", "rationale": "r"}}
+
+    monkeypatch.setattr(simulate_api, "stream_openai_agent_response", capturing_stream)
+
+    with TestClient(app) as client:
+        response = client.post("/api/simulate", json={"policy": "culture policy", "n_agents": 5, "persona_depth": "standard"})
+        events = _collect_sse(response.text)
+
+    policy_structured = next(event for event in events if event["type"] == "policy_structured")
+    assert "arts_persona" in policy_structured["data"]["included_fields"]
+    assert policy_structured["data"]["relevant_optional_fields"] == ["arts_persona"]
+    prompt = next(event for event in events if event["type"] == "llm_prompt")
+    assert "arts_persona" in prompt["data"]["messages"][1]["content"]
+    assert seen and all(optional_fields == ("arts_persona",) for optional_fields in seen)
 
 
 def test_simulate_stream_event_order_with_summary_stream(monkeypatch):
@@ -1096,6 +1153,7 @@ def test_simulate_stream_includes_blind_spot_fields_in_response_and_aggregate(mo
         thinking=False,
         persona_depth="standard",
         model_provider="openai",
+        **kwargs,
     ):
         yield {"type": "token", "content": "raw"}
         yield {
@@ -1193,6 +1251,7 @@ def test_simulate_stream_drops_fabricated_summary_blind_spots_without_raw_blind_
         thinking=False,
         persona_depth="standard",
         model_provider="openai",
+        **kwargs,
     ):
         yield {
             "type": "final",
@@ -1266,7 +1325,7 @@ def test_simulate_stream_handles_partial_summary_payload_defensively(monkeypatch
 def test_simulate_stream_keeps_legacy_agent_stream_replacements_working(monkeypatch):
     from app.api import simulate as simulate_api
 
-    def legacy_agent_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard"):
+    def legacy_agent_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", **kwargs):
         yield {"type": "token", "content": "legacy"}
         yield {"type": "final", "response": {"stance": "support", "rationale": "legacy ok"}}
 
@@ -1306,6 +1365,7 @@ def test_simulate_stream_supports_keyword_only_model_provider_streams(monkeypatc
         persona_depth="standard",
         *,
         model_provider="openai",
+        optional_fields=None,
     ):
         captured.append(model_provider)
         yield {"type": "token", "content": "keyword"}
@@ -1386,6 +1446,7 @@ def test_simulate_stream_runs_openai_agent_calls_in_parallel(monkeypatch):
         persona_depth="standard",
         thinking=False,
         model_provider="openai",
+        **kwargs,
     ):
         nonlocal active, max_active
         with lock:
@@ -1417,7 +1478,7 @@ def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
     patch_fast_simulation(
         monkeypatch,
         simulate_api,
-        agent_stream=lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="openai": iter(
+        agent_stream=lambda persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="openai", **kwargs: iter(
             [
                 {"type": "error", "message": "openai unavailable"},
                 {"type": "final", "response": {"stance": "neutral", "rationale": "openai unavailable"}},
@@ -1446,7 +1507,7 @@ def test_simulate_stream_includes_llm_error_and_failed_status(monkeypatch):
 def test_simulate_stream_emits_llm_heartbeat_while_waiting(monkeypatch):
     from app.api import simulate as simulate_api
 
-    def slow_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="openai"):
+    def slow_stream(persona, policy, prior=None, model_name=None, thinking=False, persona_depth="standard", model_provider="openai", **kwargs):
         time.sleep(0.05)
         yield {"type": "token", "content": "raw"}
         yield {"type": "final", "response": {"stance": "support", "rationale": "ok"}}

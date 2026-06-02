@@ -13,6 +13,7 @@ from app.services.aggregation import compute_aggregate
 from app.services.llm_client import (
     build_agent_llm_payload,
     build_summary_llm_payload,
+    compute_included_fields,
     normalize_summary,
     refill_summary_short_fields,
     structure_policy,
@@ -122,6 +123,7 @@ async def stream_configured_agent_response_with_heartbeat(
     model_name: str,
     thinking: bool,
     persona_depth: str,
+    optional_fields: tuple[str, ...],
 ):
     async for event in stream_with_heartbeat(
         stream_openai_agent_response,
@@ -130,6 +132,7 @@ async def stream_configured_agent_response_with_heartbeat(
         model_name,
         persona_depth=persona_depth,
         thinking=thinking,
+        optional_fields=optional_fields,
     ):
         yield event
 
@@ -144,7 +147,12 @@ async def stream_configured_summary_clusters_with_heartbeat(
         yield event
 
 
-async def stream_agent_sse_events(req: SimulateRequest, policy: str, persona: dict):
+async def stream_agent_sse_events(
+    req: SimulateRequest,
+    policy: str,
+    persona: dict,
+    optional_fields: tuple[str, ...],
+):
     yield ("llm_status", {"agent_id": persona["agent_id"], "status": "started"})
     result = {"stance": "neutral", "rationale": "Response generation failed."}
     llm_failed = False
@@ -154,6 +162,7 @@ async def stream_agent_sse_events(req: SimulateRequest, policy: str, persona: di
         req.model_name,
         req.thinking,
         req.persona_depth,
+        optional_fields,
     ):
         if llm_event["type"] in {"token", "thinking"}:
             yield (
@@ -189,13 +198,14 @@ async def stream_openai_agent_sse_events_parallel(
     req: SimulateRequest,
     policy: str,
     prepared_agents: list[dict],
+    optional_fields: tuple[str, ...],
 ):
     send, receive = anyio.create_memory_object_stream[tuple[str, dict]](100)
     semaphore = anyio.Semaphore(openai_agent_concurrency())
 
     async def run_one(persona: dict) -> None:
         async with semaphore:
-            async for event in stream_agent_sse_events(req, policy, persona):
+            async for event in stream_agent_sse_events(req, policy, persona, optional_fields):
                 await send.send(event)
 
     async def produce() -> None:
@@ -217,7 +227,15 @@ async def simulation_stream(req: SimulateRequest):
     responses: list[dict] = []
     try:
         structured_policy = structure_policy(policy)
-        yield sse_event("policy_structured", structured_policy)
+        optional_fields = tuple(structured_policy.get("relevant_optional_fields") or ())
+        included_fields = compute_included_fields(req.persona_depth, optional_fields)
+        policy_event = {
+            **structured_policy,
+            "relevant_optional_fields": list(optional_fields),
+            "included_fields": included_fields,
+            "persona_depth": req.persona_depth,
+        }
+        yield sse_event("policy_structured", policy_event)
         personas, sampling_plan = sample_personas_with_plan(n_agents)
         yield sse_event("sampling_plan", sampling_plan)
         prepared_agents = []
@@ -231,11 +249,12 @@ async def simulation_stream(req: SimulateRequest):
                     model_name=req.model_name,
                     thinking=req.thinking,
                     persona_depth=req.persona_depth,
+                    optional_fields=optional_fields,
                 ),
             )
             prepared_agents.append(persona)
 
-        async for event_name, event_data in stream_openai_agent_sse_events_parallel(req, policy, prepared_agents):
+        async for event_name, event_data in stream_openai_agent_sse_events_parallel(req, policy, prepared_agents, optional_fields):
             if event_name == "agent_responded":
                 responses.append(event_data)
             yield sse_event(event_name, event_data)
