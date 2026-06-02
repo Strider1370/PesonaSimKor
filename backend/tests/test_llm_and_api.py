@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from app.main import app
 from app.models.schemas import SimulateRequest
 from app.services.aggregation import compute_aggregate
+from app.services.persona_repository import normalize_record
 from app.services.llm_client import (
     build_agent_llm_payload,
     build_agent_messages,
@@ -61,6 +62,37 @@ def test_persona_field_constants_are_disjoint_and_exclude_noise():
     # All sets are disjoint.
     assert set(STRUCTURED_PROFILE_KEYS).isdisjoint(CORE_NARRATIVE_KEYS)
     assert set(CORE_NARRATIVE_KEYS).isdisjoint(OPTIONAL_NARRATIVE_FIELDS)
+
+
+def _raw_row():
+    return {
+        "age": 41, "sex": "female", "province": "Seoul", "district": "Mapo",
+        "occupation": "unemployed", "education_level": "bachelors", "marital_status": "married",
+        "military_status": "not_applicable", "family_type": "spouse_children", "housing_type": "owned",
+        "bachelors_field": "social_science", "country": "Korea", "persona": "P", "cultural_background": "C",
+        "career_goals_and_ambitions": "G", "hobbies_and_interests": "H",
+        "professional_persona": "PP", "family_persona": "FP", "skills_and_expertise": "SE",
+        "arts_persona": "AP", "travel_persona": "TP", "culinary_persona": "CP", "sports_persona": "SP",
+    }
+
+
+def test_normalize_record_structured_profile_excludes_noise():
+    rec = normalize_record(0, _raw_row())
+    sp = rec["structured_profile"]
+    assert "military_status" not in sp and "country" not in sp
+    assert set(sp.keys()) == {
+        "age", "gender", "province", "district", "occupation",
+        "family_type", "marital_status", "housing_type", "education_level", "bachelors_field",
+    }
+
+
+def test_normalize_record_narrative_context_has_core_and_optional():
+    rec = normalize_record(0, _raw_row())
+    nc = rec["narrative_context"]
+    for k in ("professional_persona", "family_persona", "persona", "career_goals_and_ambitions"):
+        assert k in nc
+    for k in ("arts_persona", "skills_and_expertise", "cultural_background", "hobbies_and_interests"):
+        assert k in nc
 
 
 def test_parse_valid_agent_response_json():
