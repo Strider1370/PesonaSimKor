@@ -173,6 +173,7 @@ def fallback_structured_policy(policy_text: str) -> dict:
         "apply_method": {"value": None, "source": "stated"},
         "exclusions": {"value": None, "source": "stated"},
         "context": {"value": stripped or None, "source": "stated"},
+        "relevant_optional_fields": (),
     }
 
 
@@ -190,7 +191,11 @@ def _structure_policy_raw(policy_text: str) -> str:
                     "Extract only neutral execution details from a Korean policy draft. "
                     "Do not evaluate risks or invent problems. Return JSON with fields "
                     "policy_name, target, apply_method, exclusions, context. Each field must be "
-                    '{"value":"string or null","source":"stated or inferred"}.'
+                    '{"value":"string or null","source":"stated or inferred"}. '
+                    "Also return relevant_optional_fields: an array choosing ONLY from this exact "
+                    f"menu of persona narrative fields that meaningfully affect responses to THIS "
+                    f"policy: {list(OPTIONAL_NARRATIVE_FIELDS)}. "
+                    "Return [] if none clearly apply. Do not invent field names."
                 ),
             },
             {"role": "user", "content": policy_text},
@@ -209,6 +214,12 @@ def structure_policy(policy_text: str) -> dict:
                 structured[field] = _policy_field(raw.get("value"), raw.get("source"))
             else:
                 structured[field] = _policy_field(raw, "inferred")
+        requested = parsed.get("relevant_optional_fields")
+        chosen = ()
+        if isinstance(requested, list):
+            requested_set = {str(item) for item in requested}
+            chosen = tuple(key for key in OPTIONAL_NARRATIVE_FIELDS if key in requested_set)
+        structured["relevant_optional_fields"] = chosen
         if not structured["policy_name"]["value"]:
             fallback = fallback_structured_policy(policy_text)
             structured["policy_name"] = fallback["policy_name"]

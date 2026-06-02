@@ -344,6 +344,31 @@ def test_structure_policy_fallback_on_parse_error(monkeypatch):
     assert out["policy_name"]["value"]
 
 
+def test_structure_policy_filters_optional_fields(monkeypatch):
+    import app.services.llm_client as llm
+
+    raw = (
+        '{"policy_name":{"value":"culture voucher","source":"stated"},'
+        '"target":{"value":null,"source":"inferred"},'
+        '"apply_method":{"value":null,"source":"inferred"},'
+        '"exclusions":{"value":null,"source":"inferred"},'
+        '"context":{"value":null,"source":"inferred"},'
+        '"relevant_optional_fields":["arts_persona","occupation","__hacked__"]}'
+    )
+    monkeypatch.setattr(llm, "_structure_policy_raw", lambda _t: raw)
+    out = llm.structure_policy("policy")
+    assert out["relevant_optional_fields"] == ("arts_persona",)
+    assert isinstance(out["relevant_optional_fields"], tuple)
+
+
+def test_structure_policy_fallback_has_empty_optional(monkeypatch):
+    import app.services.llm_client as llm
+
+    monkeypatch.setattr(llm, "_structure_policy_raw", lambda _t: "NOT JSON")
+    out = llm.structure_policy("policy")
+    assert out["relevant_optional_fields"] == ()
+
+
 def test_summary_prompt_explicitly_limits_recheck_loops():
     payload = build_summary_llm_payload("policy", [{"stance": "support", "rationale": "ok"}])
     system_prompt = payload["messages"][0]["content"]
