@@ -4,6 +4,7 @@ import type { Stance } from "../lib/api"
 import type { CurrentRun } from "../lib/currentRunStore"
 import { getCurrentRunSnapshot, useCurrentRunStore } from "../lib/currentRunStore"
 import { buildDashboard, DashboardAffectedGroup, DashboardCluster, filterPersonasByAgentIds } from "./dashboardModel"
+import { PersonaFieldsBadge } from "./PersonaFieldsBadge"
 
 type ResultPageProps = {
   run?: CurrentRun
@@ -47,6 +48,7 @@ export function ResultPage({ run, onDebug }: ResultPageProps) {
         <div>
           <h1>{vm.policyHeader.name}</h1>
           <span className="persona-count">페르소나 {vm.nAgents}명</span>
+          <PersonaFieldsBadge depth={vm.personaDepth} includedFields={vm.includedFields} selectedOptional={vm.selectedOptional} />
           {vm.policyHeader.fields.length > 0 && (
             <button type="button" className="policy-summary-toggle" onClick={() => setShowPolicySummary((value) => !value)}>
               {showPolicySummary ? "정책 요약 접기" : "정책 요약 펼치기"}

@@ -1,4 +1,11 @@
-import type { AgentRespondedEvent, Stance, StanceCounts, StructuredPolicy, StructuredPolicyField } from "../lib/api"
+import type {
+  AgentRespondedEvent,
+  PersonaDepth,
+  Stance,
+  StanceCounts,
+  StructuredPolicy,
+  StructuredPolicyField,
+} from "../lib/api"
 import type { CurrentRun } from "../lib/currentRunStore"
 
 export type DashboardCluster = {
@@ -41,6 +48,9 @@ export type DashboardPolicyHeader = {
 
 export type DashboardModel = {
   policyHeader: DashboardPolicyHeader
+  includedFields: string[]
+  selectedOptional: string[]
+  personaDepth?: PersonaDepth
   nAgents: number
   stance: StanceCounts
   concerns: DashboardCluster[]
@@ -69,6 +79,9 @@ export function buildDashboard(run: CurrentRun): DashboardModel {
 
   return {
     policyHeader: buildPolicyHeader(run.policy, run.structuredPolicy),
+    includedFields: run.structuredPolicy?.included_fields ?? [],
+    selectedOptional: run.structuredPolicy?.relevant_optional_fields ?? [],
+    personaDepth: run.persona_depth,
     nAgents: run.n_agents,
     stance: safeCounts(aggregate.total),
     concerns: consolidateClusters(rawConcerns),

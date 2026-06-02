@@ -151,4 +151,35 @@ describe("ResultPage", () => {
     expect(html).not.toContain('data-source="inferred"')
     expect(html).not.toContain("앱 신청")
   })
+  it("renders persona field badge from persisted run", () => {
+    const run = {
+      policy: "culture policy",
+      n_agents: 5,
+      model_name: "gpt-5-mini",
+      model_provider: "openai",
+      aggregate: {
+        total: { support: 5, oppose: 0, neutral: 0 },
+        by_age: {},
+        by_gender: {},
+        by_region: {},
+        concern_clusters: [],
+        support_clusters: [],
+        blind_spot_clusters: [],
+        complaint_clusters: [],
+        affected_group_clusters: [],
+        reframing_list: [],
+      },
+      sampledAgents: [],
+      responses: [],
+      persona_depth: "standard",
+      structuredPolicy: {
+        policy_name: { value: "culture", source: "stated" },
+        included_fields: ["age", "arts_persona"],
+        relevant_optional_fields: ["arts_persona"],
+      },
+      completedAt: "t",
+    } as any
+    const html = renderToStaticMarkup(<ResultPage run={run} onDebug={() => {}} />)
+    expect(html).toContain("예술 취향")
+  })
 })

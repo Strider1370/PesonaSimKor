@@ -52,6 +52,7 @@ import {
   saveExperimentSnapshot,
 } from "./lib/experimentStorage"
 import { CurrentRun, saveCurrentRun, saveExperimentRunAsCurrentRun, useCurrentRunStore } from "./lib/currentRunStore"
+import { PersonaFieldsBadge } from "./result/PersonaFieldsBadge"
 import { ResultPage } from "./result/ResultPage"
 
 type Phase = "idle" | "running" | "done" | "error" | "stopped"
@@ -793,6 +794,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
         slots={slots}
         runs={runs}
         nAgents={nAgents}
+        personaDepth={personaDepth}
         modelName={effectiveModelName}
         modelProvider={DEFAULT_MODEL_PROVIDER}
         selectedTraceSlot={selectedTraceSlot}
@@ -883,6 +885,7 @@ function ExperimentResults({
   slots,
   runs,
   nAgents,
+  personaDepth,
   modelName,
   modelProvider,
   selectedTraceSlot,
@@ -892,6 +895,7 @@ function ExperimentResults({
   slots: ReturnType<typeof createInitialSlots>
   runs: Partial<Record<PolicySlotId, ExperimentRunState>>
   nAgents: number
+  personaDepth: PersonaDepth
   modelName: string
   modelProvider: "openai"
   selectedTraceSlot: PolicySlotId | null
@@ -980,6 +984,13 @@ function ExperimentResults({
               </button>
             ))}
           </div>
+          {activeRun.structuredPolicy && (
+            <PersonaFieldsBadge
+              depth={personaDepth}
+              includedFields={activeRun.structuredPolicy.included_fields ?? []}
+              selectedOptional={activeRun.structuredPolicy.relevant_optional_fields ?? []}
+            />
+          )}
           <ExperimentTrace
             run={activeRun}
             nAgents={nAgents}
