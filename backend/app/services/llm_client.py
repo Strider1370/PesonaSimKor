@@ -152,6 +152,19 @@ OPTIONAL_NARRATIVE_FIELDS = (
 )
 
 
+def compute_included_fields(persona_depth: str, optional_fields: tuple[str, ...]) -> list[str]:
+    fields = list(STRUCTURED_PROFILE_KEYS)
+    if persona_depth == "minimal":
+        return fields
+    fields += list(CORE_NARRATIVE_KEYS)
+    if persona_depth == "full":
+        fields += list(OPTIONAL_NARRATIVE_FIELDS)
+    else:
+        allowed = set(optional_fields or ())
+        fields += [key for key in OPTIONAL_NARRATIVE_FIELDS if key in allowed]
+    return fields
+
+
 def _policy_field(value: Any, source: Any) -> dict:
     normalized_source = source if source in {"stated", "inferred"} else "inferred"
     if value is None:

@@ -15,6 +15,7 @@ from app.services.llm_client import (
     build_agent_messages,
     build_agent_prompt,
     build_summary_llm_payload,
+    compute_included_fields,
     CORE_NARRATIVE_KEYS,
     failed_summary,
     get_openai_api_key,
@@ -145,6 +146,20 @@ def test_payload_thread_optional_fields():
         optional_fields=("arts_persona",),
     )
     assert "AP" in payload["messages"][1]["content"]
+
+
+def test_included_fields_minimal():
+    assert compute_included_fields("minimal", ("arts_persona",)) == list(STRUCTURED_PROFILE_KEYS)
+
+
+def test_included_fields_standard_adds_core_and_selected():
+    out = compute_included_fields("standard", ("arts_persona",))
+    assert out == list(STRUCTURED_PROFILE_KEYS) + list(CORE_NARRATIVE_KEYS) + ["arts_persona"]
+
+
+def test_included_fields_full_adds_all_optional():
+    out = compute_included_fields("full", ())
+    assert out == list(STRUCTURED_PROFILE_KEYS) + list(CORE_NARRATIVE_KEYS) + list(OPTIONAL_NARRATIVE_FIELDS)
 
 
 def test_parse_valid_agent_response_json():
