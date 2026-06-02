@@ -1,12 +1,22 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, expectTypeOf, it, vi } from "vitest"
 import { buildSimulateBody, getHealth, listProjectCsvExports, loadProjectCsvExport, parseSseChunk, saveProjectCsvExport } from "./api"
-import type { SimulateRequest } from "./api"
+import type { PersonaDepth, SimulateRequest, StructuredPolicyWithPromptFields } from "./api"
 
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
 describe("parseSseChunk", () => {
+  it("carries optional prompt metadata", () => {
+    const value: StructuredPolicyWithPromptFields = {
+      policy_name: { value: "x", source: "stated" },
+      relevant_optional_fields: ["arts_persona"],
+      included_fields: ["age", "occupation"],
+      persona_depth: "standard",
+    }
+    expectTypeOf(value.persona_depth).toEqualTypeOf<PersonaDepth | undefined>()
+  })
+
   it("allows experiment options in simulate request type", () => {
     const request: SimulateRequest = {
       policy: "policy",

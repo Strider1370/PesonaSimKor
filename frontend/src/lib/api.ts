@@ -62,7 +62,15 @@ export type StructuredPolicy = {
   context?: StructuredPolicyField
 }
 
-export type PolicyStructuredEvent = StructuredPolicy
+export type PersonaDepth = "minimal" | "standard" | "full"
+
+export type StructuredPolicyWithPromptFields = StructuredPolicy & {
+  relevant_optional_fields?: string[]
+  included_fields?: string[]
+  persona_depth?: PersonaDepth
+}
+
+export type PolicyStructuredEvent = StructuredPolicyWithPromptFields
 
 export type LlmPromptEvent = {
   agent_id: number
@@ -220,7 +228,7 @@ export type SimulateRequest = {
   n_agents: number
   model_provider?: "openai"
   model_name?: string
-  persona_depth?: "minimal" | "standard" | "full"
+  persona_depth?: PersonaDepth
 }
 
 export type HealthStatus = {

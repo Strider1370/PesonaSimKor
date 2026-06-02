@@ -11,6 +11,7 @@ import type {
   SummaryHeartbeatEvent,
   SummaryPromptEvent,
   SummaryStatusEvent,
+  PersonaDepth,
   StructuredPolicy,
 } from "./api"
 
@@ -25,7 +26,7 @@ export type ExperimentSnapshotSettings = {
   repeatCount?: number
   modelProvider?: string
   modelName?: string
-  personaDepth?: "minimal" | "standard" | "full"
+  personaDepth?: PersonaDepth
 }
 
 export type ExperimentSnapshotResult = {
