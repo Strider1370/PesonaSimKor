@@ -1,6 +1,9 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+FULL_AGENT_LIMIT = 20
 
 
 class SimulateRequest(BaseModel):
@@ -26,3 +29,12 @@ class SimulateRequest(BaseModel):
         if not stripped:
             raise ValueError("model_name must not be blank")
         return stripped
+
+    @model_validator(mode="after")
+    def full_depth_limits_agents(self):
+        if self.persona_depth == "full" and self.n_agents > FULL_AGENT_LIMIT:
+            raise ValueError(
+                f"persona_depth='full' supports at most {FULL_AGENT_LIMIT} agents (got {self.n_agents}). "
+                "Use 'standard' for larger runs."
+            )
+        return self

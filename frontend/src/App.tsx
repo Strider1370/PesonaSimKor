@@ -56,6 +56,8 @@ import { ResultPage } from "./result/ResultPage"
 type Phase = "idle" | "running" | "done" | "error" | "stopped"
 type Page = "main" | "result"
 
+const FULL_AGENT_LIMIT = 20
+
 const STANCE_LABELS: Record<Stance, string> = {
   support: "찬성",
   oppose: "반대",
@@ -429,6 +431,8 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   const activeSlots = slots.filter((slot) => slot.policy.trim())
   const isRunning = Object.values(runs).some((run) => run?.phase === "running")
   const effectiveModelName = openAiModelName
+  const fullModeBlocked = personaDepth === "full" && nAgents > FULL_AGENT_LIMIT
+  const agentMax = personaDepth === "full" ? FULL_AGENT_LIMIT : 100
 
   useEffect(() => {
     refreshProjectCsvExports()
@@ -543,7 +547,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   }
 
   async function runExperiment() {
-    if (isRunning || activeSlots.length === 0) return
+    if (isRunning || fullModeBlocked || activeSlots.length === 0) return
     setRuns(
       Object.fromEntries(activeSlots.map((slot) => [slot.id, { ...emptyExperimentRun(), phase: "idle" }])) as Partial<
         Record<PolicySlotId, ExperimentRunState>
@@ -714,13 +718,18 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
             <input
               type="number"
               min={5}
-              max={100}
+              max={agentMax}
               value={nAgents}
               disabled={isRunning}
-              onChange={(event) => setNAgents(clamp(Number(event.target.value), 5, 100))}
+              onChange={(event) => setNAgents(clamp(Number(event.target.value), 5, agentMax))}
             />
           </label>
         </div>
+        {fullModeBlocked && (
+          <p className="field-hint warn">
+            풍부(full) 모드는 최대 {FULL_AGENT_LIMIT}명까지 실행할 수 있습니다. 인원을 줄이거나 중간(standard) 모드를 사용하세요.
+          </p>
+        )}
       </section>
 
       <section className="control-panel policy-slots">
@@ -766,7 +775,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
         <div className="run-row">
           <span className="experiment-count">{activeSlots.length}개 슬롯 실행 대상</span>
           <div className="button-group">
-            <button type="button" disabled={isRunning || activeSlots.length === 0} onClick={runExperiment}>
+            <button type="button" disabled={isRunning || fullModeBlocked || activeSlots.length === 0} onClick={runExperiment}>
               {isRunning ? "실험 실행 중" : "실험 실행"}
             </button>
             <button type="button" className="secondary-button danger" disabled={!isRunning} onClick={stopExperiment}>

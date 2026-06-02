@@ -3,6 +3,7 @@ import threading
 from types import SimpleNamespace
 import time
 
+import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
@@ -28,6 +29,8 @@ from app.services.llm_client import (
     stream_openai_agent_response,
     stream_openai_summary_clusters,
 )
+
+FULL_AGENT_LIMIT = 20
 
 
 def empty_summary():
@@ -160,6 +163,21 @@ def test_included_fields_standard_adds_core_and_selected():
 def test_included_fields_full_adds_all_optional():
     out = compute_included_fields("full", ())
     assert out == list(STRUCTURED_PROFILE_KEYS) + list(CORE_NARRATIVE_KEYS) + list(OPTIONAL_NARRATIVE_FIELDS)
+
+
+def test_full_mode_rejects_large_n():
+    with pytest.raises(ValidationError):
+        SimulateRequest(policy="p", n_agents=30, persona_depth="full")
+
+
+def test_full_mode_allows_small_n():
+    req = SimulateRequest(policy="p", n_agents=FULL_AGENT_LIMIT, persona_depth="full")
+    assert req.persona_depth == "full"
+
+
+def test_standard_mode_allows_large_n():
+    req = SimulateRequest(policy="p", n_agents=100, persona_depth="standard")
+    assert req.n_agents == 100
 
 
 def test_parse_valid_agent_response_json():
