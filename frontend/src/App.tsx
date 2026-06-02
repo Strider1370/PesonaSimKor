@@ -16,7 +16,8 @@ import {
   SamplingPlanEvent,
   Stance,
   StanceCounts,
-  StructuredPolicy,
+  PersonaDepth,
+  StructuredPolicyWithPromptFields,
   SummaryErrorEvent,
   SummaryHeartbeatEvent,
   SummaryPromptEvent,
@@ -107,7 +108,7 @@ export default function App() {
   const [llmErrors, setLlmErrors] = useState<Record<number, LlmErrorEvent>>({})
   const [llmActivityAt, setLlmActivityAt] = useState<Record<number, number>>({})
   const [responses, setResponses] = useState<AgentRespondedEvent[]>([])
-  const [structuredPolicy, setStructuredPolicy] = useState<StructuredPolicy | undefined>(undefined)
+  const [structuredPolicy, setStructuredPolicy] = useState<StructuredPolicyWithPromptFields | undefined>(undefined)
   const [summaryPrompt, setSummaryPrompt] = useState<SummaryPromptEvent | null>(null)
   const [summaryStatus, setSummaryStatus] = useState<SummaryStatusEvent | null>(null)
   const [summaryOutput, setSummaryOutput] = useState("")
@@ -187,7 +188,7 @@ export default function App() {
     const modelName = DEFAULT_MODEL_NAME
     const sampledForRun: AgentSampledEvent[] = []
     const responsesForRun: AgentRespondedEvent[] = []
-    let structuredPolicyForRun: StructuredPolicy | undefined
+    let structuredPolicyForRun: StructuredPolicyWithPromptFields | undefined
 
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -264,12 +265,14 @@ export default function App() {
             sampledAgents: sampledForRun.slice(),
             responses: responsesForRun.slice(),
             structuredPolicy: structuredPolicyForRun,
+            persona_depth: "standard",
             completedAt: new Date().toISOString(),
           })
           useCurrentRunStore.getState().setDraftRequest({
             policy: trimmed,
             n_agents: requestedAgents,
             model_name: modelName,
+            persona_depth: "standard",
           })
         } else if (event.type === "error") {
           setError(event.data.message)
@@ -364,7 +367,7 @@ type ExperimentRunState = {
   llmHeartbeats: Record<number, LlmHeartbeatEvent>
   llmErrors: Record<number, LlmErrorEvent>
   responses: AgentRespondedEvent[]
-  structuredPolicy?: StructuredPolicy
+  structuredPolicy?: StructuredPolicyWithPromptFields
   summaryPrompt: SummaryPromptEvent | null
   summaryStatus: SummaryStatusEvent | null
   summaryOutput: string
@@ -419,7 +422,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
   const [nAgents, setNAgents] = useState(30)
   const [repeatCount, setRepeatCount] = useState<1 | 3 | 5>(1)
   const [openAiModelName, setOpenAiModelName] = useState("gpt-5-mini")
-  const [personaDepth, setPersonaDepth] = useState<"minimal" | "standard" | "full">("standard")
+  const [personaDepth, setPersonaDepth] = useState<PersonaDepth>("standard")
   const [runs, setRuns] = useState<Partial<Record<PolicySlotId, ExperimentRunState>>>({})
   const [selectedTraceSlot, setSelectedTraceSlot] = useState<PolicySlotId | null>(null)
   const [savedSnapshots, setSavedSnapshots] = useState<ExperimentSnapshot[]>(() => listExperimentSnapshots())
@@ -581,7 +584,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
       .map((slot) => ({ id: slot.id, presetId: slot.presetId, policy: slot.policy }))
     const structuredPolicy = snapshotSlots
       .map((slot) => runs[slot.id]?.structuredPolicy)
-      .find((item): item is StructuredPolicy => Boolean(item))
+      .find((item): item is StructuredPolicyWithPromptFields => Boolean(item))
     return {
       name: snapshotName.trim() || `Experiment ${new Date().toLocaleString()}`,
       settings: {
@@ -680,6 +683,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
       sampledAgents: run.sampledAgents,
       responses: run.responses,
       structuredPolicy: run.structuredPolicy,
+      personaDepth,
     })
     onOpenResult()
   }
@@ -699,7 +703,7 @@ function ExperimentPage({ onOpenResult }: { onOpenResult: () => void }) {
           </label>
           <label className="field compact-field">
             <span>페르소나</span>
-            <select disabled={isRunning} value={personaDepth} onChange={(event) => setPersonaDepth(event.target.value as "minimal" | "standard" | "full")}>
+            <select disabled={isRunning} value={personaDepth} onChange={(event) => setPersonaDepth(event.target.value as PersonaDepth)}>
               <option value="minimal">최소</option>
               <option value="standard">중간</option>
               <option value="full">풍부</option>

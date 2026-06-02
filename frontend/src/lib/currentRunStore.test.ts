@@ -12,6 +12,17 @@ const storage = vi.hoisted(() => {
   return storage
 })
 
+const aggregate = {
+  total: { support: 1, oppose: 0, neutral: 0 },
+  by_age: {},
+  by_gender: {},
+  by_region: {},
+  concern_clusters: [],
+  support_clusters: [],
+  blind_spot_clusters: [],
+  reframing_list: [],
+}
+
 beforeEach(() => {
   storage.clear()
   sessionStorage.clear()
@@ -21,53 +32,38 @@ beforeEach(() => {
 describe("currentRunStore", () => {
   it("saves and restores the latest completed run", () => {
     saveCurrentRun({
-      policy: "정책",
+      policy: "policy",
       n_agents: 5,
       model_name: "gpt-5-mini",
       model_provider: "openai",
-      aggregate: {
-        total: { support: 1, oppose: 0, neutral: 0 },
-        by_age: {},
-        by_gender: {},
-        by_region: {},
-        concern_clusters: [],
-        support_clusters: [],
-        blind_spot_clusters: [],
-        reframing_list: [],
-      },
+      aggregate,
       sampledAgents: [],
       responses: [],
       completedAt: "2026-05-30T00:00:00.000Z",
     })
 
-    expect(getCurrentRunSnapshot()?.policy).toBe("정책")
-    expect(sessionStorage.getItem("koreansim-current-run")).toContain("정책")
+    expect(getCurrentRunSnapshot()?.policy).toBe("policy")
+    expect(sessionStorage.getItem("koreansim-current-run")).toContain("policy")
   })
 
   it("saves an experiment run as the result current run", () => {
     saveExperimentRunAsCurrentRun({
-      policy: "실험 정책",
+      policy: "experiment policy",
       nAgents: 30,
       modelName: "gpt-5-mini",
       modelProvider: "openai",
       aggregate: {
+        ...aggregate,
         total: { support: 3, oppose: 1, neutral: 0 },
-        by_age: {},
-        by_gender: {},
-        by_region: {},
-        concern_clusters: [],
-        support_clusters: [],
-        blind_spot_clusters: [],
-        reframing_list: [],
       },
       sampledAgents: [
-        { agent_id: 1, age: 45, gender: "female", region: "서울-은평구", job: "teacher", age_group: "40s", region_group: "capital" },
+        { agent_id: 1, age: 45, gender: "female", region: "Seoul", job: "teacher", age_group: "40s", region_group: "capital" },
       ],
       completedAt: "2026-05-30T00:00:00.000Z",
     })
 
     const currentRun = getCurrentRunSnapshot()
-    expect(currentRun?.policy).toBe("실험 정책")
+    expect(currentRun?.policy).toBe("experiment policy")
     expect(currentRun?.n_agents).toBe(30)
     expect(currentRun?.model_provider).toBe("openai")
     expect(currentRun?.sampledAgents[0].agent_id).toBe(1)
@@ -75,26 +71,36 @@ describe("currentRunStore", () => {
 
   it("persists experiment responses and structured policy", () => {
     saveExperimentRunAsCurrentRun({
-      policy: "청년 월세",
+      policy: "youth rent",
       nAgents: 1,
       modelName: "gpt-5-mini",
       aggregate: {
+        ...aggregate,
         total: { support: 0, oppose: 0, neutral: 1 },
-        by_age: {},
-        by_gender: {},
-        by_region: {},
-        concern_clusters: [],
-        support_clusters: [],
-        blind_spot_clusters: [],
-        reframing_list: [],
       },
       sampledAgents: [],
       responses: [{ agent_id: 0, stance: "neutral" }],
-      structuredPolicy: { policy_name: { value: "청년 월세", source: "stated" } },
+      structuredPolicy: { policy_name: { value: "youth rent", source: "stated" } },
     } as any)
 
     const currentRun = getCurrentRunSnapshot()
     expect(currentRun?.responses?.[0].agent_id).toBe(0)
-    expect(currentRun?.structuredPolicy?.policy_name?.value).toBe("청년 월세")
+    expect(currentRun?.structuredPolicy?.policy_name?.value).toBe("youth rent")
+  })
+
+  it("preserves persona_depth and defaults legacy runs to standard", () => {
+    saveCurrentRun({
+      policy: "p",
+      n_agents: 5,
+      model_name: "gpt-5-mini",
+      model_provider: "openai",
+      aggregate: {} as any,
+      sampledAgents: [],
+      responses: [],
+      structuredPolicy: { policy_name: { value: "youth rent", source: "stated" } },
+      persona_depth: "full",
+      completedAt: "t",
+    })
+    expect(getCurrentRunSnapshot()?.persona_depth).toBe("full")
   })
 })

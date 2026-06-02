@@ -1,6 +1,13 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
-import type { AgentRespondedEvent, AgentSampledEvent, AggregateEvent, SimulateRequest, StructuredPolicy } from "./api"
+import type {
+  AgentRespondedEvent,
+  AgentSampledEvent,
+  AggregateEvent,
+  PersonaDepth,
+  SimulateRequest,
+  StructuredPolicyWithPromptFields,
+} from "./api"
 
 export type CurrentRun = {
   policy: string
@@ -10,7 +17,8 @@ export type CurrentRun = {
   aggregate: AggregateEvent
   sampledAgents: AgentSampledEvent[]
   responses: AgentRespondedEvent[]
-  structuredPolicy?: StructuredPolicy
+  structuredPolicy?: StructuredPolicyWithPromptFields
+  persona_depth?: PersonaDepth
   completedAt: string
 }
 
@@ -52,6 +60,7 @@ export function saveExperimentRunAsCurrentRun({
   sampledAgents,
   responses = [],
   structuredPolicy,
+  personaDepth = "standard",
   completedAt = new Date().toISOString(),
 }: {
   policy: string
@@ -61,7 +70,8 @@ export function saveExperimentRunAsCurrentRun({
   aggregate: AggregateEvent
   sampledAgents: AgentSampledEvent[]
   responses?: AgentRespondedEvent[]
-  structuredPolicy?: StructuredPolicy
+  structuredPolicy?: StructuredPolicyWithPromptFields
+  personaDepth?: PersonaDepth
   completedAt?: string
 }) {
   saveCurrentRun({
@@ -73,12 +83,14 @@ export function saveExperimentRunAsCurrentRun({
     sampledAgents,
     responses,
     structuredPolicy,
+    persona_depth: personaDepth,
     completedAt,
   })
   useCurrentRunStore.getState().setDraftRequest({
     policy,
     n_agents: nAgents,
     model_name: modelName,
+    persona_depth: personaDepth,
   })
 }
 
