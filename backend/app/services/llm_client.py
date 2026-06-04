@@ -44,22 +44,25 @@ caveat는 가장 중요한 유보점 하나만 쓰십시오.
 
 EXPECTED_COMPLAINT_RULES = """expected_complaint 판정 기준:
 시행 후 이 페르소나가 실제로 제기할 문의나 불만을 한 문장으로 쓰십시오.
-대상 여부, 신청 방식, 서류, 제외 조건처럼 실제 민원 창구에 물을 법한 내용이어야 합니다.
+반드시 정책 텍스트에서 명시된 내용(대상·방식·지역·금액·조건 등)을 기반으로만 작성하십시오.
+정책에 언급되지 않은 신청 절차, 감면 제도, 서류, 예외 조항을 있다고 가정하지 마십시오.
 해당되는 문의나 불만이 없으면 null을 반환하십시오."""
 
 BLIND_SPOT_RULES = """blind_spot 판정 기준:
-blind_spot은 필수가 아닙니다. 아래 세 조건을 모두 만족할 때만 작성하십시오.
+이 페르소나의 생활 맥락에서 정책이 만들어내는 예상치 못한 문제나 불이익을 한 문장으로 서술하십시오.
+아래 기준으로 판단하십시오.
 
-1. 직접성: 정책 변화가 해당 문제로 이어지는 구체적인 인과 경로가 있어야 합니다.
-2. 특수성: 이 문제가 일반 시민 모두의 우려가 아니라, 이 페르소나의 직업·생활·경제 조건 때문에 특히 잘 보이는 문제여야 합니다.
-3. 비중복성: rationale이나 일반 찬반 쟁점에서 이미 말한 내용을 다른 말로 반복하면 안 됩니다.
+작성해야 하는 경우:
+- 이 페르소나의 직업·가족·거주·소득 조건 때문에 정책 혜택에서 빠지거나, 신청이 어렵거나, 오히려 불이익이 생기는 경우
+- 정책이 의도한 수혜자이지만 신청 방식·증빙 요건·제외 조건 탓에 실질적으로 접근하기 어려운 경우
+- 정책으로 인해 이 페르소나의 특수한 상황(직업, 계약 형태, 가구 구성 등)에서만 발생하는 부작용이 있는 경우
 
-blind_spot은 전문가적 정책 분석이 아닙니다.
-이 페르소나의 생활, 직업, 가족, 지역, 경제 조건 때문에 직접 떠올릴 수 있는 문제일 때만 쓰십시오.
-정책 구조 전체를 분석해야만 보이는 문제, 거시적 제도 설계 문제, 일반 시민 모두에게 해당되는 문제는 blind_spot이 아닙니다.
-페르소나 정보가 그 문제를 직접 뒷받침하지 않으면 null을 반환하십시오.
-세 조건 중 하나라도 부족하면 blind_spot은 null로 반환하십시오.
-blind_spot이 null이면 affected_group도 null로 반환하십시오."""
+작성하지 않는 경우 (null):
+- rationale에서 이미 말한 내용과 같은 경우
+- 이 페르소나와 무관하게 누구나 제기할 수 있는 일반론인 경우
+- 3단계 이상의 추론이 필요한 경우 (A → B → C → 피해)
+
+blind_spot이 null이면 blind_spot_reason과 affected_group도 null로 반환하십시오."""
 
 SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
 해당 페르소나의 배경, 직업, 생활환경을 바탕으로 정책에 대한 입장을 답하십시오.
@@ -84,7 +87,7 @@ SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 
   "expected_complaint": "시행 후 실제로 제기할 문의나 불만 한 문장. 없으면 null.",
   "blind_spot": "직접성·특수성·비중복성을 모두 만족하는 사각지대. 없으면 null.",
   "affected_group": "blind_spot이 있을 때 가장 직접적으로 영향받는 집단. 없으면 null.",
-  "reframing": "정책 전제나 방향 자체에 동의하지 않는 부분이 있으면 반문하십시오. 없으면 null.",
+  "reframing": "찬성 여부와 무관하게, 이 정책의 대상 기준·구조·전제에 의문을 제기할 수 있으면 반문하십시오. 없으면 null.",
   "persona_link": {{
     "direct": "페르소나 텍스트에서 직접 언급된 근거만 쓰십시오.",
     "inferred": "텍스트에 없지만 맥락에서 합리적으로 추론한 것. 고정관념은 피하십시오."
@@ -92,8 +95,8 @@ SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 
 }}"""
 
 GROUNDING_RULES = """grounding rules:
-Use "direct" when blind_spot is based on an explicit fact in the persona text.
-Use "inferred" when blind_spot is a reasonable contextual inference.
+Use "direct" when blind_spot is based on an explicit fact in both the persona text and the policy text.
+Use "inferred" when blind_spot is a reasonable inference from the policy's stated content combined with the persona's context — not from imagining what the policy is missing.
 Use null when blind_spot is null."""
 
 SYSTEM_PROMPT_OPENAI = f"""당신은 주어진 페르소나 정보를 충실히 따르는 한국 시민입니다.
@@ -117,11 +120,11 @@ Choose neutral only when the persona cannot choose either direction.
 {{
   "stance": "찬성" 또는 "반대" 또는 "중립",
   "rationale": "최종 선택 방향의 핵심 이유. 이 페르소나가 체감할 만한 1~2개 이유만 쓰십시오.",
-  "blind_spot": "직접성·특수성·비중복성을 모두 만족하는 사각지대. 없으면 null.",
-  "blind_spot_reason": "blind_spot을 쓰는 경우, 어떤 페르소나 사실 또는 맥락에 근거했는지 쓰십시오. 없으면 null.",
-  "affected_group": "blind_spot이 있을 때 가장 직접적으로 영향받는 집단. 없으면 null.",
+  "blind_spot": "이 페르소나의 상황 때문에 정책에서 소외되거나 예상치 못한 불이익이 생기면 작성. 일반론이거나 rationale 반복이면 null.",
+  "blind_spot_reason": "blind_spot 작성 시에만 — 어떤 페르소나 사실에 근거했는지. 없으면 null.",
+  "affected_group": "blind_spot 작성 시에만 — 가장 직접적으로 영향받는 집단. 없으면 null.",
   "grounding": "direct" 또는 "inferred" 또는 null,
-  "reframing": "정책 전제나 방향 자체에 동의하지 않는 부분이 있으면 반문하십시오. 없으면 null.",
+  "reframing": "찬성 여부와 무관하게, 이 정책의 대상 기준·구조·전제에 의문을 제기할 수 있으면 반문하십시오. 없으면 null.",
   "expected_complaint": "시행 후 실제로 제기할 문의나 불만 한 문장. 없으면 null."
 }}"""
 

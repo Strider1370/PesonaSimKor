@@ -1,0 +1,101 @@
+﻿sample_group,occupation,count,ksco_major_code,ksco_major_label,rule_hit
+top_exact,무직,367349,unemployed,무직/비경제활동,exact
+top_exact,사무 보조원,13630,3,사무 종사자,exact
+top_exact,산업 안전원,6607,2,전문가 및 관련 종사자,exact
+top_exact,그 외 기능 관련 종사원,4618,7,기능원 및 관련 기능 종사자,exact
+top_exact,기업 고위 임원,4326,1,관리자,exact
+top_exact,범용 소프트웨어 프로그래머,2929,2,전문가 및 관련 종사자,exact
+top_exact,상품 기획자,2732,2,전문가 및 관련 종사자,exact
+top_exact,간호조무사,2261,2,전문가 및 관련 종사자,exact
+top_exact,정보 시스템 운영자,2097,2,전문가 및 관련 종사자,exact
+top_exact,육군 부사관,1915,A,군인,exact
+top_exact,우편집배원,1915,8,장치·기계 조작 및 조립 종사자,exact
+top_exact,가사 도우미,1909,4,서비스 종사자,exact
+top_exact,텔레마케터,1736,5,판매 종사자,exact
+top_exact,바텐더,1485,4,서비스 종사자,exact
+top_exact,육군 장교,1461,A,군인,exact
+top_exact,치과위생사,1355,2,전문가 및 관련 종사자,exact
+top_exact,그 외 제품 디자이너,1213,2,전문가 및 관련 종사자,exact
+top_exact,위험 관리원,1179,2,전문가 및 관련 종사자,exact
+top_exact,매장 정리원,1157,5,판매 종사자,exact
+top_exact,판금원,1045,7,기능원 및 관련 기능 종사자,exact
+top_exact,가스 점검원,984,7,기능원 및 관련 기능 종사자,exact
+top_exact,검표원,969,4,서비스 종사자,exact
+top_exact,고속철 기관사,947,8,장치·기계 조작 및 조립 종사자,exact
+top_exact,모바일 애플리케이션 프로그래머,928,2,전문가 및 관련 종사자,exact
+top_exact,행사 및 홍보 도우미,778,4,서비스 종사자,exact
+top_suffix,경리 사무원,16146,3,사무 종사자,suffix:사무원
+top_suffix,일반 비서,10895,3,사무 종사자,suffix:비서
+top_suffix,주방 보조원,7542,3,사무 종사자,suffix:보조원
+top_suffix,회계 사무원,7250,3,사무 종사자,suffix:사무원
+top_suffix,마케팅 전문가,7226,2,전문가 및 관련 종사자,suffix:전문가
+top_suffix,교육 및 훈련 사무원,6138,3,사무 종사자,suffix:사무원
+top_suffix,경영 기획 사무원,5940,3,사무 종사자,suffix:사무원
+top_suffix,보육교사,5529,2,전문가 및 관련 종사자,suffix:교사
+top_suffix,그 외 법률 관련 사무원,4700,3,사무 종사자,suffix:사무원
+top_suffix,유치원 교사,4550,2,전문가 및 관련 종사자,suffix:교사
+top_suffix,생산관리 사무원,3745,3,사무 종사자,suffix:사무원
+top_suffix,자재 관리 사무원,3605,3,사무 종사자,suffix:사무원
+top_suffix,영업 관리 사무원,3509,3,사무 종사자,suffix:사무원
+top_suffix,관리 비서,3466,3,사무 종사자,suffix:비서
+top_suffix,조사 전문가,3387,2,전문가 및 관련 종사자,suffix:전문가
+top_suffix,품질 관리 사무원,3342,3,사무 종사자,suffix:사무원
+top_suffix,국가행정 사무원,3261,3,사무 종사자,suffix:사무원
+top_suffix,지방행정 사무원,2882,3,사무 종사자,suffix:사무원
+top_suffix,상담 전문가,2786,2,전문가 및 관련 종사자,suffix:전문가
+top_suffix,공공행정 사무원,2679,3,사무 종사자,suffix:사무원
+top_suffix,총무 사무원,2656,3,사무 종사자,suffix:사무원
+top_suffix,일반 간호사,2483,2,전문가 및 관련 종사자,suffix:간호사
+top_suffix,학습지 방문강사,2389,2,전문가 및 관련 종사자,suffix:강사
+top_suffix,병무행정 사무원,2035,3,사무 종사자,suffix:사무원
+top_suffix,출판 및 자료편집 사무원,2010,3,사무 종사자,suffix:사무원
+top_contains,건물 청소원,18253,9,단순노무 종사자,contains:청소
+top_contains,건물 경비원,17473,9,단순노무 종사자,contains:경비원
+top_contains,전화 상담원,11211,4,서비스 종사자,contains:상담원
+top_contains,시설 경비원,10897,9,단순노무 종사자,contains:경비원
+top_contains,하역 및 적재 관련 단순 종사원,9160,9,단순노무 종사자,contains:단순
+top_contains,한식 조리사,8566,4,서비스 종사자,contains:조리사
+top_contains,그 외 일반 영업원,8199,5,판매 종사자,contains:영업
+top_contains,지게차 운전원,7382,8,장치·기계 조작 및 조립 종사자,contains:운전원
+top_contains,그 외 서비스 관련 단순 종사원,5947,4,서비스 종사자,contains:서비스
+top_contains,그 외 상점 판매원,5702,5,판매 종사자,contains:판매
+top_contains,음식 서비스 종사원,5332,4,서비스 종사자,contains:서비스
+top_contains,철도운송 관련 종사원,5259,8,장치·기계 조작 및 조립 종사자,contains:철도
+top_contains,온라인 쇼핑 판매원,4998,5,판매 종사자,contains:판매
+top_contains,소규모 상점 경영자,4694,1,관리자,contains:경영자
+top_contains,노점 및 이동 판매원,4501,5,판매 종사자,contains:판매
+top_contains,경·소형 화물차 운전원,4401,8,장치·기계 조작 및 조립 종사자,contains:운전원
+top_contains,승용차 및 승합차 운전원,4113,8,장치·기계 조작 및 조립 종사자,contains:운전원
+top_contains,경영 컨설턴트,3853,2,전문가 및 관련 종사자,contains:컨설턴트
+top_contains,그 외 하역 및 적재 단순 종사원,3657,9,단순노무 종사자,contains:단순
+top_contains,전기 용접원,3236,7,기능원 및 관련 기능 종사자,contains:용접
+top_contains,식품 영업원,2999,5,판매 종사자,contains:영업
+top_contains,음료 서비스 종사원,2572,4,서비스 종사자,contains:서비스
+top_contains,건물 내 전기 설치 및 정비원,2548,7,기능원 및 관련 기능 종사자,contains:설치
+top_contains,그 외 돌봄 및 보건 서비스 종사원,2538,4,서비스 종사자,contains:서비스
+top_contains,일식 조리사,2429,4,서비스 종사자,contains:조리사
+top_other,산불 감시원,995,other,기타/검토,no_rule
+top_other,소규모 상점 일선 관리 종사원,760,other,기타/검토,no_rule
+top_other,구급 요원,470,other,기타/검토,no_rule
+top_other,언어재활사,406,other,기타/검토,no_rule
+top_other,농약 및 비료 시험원,388,other,기타/검토,no_rule
+top_other,유통 및 매장 감시원,331,other,기타/검토,no_rule
+top_other,화학 시험원,301,other,기타/검토,no_rule
+top_other,양복 제조원,263,other,기타/검토,no_rule
+top_other,그 외 피부 및 체형 관리 종사원,263,other,기타/검토,no_rule
+top_other,밑반찬 제조 종사원,245,other,기타/검토,no_rule
+top_other,환경 검사원,235,other,기타/검토,no_rule
+top_other,장례 지도사,234,other,기타/검토,no_rule
+top_other,의복 수선원,232,other,기타/검토,no_rule
+top_other,그 외 공학 관련 기술자 및 시험원,231,other,기타/검토,no_rule
+top_other,스포츠 감독,223,other,기타/검토,no_rule
+top_other,손톱 관리사,212,other,기타/검토,no_rule
+top_other,출판물 편집자,212,other,기타/검토,no_rule
+top_other,계기 검침원,209,other,기타/검토,no_rule
+top_other,건축 석공,205,other,기타/검토,no_rule
+top_other,김치 제조 종사원,199,other,기타/검토,no_rule
+top_other,그 외 생명과학 시험원,195,other,기타/검토,no_rule
+top_other,직물 패턴사,194,other,기타/검토,no_rule
+top_other,번역가,185,other,기타/검토,no_rule
+top_other,방송 및 시나리오 작가,185,other,기타/검토,no_rule
+top_other,석재 부설원,183,other,기타/검토,no_rule

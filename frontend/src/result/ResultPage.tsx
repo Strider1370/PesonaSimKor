@@ -14,11 +14,12 @@ type ResultPageProps = {
   darkMode?: boolean
 }
 
-type ResultTab = "blindspots" | "complaints" | "distribution"
+type ResultTab = "blindspots" | "complaints" | "reframings" | "distribution"
 
 const TABS: Array<{ id: ResultTab; label: string; tone: "danger" | "orange" | "purple" }> = [
   { id: "blindspots", label: "설계 미비 항목", tone: "danger" },
   { id: "complaints", label: "예상 민원 유형", tone: "orange" },
+  { id: "reframings", label: "정책 전제 반문", tone: "purple" },
   { id: "distribution", label: "반응 분포", tone: "purple" },
 ]
 
@@ -33,6 +34,14 @@ export function ResultPage({ run, onDebug, onOpenMain, darkMode = false }: Resul
   const filteredPersonas = useMemo(
     () => (vm ? filterPersonasByAgentIds(vm.personas, selectedAgentIds) : []),
     [vm, selectedAgentIds],
+  )
+  const blindspotPersonas = useMemo(
+    () => filteredPersonas.filter((p) => p.blindSpot),
+    [filteredPersonas],
+  )
+  const reframingPersonas = useMemo(
+    () => filteredPersonas.filter((p) => p.reframing),
+    [filteredPersonas],
   )
 
   if (!currentRun || !vm) {
@@ -102,7 +111,7 @@ export function ResultPage({ run, onDebug, onOpenMain, darkMode = false }: Resul
         {activeTab === "blindspots" && (
           <div className="result-tab-panel">
             <BlindspotPanel items={vm.concerns} onSelect={setSelectedAgentIds} />
-            <VoiceGrid personas={filteredPersonas} selected={Boolean(selectedAgentIds)} onClear={() => setSelectedAgentIds(null)} mode="blindspot" />
+            <VoiceGrid personas={blindspotPersonas} selected={Boolean(selectedAgentIds)} onClear={() => setSelectedAgentIds(null)} mode="blindspot" />
           </div>
         )}
 
@@ -110,6 +119,13 @@ export function ResultPage({ run, onDebug, onOpenMain, darkMode = false }: Resul
           <div className="result-tab-panel">
             <ComplaintPanel items={vm.complaints} onSelect={setSelectedAgentIds} />
             <VoiceGrid personas={filteredPersonas} selected={Boolean(selectedAgentIds)} onClear={() => setSelectedAgentIds(null)} mode="complaint" />
+          </div>
+        )}
+
+        {activeTab === "reframings" && (
+          <div className="result-tab-panel">
+            <ReframingPanel items={vm.reframings} onSelect={setSelectedAgentIds} />
+            <VoiceGrid personas={reframingPersonas} selected={Boolean(selectedAgentIds)} onClear={() => setSelectedAgentIds(null)} mode="reframing" />
           </div>
         )}
 
@@ -319,6 +335,10 @@ function BlindspotPanel({ items, onSelect }: { items: ReturnType<typeof buildDas
 
 function ComplaintPanel({ items, onSelect }: { items: ReturnType<typeof buildDashboard>["complaints"]; onSelect: (agentIds: number[]) => void }) {
   return <DiscoveryPanel items={items} chartTitle="예상 민원 유형" tableColumnLabel="민원 유형" onSelect={onSelect} />
+}
+
+function ReframingPanel({ items, onSelect }: { items: ReturnType<typeof buildDashboard>["reframings"]; onSelect: (agentIds: number[]) => void }) {
+  return <DiscoveryPanel items={items} chartTitle="정책 전제 반문" tableColumnLabel="반문 유형" onSelect={onSelect} />
 }
 
 const VOICE_INITIAL_LIMIT = 4

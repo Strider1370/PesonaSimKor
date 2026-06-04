@@ -1,7 +1,7 @@
 import type { DashboardPersona } from "./dashboardModel"
 import { groundingLabel, stanceLabel, tagLabel } from "./labels"
 
-export type VoiceCardMode = "blindspot" | "complaint" | "default"
+export type VoiceCardMode = "blindspot" | "complaint" | "reframing" | "default"
 
 export function VoiceCard({ persona, mode = "default" }: { persona: DashboardPersona; mode?: VoiceCardMode }) {
   return (
@@ -38,6 +38,18 @@ export function VoiceCard({ persona, mode = "default" }: { persona: DashboardPer
               </span>
             )}
           </div>
+        </>
+      )}
+
+      {mode === "reframing" && (
+        <>
+          <p className="voice-rationale">{persona.rationale}</p>
+          {persona.reframing && (
+            <div className="signal reframing">
+              <div className="signal-title">정책 전제 반문</div>
+              <p>{persona.reframing}</p>
+            </div>
+          )}
         </>
       )}
 

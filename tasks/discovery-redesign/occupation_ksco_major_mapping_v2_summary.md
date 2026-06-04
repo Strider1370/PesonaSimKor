@@ -1,0 +1,172 @@
+# KSCO Major Occupation Mapping v2 Summary
+
+This v2 preserves `unemployed` as an immutable status bucket, keeps the original draft where no stronger evidence was found, applies sampled high-impact exact corrections, and maps obvious `other` occupations by title pattern.
+
+- Total rows: 1,000,000
+- Distinct occupations: 2,120
+- Remaining `other`: 4,249 rows (0.42%), 119 distinct
+- Changed from draft: 136 distinct / 39,882 rows (3.99%)
+- Needs review: 312 distinct / 147,276 rows (14.73%)
+
+## Distribution
+- 1 ???: 19,665 rows (1.97%), 72 distinct
+- 2 ??? ? ?? ???: 128,745 rows (12.87%), 334 distinct
+- 3 ?? ???: 119,452 rows (11.95%), 46 distinct
+- 4 ??? ???: 74,350 rows (7.43%), 81 distinct
+- 5 ?? ???: 46,001 rows (4.60%), 45 distinct
+- 6 ????? ?? ???: 2,030 rows (0.20%), 10 distinct
+- 7 ??? ? ?? ?? ???: 51,246 rows (5.12%), 167 distinct
+- 8 ????? ?? ? ?? ???: 73,528 rows (7.35%), 221 distinct
+- 9 ???? ???: 83,890 rows (8.39%), 31 distinct
+- A ??: 5,282 rows (0.53%), 12 distinct
+- unemployed ??/?????: 391,562 rows (39.16%), 982 distinct
+- other ??/??: 4,249 rows (0.42%), 119 distinct
+
+## Confidence
+- high: 882,054 rows (88.21%), 1,920 distinct
+- medium: 117,946 rows (11.79%), 200 distinct
+- low: 0 rows (0.00%), 0 distinct
+
+## Top Changes
+- 주방 보조원 (7,542): 3 -> 4 / exact:?? ??? / high
+- 그 외 서비스 관련 단순 종사원 (5,947): 4 -> 9 / exact:??? ?? ??? / high
+- 단말기 및 통신 서비스 판매원 (2,268): 4 -> 5 / exact:??? ??? / high
+- 건설 단순 종사원 (2,171): 7 -> 9 / exact:?? ?? ??? / high
+- 그 외 택배원 (1,984): 8 -> 9 / exact:??? / medium
+- 우편집배원 (1,915): 8 -> 9 / exact:????? / medium
+- 산불 감시원 (995): other -> 4 / exact:?? ??? / medium
+- 택배원 (848): 8 -> 9 / exact:??? / medium
+- 소규모 상점 일선 관리 종사원 (760): other -> 1 / exact:?? ?? / medium
+- 그 외 배달원 (742): 8 -> 9 / exact:??? / medium
+- 음식 배달원 (689): 8 -> 9 / exact:??? / medium
+- 청소년 지도사 (655): 9 -> 2 / exact:??? ??? / high
+- 구급 요원 (470): other -> 4 / exact:?? ?? / medium
+- 언어재활사 (406): other -> 2 / v2:재활사 / high
+- 농약 및 비료 시험원 (388): other -> 2 / v2:시험원 / high
+- 유통 및 매장 감시원 (331): other -> 4 / exact:?? ??? / medium
+- 화학 시험원 (301): other -> 2 / v2:시험원 / high
+- 양복 제조원 (263): other -> 7 / v2:제조원 / high
+- 그 외 피부 및 체형 관리 종사원 (263): other -> 4 / v2:피부 / medium
+- 밑반찬 제조 종사원 (245): other -> 7 / v2:제조 종사원 / high
+- 환경 검사원 (235): other -> 2 / v2:검사원 / high
+- 장례 지도사 (234): other -> 4 / exact:?? ??? / high
+- 의복 수선원 (232): other -> 7 / v2:수선원 / high
+- 그 외 공학 관련 기술자 및 시험원 (231): other -> 2 / v2:기술자 / high
+- 손톱 관리사 (212): other -> 4 / v2:손톱 / medium
+- 출판물 편집자 (212): other -> 2 / v2:편집자 / high
+- 계기 검침원 (209): other -> 9 / exact:?? ??? / medium
+- 건축 석공 (205): other -> 7 / v2:석공 / high
+- 김치 제조 종사원 (199): other -> 7 / v2:제조 종사원 / high
+- 그 외 생명과학 시험원 (195): other -> 2 / v2:시험원 / high
+- 직물 패턴사 (194): other -> 7 / v2:패턴사 / high
+- 번역가 (185): other -> 2 / v2:번역가 / high
+- 방송 및 시나리오 작가 (185): other -> 2 / v2:작가 / high
+- 석재 부설원 (183): other -> 7 / v2:부설원 / high
+- 금속공학 시험원 (181): other -> 2 / v2:시험원 / high
+- 떡 제조원 (180): other -> 7 / v2:제조원 / high
+- 구두 미화원 (175): other -> 9 / exact:?? ??? / medium
+- 기자 (173): other -> 2 / v2:기자 / high
+- 미장공 (160): other -> 7 / v2:미장공 / high
+- 그 외 금속 및 재료 공학 시험원 (158): other -> 2 / v2:시험원 / high
+- 그 외 귀금속 및 보석 세공원 (151): other -> 7 / v2:세공원 / high
+- 통역가 (151): other -> 2 / v2:통역가 / high
+- 조경원 (150): other -> 6 / v2:조경원 / medium
+- 거리 미화원 (149): other -> 9 / exact:?? ??? / high
+- 경량 철골공 (146): other -> 7 / v2:철골공 / high
+- 기계공학 시험원 (145): other -> 2 / v2:시험원 / high
+- 콘크리트 타설원 (140): other -> 7 / v2:타설원 / high
+- 건물 해체원 (136): other -> 7 / v2:해체원 / high
+- 타일 부착원 (135): other -> 7 / v2:부착원 / high
+- 목형원 (133): other -> 7 / v2:목형원 / high
+- 방역원 (132): other -> 4 / v2:방역원 / medium
+- 조적공 (131): other -> 7 / v2:조적공 / high
+- 치과기공사 (124): other -> 2 / v2:기공사 / high
+- 카지노 딜러 (122): other -> 4 / exact:??? ?? / high
+- 비계공 (121): other -> 7 / v2:비계공 / high
+- 대리석 부착원 (118): other -> 7 / v2:부착원 / high
+- 도배공 (112): other -> 7 / v2:도배공 / high
+- 섬유공학 시험원 (111): other -> 2 / v2:시험원 / high
+- 비행기 조종사 (108): other -> 8 / exact:??? ??? / medium
+- 사진작가 (105): other -> 2 / v2:작가 / high
+
+## Top Review Needed
+- 건물 청소원 (18,253): 9 ???? ??? / kept:contains:청소 / prev 9 contains:청소
+- 건물 경비원 (17,473): 9 ???? ??? / kept:contains:경비원 / prev 9 contains:경비원
+- 사무 보조원 (13,630): 3 ?? ??? / kept:exact / prev 3 exact
+- 시설 경비원 (10,897): 9 ???? ??? / kept:contains:경비원 / prev 9 contains:경비원
+- 하역 및 적재 관련 단순 종사원 (9,160): 9 ???? ??? / kept:contains:단순 / prev 9 contains:단순
+- 주방 보조원 (7,542): 4 ??? ??? / exact:?? ??? / prev 3 suffix:보조원
+- 그 외 서비스 관련 단순 종사원 (5,947): 9 ???? ??? / exact:??? ?? ??? / prev 4 contains:서비스
+- 음식 서비스 종사원 (5,332): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 그 외 하역 및 적재 단순 종사원 (3,657): 9 ???? ??? / kept:contains:단순 / prev 9 contains:단순
+- 음료 서비스 종사원 (2,572): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 그 외 돌봄 및 보건 서비스 종사원 (2,538): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 단말기 및 통신 서비스 판매원 (2,268): 5 ?? ??? / exact:??? ??? / prev 4 contains:서비스
+- 건설 단순 종사원 (2,171): 9 ???? ??? / exact:?? ?? ??? / prev 7 contains:건설
+- 그 외 택배원 (1,984): 9 ???? ??? / exact:??? / prev 8 contains:택배
+- 우편집배원 (1,915): 9 ???? ??? / exact:????? / prev 8 exact
+- 노인 및 장애인 돌봄 서비스 종사원 (1,906): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 보육 관련 시설 서비스 종사원 (1,863): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 운송장비 청소원 (1,691): 9 ???? ??? / kept:contains:청소 / prev 9 contains:청소
+- 그 외 제조 관련 단순 종사원 (1,192): 9 ???? ??? / kept:contains:단순 / prev 9 contains:단순
+- 위험 관리원 (1,179): 2 ??? ? ?? ??? / kept:exact / prev 2 exact
+- 농업 단순 종사원 (1,173): 6 ????? ?? ??? / kept:contains:농업 / prev 6 contains:농업
+- 주차 관리원 (1,163): 2 ??? ? ?? ??? / kept:suffix:관리원 / prev 2 suffix:관리원
+- 산불 감시원 (995): 4 ??? ??? / exact:?? ??? / prev other no_rule
+- 그 외 음식 서비스 종사원 (970): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 택배원 (848): 9 ???? ??? / exact:??? / prev 8 contains:택배
+- 소규모 상점 일선 관리 종사원 (760): 1 ??? / exact:?? ?? / prev other no_rule
+- 그 외 배달원 (742): 9 ???? ??? / exact:??? / prev 8 contains:배달
+- 그 외 판매 관련 단순 종사원 (702): 5 ?? ??? / kept:contains:판매 / prev 5 contains:판매
+- 음식 배달원 (689): 9 ???? ??? / exact:??? / prev 8 contains:배달
+- 청소년 지도사 (655): 2 ??? ? ?? ??? / exact:??? ??? / prev 9 contains:청소
+- 그 외 시설 및 특수 경비원 (642): 9 ???? ??? / kept:contains:경비원 / prev 9 contains:경비원
+- 제품 단순 선별원 (563): 9 ???? ??? / kept:contains:단순 / prev 9 contains:단순
+- 교사 교육 보조원 (557): 3 ?? ??? / kept:suffix:보조원 / prev 3 suffix:보조원
+- 그 외 산업 안전 및 위험 관리원 (539): 2 ??? ? ?? ??? / kept:exact / prev 2 exact
+- 호송 경비원 (482): 9 ???? ??? / kept:contains:경비원 / prev 9 contains:경비원
+- 구급 요원 (470): 4 ??? ??? / exact:?? ?? / prev other no_rule
+- 특수 경비원 (459): 9 ???? ??? / kept:contains:경비원 / prev 9 contains:경비원
+- 기계 경비원 (438): 9 ???? ??? / kept:contains:경비원 / prev 9 contains:경비원
+- 주류 서비스 종사원 (418): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 그 외 미용 관련 서비스 종사원 (410): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 언어재활사 (406): 2 ??? ? ?? ??? / v2:재활사 / prev other no_rule
+- 농약 및 비료 시험원 (388): 2 ??? ? ?? ??? / v2:시험원 / prev other no_rule
+- 아파트 경비원 (384): 9 ???? ??? / kept:contains:경비원 / prev 9 contains:경비원
+- 음료 배달원 (379): 4 ??? ??? / kept:contains:음료 / prev 4 contains:음료
+- 유통 및 매장 감시원 (331): 4 ??? ??? / exact:?? ??? / prev other no_rule
+- 화학 시험원 (301): 2 ??? ? ?? ??? / v2:시험원 / prev other no_rule
+- 그 외 건물 관리원 (286): 2 ??? ? ?? ??? / kept:suffix:관리원 / prev 2 suffix:관리원
+- 호텔 서비스원 (269): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 양복 제조원 (263): 7 ??? ? ?? ?? ??? / v2:제조원 / prev other no_rule
+- 그 외 피부 및 체형 관리 종사원 (263): 4 ??? ??? / v2:피부 / prev other no_rule
+- 어업 단순 종사원 (250): 6 ????? ?? ??? / kept:contains:어업 / prev 6 contains:어업
+- 밑반찬 제조 종사원 (245): 7 ??? ? ?? ?? ??? / v2:제조 종사원 / prev other no_rule
+- 환경 검사원 (235): 2 ??? ? ?? ??? / v2:검사원 / prev other no_rule
+- 장례 지도사 (234): 4 ??? ??? / exact:?? ??? / prev other no_rule
+- 의복 수선원 (232): 7 ??? ? ?? ?? ??? / v2:수선원 / prev other no_rule
+- 그 외 공학 관련 기술자 및 시험원 (231): 2 ??? ? ?? ??? / v2:기술자 / prev other no_rule
+- 스포츠 감독 (223): other ??/?? / kept:no_rule / prev other no_rule
+- 손톱 관리사 (212): 4 ??? ??? / v2:손톱 / prev other no_rule
+- 출판물 편집자 (212): 2 ??? ? ?? ??? / v2:편집자 / prev other no_rule
+- 계기 검침원 (209): 9 ???? ??? / exact:?? ??? / prev other no_rule
+- 건축 석공 (205): 7 ??? ? ?? ?? ??? / v2:석공 / prev other no_rule
+- 그 외 청소원 (202): 9 ???? ??? / kept:contains:청소 / prev 9 contains:청소
+- 농업 시험원 (200): 6 ????? ?? ??? / kept:contains:농업 / prev 6 contains:농업
+- 김치 제조 종사원 (199): 7 ??? ? ?? ?? ??? / v2:제조 종사원 / prev other no_rule
+- 그 외 생명과학 시험원 (195): 2 ??? ? ?? ??? / v2:시험원 / prev other no_rule
+- 직물 패턴사 (194): 7 ??? ? ?? ?? ??? / v2:패턴사 / prev other no_rule
+- 번역가 (185): 2 ??? ? ?? ??? / v2:번역가 / prev other no_rule
+- 방송 및 시나리오 작가 (185): 2 ??? ? ?? ??? / v2:작가 / prev other no_rule
+- 석재 부설원 (183): 7 ??? ? ?? ?? ??? / v2:부설원 / prev other no_rule
+- 연예인 매니저 (182): other ??/?? / kept:no_rule / prev other no_rule
+- 금속공학 시험원 (181): 2 ??? ? ?? ??? / v2:시험원 / prev other no_rule
+- 떡 제조원 (180): 7 ??? ? ?? ?? ??? / v2:제조원 / prev other no_rule
+- 구두 미화원 (175): 9 ???? ??? / exact:?? ??? / prev other no_rule
+- 기자 (173): 2 ??? ? ?? ??? / v2:기자 / prev other no_rule
+- 스포츠 매니저 (162): other ??/?? / kept:no_rule / prev other no_rule
+- 의료 서비스 상담 종사원 (161): 4 ??? ??? / kept:contains:서비스 / prev 4 contains:서비스
+- 미장공 (160): 7 ??? ? ?? ?? ??? / v2:미장공 / prev other no_rule
+- 그 외 금속 및 재료 공학 시험원 (158): 2 ??? ? ?? ??? / v2:시험원 / prev other no_rule
+- 복지시설 생활 지도원 (151): other ??/?? / kept:no_rule / prev other no_rule
+- 그 외 귀금속 및 보석 세공원 (151): 7 ??? ? ?? ?? ??? / v2:세공원 / prev other no_rule

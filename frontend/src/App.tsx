@@ -48,7 +48,6 @@ import {
   saveExperimentSnapshot,
 } from "./lib/experimentStorage"
 import { CurrentRun, getCurrentRunSnapshot, saveCurrentRun, saveExperimentRunAsCurrentRun, useCurrentRunStore } from "./lib/currentRunStore"
-import { PersonaFieldsBadge } from "./result/PersonaFieldsBadge"
 import { ResultPage } from "./result/ResultPage"
 import { axisLabel, categoryLabel } from "./result/labels"
 
@@ -90,11 +89,12 @@ const REGION_LABELS: Record<RegionGroup, string> = {
 
 const EMPTY_COUNTS: StanceCounts = { support: 0, oppose: 0, neutral: 0 }
 const DEFAULT_MODEL_PROVIDER = "openai" as const
-const DEFAULT_MODEL_NAME = "gpt-5-mini"
+const DEFAULT_MODEL_NAME = "gpt-5.4-mini"
 
 export default function App() {
   const [page, setPage] = useState<Page>(() => pageFromLocation())
   const [darkMode, setDarkMode] = useState(false)
+  const [experimentKey, setExperimentKey] = useState(0)
   const [pendingSnapshot, setPendingSnapshot] = useState<ExperimentSnapshot | null>(null)
   const [policy, setPolicy] = useState("")
   const [nAgents, setNAgents] = useState(30)
@@ -328,10 +328,12 @@ export default function App() {
             onOpenResult={(snapshot) => { setPendingSnapshot(snapshot); navigatePage("result", false) }}
             onOpenResultDark={() => navigatePage("result", true)}
             onOpenInput={() => navigatePage("input")}
+            onOpenFreshInput={() => { setExperimentKey(k => k + 1); navigatePage("input") }}
           />
         </section>
         <section data-page="input" hidden={page !== "input"}>
           <ExperimentPage
+            key={experimentKey}
             onOpenResult={() => navigatePage("result", false)}
             onOpenResultDark={() => navigatePage("result", true)}
             pendingSnapshot={pendingSnapshot}
@@ -389,8 +391,7 @@ export function Topbar({
   return (
     <header className="topbar">
       <div>
-        <h1>KoreanSim</h1>
-        <p>정책 초안을 입력해 실행 과정에서 놓치기 쉬운 집단과 예상 민원을 확인합니다.</p>
+        <h1>AI 가상 국민을 활용한 정책 설계 검증 플랫폼</h1>
       </div>
       <div className="topbar-status">
         {page === "home" ? (
@@ -410,10 +411,12 @@ export function Topbar({
 function CsvHomePage({
   onOpenResult,
   onOpenInput,
+  onOpenFreshInput,
 }: {
   onOpenResult: (snapshot: ExperimentSnapshot) => void
   onOpenResultDark: () => void
   onOpenInput: () => void
+  onOpenFreshInput: () => void
 }) {
   const [exports, setExports] = useState<ProjectCsvExport[]>([])
   const [loading, setLoading] = useState(false)
@@ -469,9 +472,14 @@ function CsvHomePage({
       <div className="csv-home-list-section">
         <div className="csv-home-list-header">
           <h2>시뮬레이션 결과 목록</h2>
-          <button type="button" className="secondary-button" onClick={refresh} disabled={loading}>
-            새로고침
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="secondary-button" onClick={refresh} disabled={loading}>
+              목록 갱신
+            </button>
+            <button type="button" className="primary-button" onClick={onOpenFreshInput}>
+              + 새 시뮬레이션
+            </button>
+          </div>
         </div>
         {error && <p className="error-box">{error}</p>}
         {!loading && exports.length === 0 && (
@@ -508,7 +516,7 @@ function ExperimentPage({ onOpenResult, onOpenResultDark, pendingSnapshot, onSna
   const [slots, setSlots] = useState(createInitialSlots)
   const [nAgents, setNAgents] = useState(30)
   const [repeatCount, setRepeatCount] = useState<1 | 3 | 5>(1)
-  const [openAiModelName, setOpenAiModelName] = useState("gpt-5-mini")
+  const [openAiModelName, setOpenAiModelName] = useState(DEFAULT_MODEL_NAME)
   const [controlModel, setControlModel] = useState("gpt-5.5")
   const [personaDepth, setPersonaDepth] = useState<PersonaDepth>("standard")
   const [runs, setRuns] = useState<Partial<Record<PolicySlotId, ExperimentRunState>>>({})
@@ -782,121 +790,126 @@ function ExperimentPage({ onOpenResult, onOpenResultDark, pendingSnapshot, onSna
   }
 
   return (
-    <div className="experiment-layout">
-      <section className="control-panel experiment-settings">
-        <div className="settings-grid">
-          <label className="field compact-field">
-            <span>모델</span>
-            <select disabled={isRunning} value={openAiModelName} onChange={(event) => setOpenAiModelName(event.target.value)}>
-              <option value="gpt-5-mini">gpt-5-mini</option>
-              <option value="gpt-5">gpt-5</option>
-              <option value="gpt-4o">gpt-4o</option>
-              <option value="gpt-4o-mini">gpt-4o-mini</option>
-            </select>
-          </label>
-          <label className="field compact-field">
-            <span>취합 모델</span>
-            <select disabled={isRunning} value={controlModel} onChange={(event) => setControlModel(event.target.value)}>
-              <option value="gpt-5.5">gpt-5.5</option>
-              <option value="gpt-5.4">gpt-5.4</option>
-              <option value="gpt-5">gpt-5</option>
-              <option value="gpt-5-mini">gpt-5-mini</option>
-            </select>
-          </label>
-          <label className="field compact-field">
-            <span>페르소나</span>
-            <select disabled={isRunning} value={personaDepth} onChange={(event) => setPersonaDepth(event.target.value as PersonaDepth)}>
-              <option value="minimal">최소</option>
-              <option value="standard">중간</option>
-              <option value="full">풍부</option>
-            </select>
-          </label>
-          <label className="field compact-field">
-            <span>반복</span>
-            <select disabled={isRunning} value={repeatCount} onChange={(event) => setRepeatCount(Number(event.target.value) as 1 | 3 | 5)}>
-              <option value="1">1회</option>
-              <option value="3">3회</option>
-              <option value="5">5회</option>
-            </select>
-          </label>
-          <label className="field compact-field">
-            <span>에이전트 수</span>
-            <input
-              type="number"
-              min={5}
-              max={agentMax}
-              value={nAgents}
+    <div className="pipeline-steps">
+
+      {/* 실험 설정 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">설정</span>
+          <span className="step-name">실험 설정</span>
+          <span className="step-hint">모델 및 샘플링 파라미터</span>
+        </div>
+        <div className="step-body">
+          <div className="settings-grid">
+            <label className="field compact-field">
+              <span>모델</span>
+              <select disabled={isRunning} value={openAiModelName} onChange={(e) => setOpenAiModelName(e.target.value)}>
+                <option value="gpt-5.4-mini">gpt-5.4-mini</option>
+                <option value="gpt-5-mini">gpt-5-mini</option>
+                <option value="gpt-5">gpt-5</option>
+                <option value="gpt-4o">gpt-4o</option>
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
+              </select>
+            </label>
+            <label className="field compact-field">
+              <span>취합 모델</span>
+              <select disabled={isRunning} value={controlModel} onChange={(e) => setControlModel(e.target.value)}>
+                <option value="gpt-5.5">gpt-5.5</option>
+                <option value="gpt-5.4">gpt-5.4</option>
+                <option value="gpt-5">gpt-5</option>
+                <option value="gpt-5-mini">gpt-5-mini</option>
+              </select>
+            </label>
+            <label className="field compact-field">
+              <span>페르소나</span>
+              <select disabled={isRunning} value={personaDepth} onChange={(e) => setPersonaDepth(e.target.value as PersonaDepth)}>
+                <option value="minimal">최소</option>
+                <option value="standard">중간</option>
+                <option value="full">풍부</option>
+              </select>
+            </label>
+            <label className="field compact-field">
+              <span>반복</span>
+              <select disabled={isRunning} value={repeatCount} onChange={(e) => setRepeatCount(Number(e.target.value) as 1 | 3 | 5)}>
+                <option value="1">1회</option>
+                <option value="3">3회</option>
+                <option value="5">5회</option>
+              </select>
+            </label>
+            <label className="field compact-field">
+              <span>에이전트 수</span>
+              <input
+                type="number"
+                min={5}
+                max={agentMax}
+                value={nAgents}
+                disabled={isRunning}
+                onChange={(e) => setNAgents(clamp(Number(e.target.value), 5, agentMax))}
+              />
+            </label>
+          </div>
+          <div className="persona-depth-guide">
+            <div className="pdg-title">페르소나 Depth 안내</div>
+            <div className={`pdg-item${personaDepth === "minimal" ? " pdg-active" : ""}`}>
+              <span className="pdg-badge pdg-minimal">최소</span>
+              <span className="pdg-desc">나이·성별·지역·직업만 포함. 속도 우선, 대량 실험에 적합.</span>
+            </div>
+            <div className={`pdg-item${personaDepth === "standard" ? " pdg-active" : ""}`}>
+              <span className="pdg-badge pdg-standard">중간</span>
+              <span className="pdg-desc">기본 인구통계 + 가구·주거·학력 계층 포함. 기본값 권장.</span>
+            </div>
+            <div className={`pdg-item${personaDepth === "full" ? " pdg-active" : ""}`}>
+              <span className="pdg-badge pdg-full">풍부</span>
+              <span className="pdg-desc">서사·맥락·목표까지 포함. 정성적 분석에 강하지만 최대 {FULL_AGENT_LIMIT}명 제한.</span>
+            </div>
+          </div>
+          {fullModeBlocked && (
+            <p className="field-hint warn" style={{ marginTop: 10 }}>
+              풍부(full) 모드는 최대 {FULL_AGENT_LIMIT}명까지 실행할 수 있습니다.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* 정책 입력 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">정책</span>
+          <span className="step-name">정책 입력</span>
+          <span className="step-hint">실행형 정책안을 자유 텍스트로 입력</span>
+        </div>
+        <div className="step-body">
+          <label className="field">
+            <textarea
+              value={slots[0]?.policy ?? ""}
+              rows={8}
               disabled={isRunning}
-              onChange={(event) => setNAgents(clamp(Number(event.target.value), 5, agentMax))}
+              onChange={(e) => setSlots(updateSlotPolicy(slots, slots[0].id, e.target.value))}
+              placeholder="예: 청년 월세 한시 지원. 대상, 신청 방식, 제외 조건을 가능한 만큼 적어주세요."
             />
           </label>
-        </div>
-        {fullModeBlocked && (
-          <p className="field-hint warn">
-            풍부(full) 모드는 최대 {FULL_AGENT_LIMIT}명까지 실행할 수 있습니다. 인원을 줄이거나 중간(standard) 모드를 사용하세요.
-          </p>
-        )}
-      </section>
-
-      <section className="control-panel policy-slots">
-        <div className="section-head">
-          <div>
-            <h2>정책 슬롯</h2>
-            <p>실제 집행형 정책안을 자유 텍스트로 입력합니다.</p>
-          </div>
-          <button type="button" className="secondary-button" disabled={slots.length >= 3 || isRunning} onClick={() => setSlots(addPolicySlot(slots))}>
-            슬롯 추가
-          </button>
-        </div>
-
-        <div className="slot-grid">
-          {slots.map((slot) => (
-            <article className="slot-card" key={slot.id}>
-              <div className="slot-head">
-                <strong>슬롯 {slot.id}</strong>
-                <button
-                  type="button"
-                  className="icon-button"
-                  disabled={slots.length <= 1 || isRunning}
-                  title="슬롯 삭제"
-                  onClick={() => setSlots(removePolicySlot(slots, slot.id))}
-                >
-                  ×
-                </button>
-              </div>
-              <label className="field">
-                <span>정책안</span>
-                <textarea
-                  value={slot.policy}
-                  rows={9}
-                  disabled={isRunning}
-                  onChange={(event) => setSlots(updateSlotPolicy(slots, slot.id, event.target.value))}
-                  placeholder="예: 청년 월세 한시 지원. 대상, 신청 방식, 제외 조건을 가능한 만큼 적어주세요."
-                />
-              </label>
-            </article>
-          ))}
-        </div>
-
-        <div className="run-row">
-          <span className="experiment-count">{activeSlots.length}개 슬롯 실행 대상</span>
-          <div className="button-group">
-            <button type="button" disabled={isRunning || fullModeBlocked || activeSlots.length === 0} onClick={runExperiment}>
-              {isRunning ? "실험 실행 중" : "실험 실행"}
-            </button>
-            <button type="button" className="secondary-button danger" disabled={!isRunning} onClick={stopExperiment}>
-              작동 중지
-            </button>
+          <div className="run-row">
+            <div className="button-group">
+              <button type="button" disabled={isRunning || fullModeBlocked || activeSlots.length === 0} onClick={runExperiment}>
+                {isRunning ? "실험 실행 중" : "실험 실행"}
+              </button>
+              <button type="button" className="secondary-button danger" disabled={!isRunning} onClick={stopExperiment}>
+                작동 중지
+              </button>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
 
+      {/* 결과 비교 + 파이프라인 STEP들 */}
       <ExperimentResults
         slots={slots}
         runs={runs}
         nAgents={nAgents}
         personaDepth={personaDepth}
         modelName={effectiveModelName}
+        controlModel={controlModel}
+        repeatCount={repeatCount}
         modelProvider={DEFAULT_MODEL_PROVIDER}
         selectedTraceSlot={selectedTraceSlot}
         onSelectTraceSlot={setSelectedTraceSlot}
@@ -904,81 +917,59 @@ function ExperimentPage({ onOpenResult, onOpenResultDark, pendingSnapshot, onSna
         onOpenResultDark={(slotId, run) => { openExperimentResult(slotId, run); onOpenResultDark() }}
       />
 
-      <section className="control-panel experiment-archive">
-        <div className="section-head">
-          <div>
-            <h2>저장 및 내보내기</h2>
-            <p>현재 실험을 브라우저에 저장하거나 CSV로 내보냅니다.</p>
+      {/* 저장 및 내보내기 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">저장</span>
+          <span className="step-name">저장 및 내보내기</span>
+          <span className="step-hint">CSV 내보내기 및 불러오기</span>
+        </div>
+        <div className="step-body">
+          <div className="archive-actions">
+            <input value={snapshotName} onChange={(e) => setSnapshotName(e.target.value)} placeholder="저장 이름" />
+            <button type="button" className="secondary-button" disabled={isRunning || activeSlots.length === 0} onClick={saveCurrentExperiment}>저장</button>
+            <button type="button" className="secondary-button" disabled={isRunning || activeSlots.length === 0} onClick={exportCurrentExperiment}>CSV 다운로드</button>
+            <button type="button" className="secondary-button" disabled={isRunning || activeSlots.length === 0} onClick={saveCurrentExperimentCsvToProject}>프로젝트 폴더에 CSV 저장</button>
           </div>
-        </div>
-        <div className="archive-actions">
-          <input
-            value={snapshotName}
-            onChange={(event) => setSnapshotName(event.target.value)}
-            placeholder="저장 이름"
-          />
-          <button type="button" className="secondary-button" disabled={isRunning || activeSlots.length === 0} onClick={saveCurrentExperiment}>
-            저장
-          </button>
-          <button type="button" className="secondary-button" disabled={isRunning || activeSlots.length === 0} onClick={exportCurrentExperiment}>
-            CSV 다운로드
-          </button>
-          <button type="button" className="secondary-button" disabled={isRunning || activeSlots.length === 0} onClick={saveCurrentExperimentCsvToProject}>
-            프로젝트 폴더에 CSV 저장
-          </button>
-        </div>
-        {(projectCsvStatus || projectCsvError) && (
-          <p className={projectCsvError ? "error-box compact" : "settings-note"}>{projectCsvError ?? projectCsvStatus}</p>
-        )}
-        <div className="saved-snapshot-list">
-          <div className="section-head compact-head">
-            <div>
-              <h3>프로젝트 CSV</h3>
-              <p>저장 위치: exports/*.csv</p>
+          {(projectCsvStatus || projectCsvError) && (
+            <p className={projectCsvError ? "error-box compact" : "settings-note"} style={{ marginTop: 10 }}>{projectCsvError ?? projectCsvStatus}</p>
+          )}
+          <div className="saved-snapshot-list" style={{ marginTop: 14 }}>
+            <div className="section-head compact-head">
+              <div><h3>프로젝트 CSV</h3><p>저장 위치: exports/*.csv</p></div>
+              <button type="button" className="secondary-button" disabled={isRunning} onClick={refreshProjectCsvExports}>새로고침</button>
             </div>
-            <button type="button" className="secondary-button" disabled={isRunning} onClick={refreshProjectCsvExports}>
-              새로고침
-            </button>
+            {projectCsvExports.length === 0 && <p className="empty compact">프로젝트 폴더에 저장된 CSV가 없습니다.</p>}
+            {projectCsvExports.map((item) => (
+              <article key={item.filename} className="saved-snapshot-item">
+                <div>
+                  <strong>{item.filename}</strong>
+                  <span>{item.path} · {item.bytes.toLocaleString()} bytes{item.has_snapshot ? "" : " · 상태 정보 없음"}</span>
+                </div>
+                <div>
+                  <button type="button" className="secondary-button" disabled={isRunning || !item.has_snapshot} onClick={() => loadProjectCsv(item.filename)}>불러오기</button>
+                </div>
+              </article>
+            ))}
           </div>
-          {projectCsvExports.length === 0 && <p className="empty compact">프로젝트 폴더에 저장된 CSV가 없습니다.</p>}
-          {projectCsvExports.map((item) => (
-            <article key={item.filename} className="saved-snapshot-item">
-              <div>
-                <strong>{item.filename}</strong>
-                <span>
-                  {item.path} · {item.bytes.toLocaleString()} bytes{item.has_snapshot ? "" : " · 상태 정보 없음"}
-                </span>
-              </div>
-              <div>
-                <button type="button" className="secondary-button" disabled={isRunning || !item.has_snapshot} onClick={() => loadProjectCsv(item.filename)}>
-                  불러오기
-                </button>
-              </div>
-            </article>
-          ))}
+          <div className="saved-snapshot-list" style={{ marginTop: 8 }}>
+            {savedSnapshots.length === 0 && <p className="empty compact">저장된 실험이 없습니다.</p>}
+            {savedSnapshots.map((snapshot) => (
+              <article key={snapshot.id} className="saved-snapshot-item">
+                <div>
+                  <strong>{snapshot.name}</strong>
+                  <span>{new Date(snapshot.createdAt).toLocaleString()} · 슬롯 {snapshot.slots.length}개</span>
+                </div>
+                <div>
+                  <button type="button" className="secondary-button" disabled={isRunning} onClick={() => loadSnapshot(snapshot)}>불러오기</button>
+                  <button type="button" className="secondary-button danger" disabled={isRunning} onClick={() => deleteSnapshot(snapshot.id)}>삭제</button>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
-        <div className="saved-snapshot-list">
-          {savedSnapshots.length === 0 && <p className="empty compact">저장된 실험이 없습니다.</p>}
-          {savedSnapshots.map((snapshot) => (
-            <article key={snapshot.id} className="saved-snapshot-item">
-              <div>
-                <strong>{snapshot.name}</strong>
-                <span>
-                  {new Date(snapshot.createdAt).toLocaleString()} · 슬롯 {snapshot.slots.length}개
-                </span>
-              </div>
-              <div>
-                <button type="button" className="secondary-button" disabled={isRunning} onClick={() => loadSnapshot(snapshot)}>
-                  불러오기
-                </button>
-                <button type="button" className="secondary-button danger" disabled={isRunning} onClick={() => deleteSnapshot(snapshot.id)}>
-                  삭제
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      </div>
+
     </div>
   )
 }
@@ -989,6 +980,8 @@ function ExperimentResults({
   nAgents,
   personaDepth,
   modelName,
+  controlModel,
+  repeatCount,
   modelProvider,
   selectedTraceSlot,
   onSelectTraceSlot,
@@ -1000,6 +993,8 @@ function ExperimentResults({
   nAgents: number
   personaDepth: PersonaDepth
   modelName: string
+  controlModel: string
+  repeatCount: number
   modelProvider: "openai"
   selectedTraceSlot: PolicySlotId | null
   onSelectTraceSlot: (slotId: PolicySlotId) => void
@@ -1012,99 +1007,22 @@ function ExperimentResults({
   const activeRun = activeTraceSlot ? runs[activeTraceSlot] : null
 
   return (
-    <section className="panel result-panel">
-      <h2>결과 비교</h2>
-      {visibleSlots.length === 0 ? (
-        <p className="empty">실험 실행 후 슬롯별 결과가 표시됩니다.</p>
-      ) : (
-        <div className="comparison-table-wrap">
-          <table className="comparison-table">
-            <thead>
-              <tr>
-                <th>지표</th>
-                {visibleSlots.map((slot) => (
-                  <th key={slot.id}>슬롯 {slot.id}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>상태</td>
-                {visibleSlots.map((slot) => {
-                  const run = runs[slot.id]
-                  const progress = run ? Math.round((run.responses.length / nAgents) * 100) : 0
-                  const runLabel = run && run.discoveryAggregateRuns.length > 0 ? ` · ${run.discoveryAggregateRuns.length}회 완료` : ""
-                  return <td key={slot.id}>{run ? `${phaseLabel(run.phase, progress)}${runLabel}` : "대기"}</td>
-                })}
-              </tr>
-              {(["support", "oppose", "neutral"] as Stance[]).map((stance) => (
-                <tr key={stance}>
-                  <td>{STANCE_LABELS[stance]}</td>
-                  {visibleSlots.map((slot) => {
-                    const counts = countsFromResponses(runs[slot.id]?.responses ?? [])
-                    const total = counts.support + counts.oppose + counts.neutral
-                    return (
-                      <td key={slot.id}>
-                        {counts[stance]}명 {total ? `(${Math.round((counts[stance] / total) * 100)}%)` : ""}
-                      </td>
-                    )
-                  })}
-                </tr>
-              ))}
-              <tr>
-                <td>응답 수</td>
-                {visibleSlots.map((slot) => (
-                  <td key={slot.id}>{runs[slot.id]?.responses.length ?? 0}명</td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div className="experiment-result-grid">
-        {visibleSlots.map((slot) => {
-          const run = runs[slot.id]
-          return (
-            <article className="slot-result" key={slot.id}>
-              <h3>슬롯 {slot.id}</h3>
-              {run?.error && <div className="error-box">{run.error}</div>}
-              {!run?.discoveryAggregate && <p className="empty">집계 대기 중입니다.</p>}
-            </article>
-          )
-        })}
-      </div>
+    <>
       {activeTraceSlot && activeRun && (
-        <section className="slot-trace">
-          <div className="slot-trace-tabs">
-            {visibleSlots.map((slot) => (
-              <button
-                type="button"
-                key={slot.id}
-                className={slot.id === activeTraceSlot ? "active" : ""}
-                onClick={() => onSelectTraceSlot(slot.id)}
-              >
-                슬롯 {slot.id} 상세
-              </button>
-            ))}
-          </div>
-          {activeRun.structuredPolicy && (
-            <PersonaFieldsBadge
-              depth={personaDepth}
-              includedFields={activeRun.structuredPolicy.included_fields ?? []}
-              selectedOptional={activeRun.structuredPolicy.relevant_optional_fields ?? []}
-            />
-          )}
-          <ExperimentTrace
-            run={activeRun}
-            nAgents={nAgents}
-            modelName={modelName}
-            modelProvider={modelProvider}
-            onOpenResult={() => onOpenResult(activeTraceSlot, activeRun)}
-            onOpenResultDark={() => onOpenResultDark(activeTraceSlot, activeRun)}
-          />
-        </section>
+        <ExperimentTrace
+          run={activeRun}
+          nAgents={nAgents}
+          modelName={modelName}
+          controlModel={controlModel}
+          repeatCount={repeatCount}
+          personaDepth={personaDepth}
+          modelProvider={modelProvider}
+          policy={slots.find(s => s.id === activeTraceSlot)?.policy}
+          onOpenResult={() => onOpenResult(activeTraceSlot, activeRun)}
+          onOpenResultDark={() => onOpenResultDark(activeTraceSlot, activeRun)}
+        />
       )}
-    </section>
+    </>
   )
 }
 
@@ -1162,167 +1080,573 @@ function ExperimentTrace({
   run,
   nAgents,
   modelName,
+  controlModel,
+  repeatCount,
+  personaDepth,
   modelProvider,
+  policy,
   onOpenResult,
   onOpenResultDark,
 }: {
   run: ExperimentRunState
   nAgents: number
   modelName: string
+  controlModel?: string
+  repeatCount?: number
+  personaDepth?: PersonaDepth
   modelProvider: "openai"
+  policy?: string
   onOpenResult: () => void
   onOpenResultDark: () => void
 }) {
   const progress = Math.round((run.responses.length / nAgents) * 100)
-  const sampledById = new Map(run.sampledAgents.map((agent) => [agent.agent_id, agent]))
-  const llmAgentIds = Array.from(
-    new Set([
-      ...run.llmPrompts.map((prompt) => prompt.agent_id),
-      ...Object.keys(run.llmOutputs).map(Number),
-      ...Object.keys(run.llmStatuses).map(Number),
-      ...Object.keys(run.llmHeartbeats).map(Number),
-      ...Object.keys(run.llmErrors).map(Number),
-    ]),
-  ).sort((a, b) => a - b)
+  const sampledById = new Map(run.sampledAgents.map((a) => [a.agent_id, a]))
+  const promptById  = new Map(run.llmPrompts.map((p) => [p.agent_id, p]))
+  const responseById = new Map(run.responses.map((r) => [r.agent_id, r]))
+  const allAgentIds = Array.from(new Set([
+    ...run.sampledAgents.map((a) => a.agent_id),
+    ...run.llmPrompts.map((p) => p.agent_id),
+    ...run.responses.map((r) => r.agent_id),
+  ])).sort((a, b) => a - b)
+
+  const counts = run.responses.reduce(
+    (acc, r) => { acc[r.stance]++; return acc },
+    { support: 0, oppose: 0, neutral: 0 },
+  )
+
+  const PERSONA_DEPTH_LABELS: Record<string, string> = {
+    minimal: "최소", standard: "표준", full: "풍부",
+  }
 
   return (
-    <div className="slot-trace-content">
-      <section className="progress-panel trace-progress">
-        <div className="progress-meta">
-          <span>
-            {run.sampledAgents.length}명 샘플링 · {run.llmPrompts.length}건 입력 생성 · {run.responses.length}명 응답 완료
-            {run.discoveryAggregateRuns.length > 1 ? ` · ${run.currentRunIndex + 1}번째 실행` : ""}
-          </span>
-          <span>
-            {modelProvider} · {modelName} · {phaseLabel(run.phase, progress)}
-          </span>
-          <button type="button" className="secondary-button" disabled={!run.discoveryAggregate || run.phase === "running"} onClick={onOpenResult}>
-            결과 보기
-          </button>
-          <button type="button" className="secondary-button" disabled={!run.discoveryAggregate || run.phase === "running"} onClick={onOpenResultDark}>
-            결과 보기 (다크모드)
-          </button>
+    <>
+      {/* STEP 01 · 정책 구조화 */}
+      {run.structuredPolicy && (
+        <div className="step-block">
+          <div className="step-sidebar">
+            <span className="step-num">STEP 01</span>
+            <span className="step-name">정책 구조화</span>
+            <span className="step-hint">LLM이 원문에서 추출한 필드</span>
+          </div>
+          <div className="step-body">
+            <StructuredPolicyView policy={run.structuredPolicy} />
+          </div>
         </div>
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${progress}%` }} />
+      )}
+
+      {/* STEP 02 · 샘플링된 페르소나 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">STEP 02</span>
+          <span className="step-name">샘플링된 페르소나</span>
+          {run.samplingPlan && (
+            <span className="step-hint">
+              모집단 {run.samplingPlan.total_records.toLocaleString()}명 중 {run.sampledAgents.length}명 추출
+            </span>
+          )}
         </div>
-      </section>
+        <div className="step-body">
+          {run.sampledAgents.length === 0
+            ? <p className="empty">샘플링 대기 중입니다.</p>
+            : <PersonaTable agents={run.sampledAgents} prompts={run.llmPrompts} />}
+        </div>
+      </div>
 
-      <section className="content-grid trace-grid">
-        <section className="panel result-panel">
-          <h2>샘플링 계획</h2>
-          {run.samplingPlan ? <SamplingPlanView plan={run.samplingPlan} /> : <p className="empty">샘플링 계획 대기 중입니다.</p>}
-        </section>
+      {/* STEP 03 · 프롬프트 설계 원칙 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">STEP 03</span>
+          <span className="step-name">프롬프트 설계 원칙</span>
+          <span className="step-hint">모든 페르소나에 공통 적용되는 시스템 지침</span>
+        </div>
+        <div className="step-body">
+          <PromptPrinciples />
+        </div>
+      </div>
 
-        <section className="panel">
-          <h2>샘플링된 인원</h2>
-          <div className="sample-list">
-            {run.sampledAgents.length === 0 && <p className="empty">아직 샘플링된 인원이 없습니다.</p>}
-            {run.sampledAgents.map((agent) => (
-              <article key={agent.agent_id} className="sample-item">
-                <div>
-                  <strong>#{agent.agent_id}</strong>
-                  <span>
-                    {agent.age}세 · {GENDER_LABELS[agent.gender]} · {REGION_LABELS[agent.region_group]}
-                  </span>
-                </div>
-                <p>
-                  {agent.region} · {agent.job}
-                </p>
-              </article>
-            ))}
-          </div>
-        </section>
+      {/* STEP 04 · 페르소나 생성 & LLM 응답 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">STEP 04</span>
+          <span className="step-name">페르소나 생성 & LLM 응답</span>
+          <span className="step-hint">{allAgentIds.length}명 처리</span>
+        </div>
+        <div className="step-body">
+          {allAgentIds.length === 0
+            ? <p className="empty">아직 처리된 페르소나가 없습니다.</p>
+            : (
+              <div className="agent-card-list">
+                {allAgentIds.map((agentId) => (
+                  <AgentCard
+                    key={agentId}
+                    agentId={agentId}
+                    agent={sampledById.get(agentId)}
+                    prompt={promptById.get(agentId)}
+                    output={run.llmOutputs[agentId]}
+                    status={run.llmStatuses[agentId]}
+                    error={run.llmErrors[agentId]}
+                    response={responseById.get(agentId)}
+                  />
+                ))}
+              </div>
+            )}
+        </div>
+      </div>
 
-        <section className="panel">
-          <h2>실시간 응답</h2>
-          <div className="live-list">
-            {run.responses.length === 0 && <p className="empty">아직 응답이 없습니다.</p>}
-            {run.responses.slice().reverse().map((response) => (
-              <ResponseCard key={response.agent_id} response={response} sampledAgent={sampledById.get(response.agent_id)} />
-            ))}
-          </div>
-        </section>
+      {/* STEP 05 · 1차 취합 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">STEP 05</span>
+          <span className="step-name">1차 취합</span>
+          <span className="step-hint">축별 사각지대 집계 및 대표 축 선정</span>
+        </div>
+        <div className="step-body">
+          {run.discoveryAggregate
+            ? <DiscoveryAggregateView aggregate={run.discoveryAggregate} />
+            : <p className="empty">집계 대기 중입니다.</p>}
+        </div>
+      </div>
 
-        <section className="panel">
-          <h2>LLM 입력 로그</h2>
-          <div className="prompt-list">
-            {run.llmPrompts.length === 0 && <p className="empty">아직 모델 입력이 생성되지 않았습니다.</p>}
-            {run.llmPrompts.map((prompt) => (
-              <details key={prompt.agent_id} className="prompt-item">
-                <summary>
-                  #{prompt.agent_id} · {prompt.model} · {prompt.messages.length} messages
-                </summary>
-                <pre>{JSON.stringify(prompt, null, 2)}</pre>
-              </details>
-            ))}
-          </div>
-        </section>
+      {/* STEP 06 · 2차 취합 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">STEP 06</span>
+          <span className="step-name">2차 취합</span>
+          <span className="step-hint">{run.discoverySummaryPrompt?.model ?? "gpt-5.5"} 클러스터링</span>
+        </div>
+        <div className="step-body">
+          {(run.discoverySummary || run.discoverySummaryPrompt)
+            ? <SummaryView run={run} />
+            : <p className="empty">아직 취합 단계 전입니다.</p>}
+        </div>
+      </div>
 
-        <section className="panel">
-          <h2>LLM 실시간 출력</h2>
-          <div className="token-list">
-            {llmAgentIds.length === 0 && <p className="empty">아직 모델 출력이 없습니다.</p>}
-            {llmAgentIds.map((agentId) => {
-              const status = run.llmStatuses[agentId] ?? "started"
-              return (
-                <article key={agentId} className="token-item">
-                  <div>
-                    <span>#{agentId}</span>
-                    <span className={`llm-state ${status}`}>{llmStatusLabel(status)}</span>
-                    {run.llmHeartbeats[agentId] && <span className="llm-heartbeat">{llmHeartbeatLabel(run.llmHeartbeats[agentId])}</span>}
-                  </div>
-                  {run.llmErrors[agentId] && <p className="llm-error">{run.llmErrors[agentId].message}</p>}
-                  <pre>{run.llmOutputs[agentId] || "LLM 출력 대기 중..."}</pre>
-                </article>
-              )
-            })}
-          </div>
-        </section>
-
-        <section className="panel">
-          <h2>취합 요약기 (gpt-5.5)</h2>
-          {!run.discoverySummaryPrompt && <p className="empty">아직 취합 요약 단계 전입니다.</p>}
-          {run.discoverySummaryPrompt && (
-            <div className="token-list">
-              <p>
-                모델: <strong>{run.discoverySummaryPrompt.model}</strong>
-                {run.summaryStatus === "started" && <span className="llm-state started"> · 취합 중…</span>}
-                {run.summaryStatus === "completed" && <span className="llm-state completed"> · 완료</span>}
-                {run.summaryStatus === "failed" && <span className="llm-state failed"> · 실패</span>}
-              </p>
-              {run.discoverySummary?.error && <p className="llm-error">에러: {run.discoverySummary.error}</p>}
-              <p className="empty">
-                병합 결과 — 사각지대 {run.discoverySummary?.merged_blind_spots.length ?? 0} · 반문{" "}
-                {run.discoverySummary?.merged_reframings.length ?? 0} · 민원{" "}
-                {run.discoverySummary?.merged_complaints.length ?? 0}
-              </p>
-              <details className="prompt-item">
-                <summary>프롬프트 ({run.discoverySummaryPrompt.messages.length} messages)</summary>
-                <pre>{JSON.stringify(run.discoverySummaryPrompt.messages, null, 2)}</pre>
-              </details>
-              {run.discoverySummary?.raw_output && (
-                <details className="prompt-item">
-                  <summary>gpt-5.5 원본 출력</summary>
-                  <pre>{run.discoverySummary.raw_output}</pre>
-                </details>
-              )}
-            </div>
-          )}
-        </section>
-
-        <section className="panel result-panel">
-          <h2>전체 결과</h2>
-          {run.discoveryAggregate && run.summaryStatus === "started" && !run.discoverySummary && (
-            <p className="empty">사각지대 취합 중… (gpt-5.5)</p>
-          )}
+      {/* STEP 07 · 결과 */}
+      <div className="step-block">
+        <div className="step-sidebar">
+          <span className="step-num">STEP 07</span>
+          <span className="step-name">결과</span>
+          <span className="step-hint">{phaseLabel(run.phase, progress)}</span>
+        </div>
+        <div className="step-body">
           {run.discoveryAggregate ? (
-            <DiscoveryTrace aggregate={run.discoveryAggregate} summary={run.discoverySummary} />
+            <div className="result-stat-grid">
+              <div className="result-stat-tile result-stat-support">
+                <strong>{counts.support}</strong>
+                <span>찬성</span>
+                <small>{Math.round(counts.support / nAgents * 100)}%</small>
+              </div>
+              <div className="result-stat-tile result-stat-oppose">
+                <strong>{counts.oppose}</strong>
+                <span>반대</span>
+                <small>{Math.round(counts.oppose / nAgents * 100)}%</small>
+              </div>
+              <div className="result-stat-tile result-stat-neutral">
+                <strong>{counts.neutral}</strong>
+                <span>중립</span>
+                <small>{Math.round(counts.neutral / nAgents * 100)}%</small>
+              </div>
+              {run.discoverySummary && (<>
+                <div className="result-stat-divider" />
+                <div className="result-stat-tile">
+                  <strong>{run.discoverySummary.merged_blind_spots.length}</strong>
+                  <span>사각지대 유형</span>
+                  <small>{Array.from(new Set(run.discoverySummary.merged_blind_spots.flatMap(b => b.agent_ids))).length}명 해당</small>
+                </div>
+                <div className="result-stat-tile">
+                  <strong>{run.discoverySummary.merged_complaints.length}</strong>
+                  <span>예상 민원 유형</span>
+                  <small>{Array.from(new Set(run.discoverySummary.merged_complaints.flatMap(c => c.agent_ids))).length}명 해당</small>
+                </div>
+                <div className="result-stat-tile">
+                  <strong>{run.discoverySummary.merged_reframings.length}</strong>
+                  <span>정책 전제 반문</span>
+                  <small>{Array.from(new Set(run.discoverySummary.merged_reframings.flatMap(r => r.agent_ids))).length}명 해당</small>
+                </div>
+                <div className="result-stat-tile result-stat-axis">
+                  <strong>{axisLabel(run.discoveryAggregate.featured_axis.primary)}</strong>
+                  <span>대표 분석 축</span>
+                  {run.discoveryAggregate.featured_axis.secondary && (
+                    <small>보조: {axisLabel(run.discoveryAggregate.featured_axis.secondary)}</small>
+                  )}
+                </div>
+              </>)}
+            </div>
           ) : (
             <p className="empty">집계 대기 중입니다.</p>
           )}
-        </section>
-      </section>
+        </div>
+      </div>
+
+      {/* 결과 보기 버튼 — pipeline 밖으로 */}
+      {run.discoveryAggregate && (
+        <div className="pipeline-result-btns">
+          <button type="button" disabled={run.phase === "running"} onClick={onOpenResult}>
+            결과 페이지에서 전체 보기 →
+          </button>
+          <button type="button" className="secondary-button" disabled={run.phase === "running"} onClick={onOpenResultDark}>
+            다크모드로 보기
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+/* ── 서브 컴포넌트들 ─────────────────────────────────── */
+
+const SP_LABELS: Record<string, string> = {
+  policy_name: "정책명",
+  target: "대상",
+  apply_method: "신청 방식",
+  exclusions: "제외 조건",
+  context: "맥락",
+}
+
+const FIELD_LABEL_KO: Record<string, string> = {
+  age: "나이",
+  gender: "성별",
+  province: "광역시도",
+  district: "시군구",
+  occupation: "직업",
+  family_type: "가족 유형",
+  marital_status: "혼인 상태",
+  housing_type: "주거 유형",
+  education_level: "학력",
+  bachelors_field: "전공",
+  professional_persona: "직업 서사",
+  family_persona: "가족 서사",
+  persona: "페르소나",
+  career_goals_and_ambitions: "목표 및 포부",
+  income_level: "소득 수준",
+  age_group: "연령대",
+  region_group: "권역",
+  age_band: "연령 계층",
+  occupation_stratum: "직업 계층",
+  household_stratum: "가구 유형",
+  housing_stratum: "주거 계층",
+  education_stratum: "학력 계층",
+  field_stratum: "전공 계층",
+}
+
+function StructuredPolicyView({ policy }: { policy: StructuredPolicyWithPromptFields }) {
+  const entries = (Object.keys(SP_LABELS) as (keyof typeof SP_LABELS)[]).flatMap((key) => {
+    const field = (policy as Record<string, { value?: string | null; source?: string } | undefined>)[key]
+    if (!field?.value) return []
+    return [{ key, label: SP_LABELS[key], value: field.value, source: field.source ?? "stated" }]
+  })
+  return (
+    <div>
+      <div className="sp-grid">
+        {entries.map((e) => (
+          <div key={e.key} className="sp-row">
+            <span className="sp-label">{e.label}</span>
+            <span className="sp-value">{e.value}</span>
+            <span className={`sp-badge ${e.source}`}>{e.source === "stated" ? "명시" : "추론"}</span>
+          </div>
+        ))}
+        {entries.length === 0 && <p className="empty">구조화 정보가 없습니다.</p>}
+      </div>
+      {(policy.included_fields?.length || policy.relevant_optional_fields?.length) && (
+        <div className="sp-fields-section">
+          <div className="sp-fields-label">페르소나 포함 필드</div>
+          <div className="sp-field-pills">
+            {[...(policy.included_fields ?? []), ...(policy.relevant_optional_fields ?? [])].map((f) => (
+              <span key={f} className="sp-field-pill">{FIELD_LABEL_KO[f] ?? f}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PromptPrinciples() {
+  return (
+    <div className="prompt-principles">
+      <div className="pp-section">
+        <div className="pp-label">역할 설정</div>
+        <div className="pp-content">정책 전문가가 아닌 한국 시민으로 고정 — 전문용어 금지, 체감 가능한 1~2개 이유만 허용</div>
+      </div>
+      <div className="pp-section">
+        <div className="pp-label">stance 판정</div>
+        <div className="pp-pills">
+          <div className="pp-pill support"><code>support</code> — 정책 방향을 폭넓게 수용할 때만</div>
+          <div className="pp-pill oppose"><code>oppose</code> — 정책 방향을 폭넓게 거부할 때만</div>
+          <div className="pp-pill neutral"><code>neutral</code> — 둘 다 선택 불가일 때만 (엄격 제한)</div>
+        </div>
+      </div>
+      <div className="pp-section">
+        <div className="pp-label">rationale</div>
+        <div className="pp-content">찬반 이유를 시민의 언어로 1~2문장 — 전문용어·추상어 금지, 체감 가능한 구체적 생활 맥락으로만 서술</div>
+      </div>
+      <div className="pp-section">
+        <div className="pp-label">blind_spot — 3조건 모두 충족 시에만, 아니면 null 강제</div>
+        <div className="pp-conditions">
+          <div className="pp-condition">
+            <span className="pp-condition-num">①</span>
+            <div className="pp-condition-body">
+              <strong>직접성</strong>
+              <span>정책 변화 → 문제로 이어지는 구체적 인과 경로가 있어야 함</span>
+            </div>
+          </div>
+          <div className="pp-condition">
+            <span className="pp-condition-num">②</span>
+            <div className="pp-condition-body">
+              <strong>특수성</strong>
+              <span>이 페르소나의 직업·생활·경제 조건 때문에만 보이는 문제여야 함</span>
+            </div>
+          </div>
+          <div className="pp-condition">
+            <span className="pp-condition-num">③</span>
+            <div className="pp-condition-body">
+              <strong>비중복성</strong>
+              <span>rationale에서 이미 말한 내용을 다른 말로 반복하면 안 됨</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="pp-section">
+        <div className="pp-label">blind_spot_reason</div>
+        <div className="pp-content">blind_spot이 있을 때만 작성 — 왜 이 페르소나에게만 해당 사각지대가 보이는지, 생활·직업 조건과의 인과 연결을 1문장으로 설명</div>
+      </div>
+      <div className="pp-section">
+        <div className="pp-label">expected_complaint</div>
+        <div className="pp-content">실제 민원 창구에 물을 법한 내용만 — 해당 없으면 null 강제</div>
+      </div>
+      <div className="pp-section">
+        <div className="pp-label">출력 형식 (JSON 강제)</div>
+        <div className="pp-schema">
+          <code>{"{ stance, rationale, blind_spot, blind_spot_reason,"}</code>
+          <code>{"  affected_group, grounding, reframing, expected_complaint }"}</code>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AgentCard({
+  agentId, agent, prompt, output, status, error, response,
+}: {
+  agentId: number
+  agent?: AgentSampledEvent
+  prompt?: LlmPromptEvent
+  output?: string
+  status?: LlmStatusEvent["status"]
+  error?: LlmErrorEvent
+  response?: AgentRespondedEvent
+}) {
+  const stance = response?.stance ?? null
+  const hasBlindSpot = Boolean(response?.blind_spot)
+
+  return (
+    <div className={`agent-card${stance ? ` ${stance}` : ""}`}>
+      <div className="agent-card-head">
+        <span className="agent-num">#{agentId}</span>
+        {agent && (
+          <span className="agent-persona-label">
+            {agent.age}세 · {GENDER_LABELS[agent.gender]} · {agent.region} · {agent.job}
+          </span>
+        )}
+        {agent?.family_type && <span className="agent-family-label">{agent.family_type}</span>}
+        {status && (
+          <span className={`llm-state${status === "completed" ? " completed" : status === "failed" ? " failed" : ""}`}>
+            {status === "completed" ? "완료" : status === "failed" ? "실패" : "처리중"}
+          </span>
+        )}
+      </div>
+      <div className="agent-card-body">
+        <div className="agent-prompts">
+          {prompt && (
+            <details className="agent-detail">
+              <summary>▶ 유저 프롬프트</summary>
+              <pre>{prompt.messages[1]?.content ?? ""}</pre>
+            </details>
+          )}
+          {output && (
+            <details className="agent-detail">
+              <summary>▶ LLM 원본 출력</summary>
+              <pre>{output}</pre>
+            </details>
+          )}
+        </div>
+        {error && <p className="llm-error">{error.message}</p>}
+        {response ? (
+          <div className="agent-response">
+            <span className={`agent-stance-badge ${response.stance}`}>
+              {response.stance === "support" ? "✅ 찬성" : response.stance === "oppose" ? "❌ 반대" : "➖ 중립"}
+            </span>
+            <div className="agent-fields">
+              <div className="agent-field-row">
+                <span className="agent-field-key">rationale</span>
+                <span className="agent-field-val">{response.rationale}</span>
+              </div>
+              <div className="agent-field-row">
+                <span className="agent-field-key">blind_spot</span>
+                {hasBlindSpot ? (
+                  <div>
+                    <div className="agent-field-val">{response.blind_spot}</div>
+                    <div className="blind-spot-checks">
+                      <span className="bs-check">직접성 ✓</span>
+                      <span className="bs-check">특수성 ✓</span>
+                      <span className="bs-check">비중복성 ✓</span>
+                    </div>
+                    {response.affected_group && <div className="agent-field-sub">affected_group: {response.affected_group}</div>}
+                    {response.grounding && <div className="agent-field-sub">grounding: {response.grounding}</div>}
+                  </div>
+                ) : (
+                  <span className="agent-field-null">null <span style={{ fontSize: "11px", color: "#c4cdd6" }}>(3조건 미충족)</span></span>
+                )}
+              </div>
+              <div className="agent-field-row">
+                <span className="agent-field-key">expected_complaint</span>
+                {response.expected_complaint
+                  ? <span className="agent-field-val">{response.expected_complaint}</span>
+                  : <span className="agent-field-null">null</span>}
+              </div>
+              {response.reframing && (
+                <div className="agent-field-row">
+                  <span className="agent-field-key">reframing</span>
+                  <span className="agent-field-val">{response.reframing}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          !prompt && !output && <p className="empty" style={{ margin: 0 }}>응답 대기 중…</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DiscoveryAggregateView({ aggregate }: { aggregate: DiscoveryAggregate }) {
+  return (
+    <div className="discovery-view">
+      <div className="featured-axis-row">
+        <span className="fa-label">대표 축</span>
+        <strong>{axisLabel(aggregate.featured_axis.primary)}</strong>
+        {aggregate.featured_axis.secondary && (
+          <>
+            <span className="fa-sep">×</span>
+            <strong>{axisLabel(aggregate.featured_axis.secondary)}</strong>
+          </>
+        )}
+      </div>
+      <div className="axis-rows">
+        {Object.entries(aggregate.axes).map(([axis, categories]) => (
+          <div key={axis} className="axis-row">
+            <span className="axis-row-label">{axisLabel(axis)}</span>
+            <div className="axis-cats">
+              {Object.entries(categories).map(([cat, cell]) => (
+                <span
+                  key={cat}
+                  className={`axis-cat${cell.presence ? " present" : ""}`}
+                  title={`${cell.blind_spot_headcount}명 / ${cell.category_population}명`}
+                >
+                  {categoryLabel(cat)}{cell.presence ? " ●" : " ○"}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SummaryClusterList({ items, maxCount }: { items: { label: string; text?: string; count: number }[]; maxCount: number }) {
+  return (
+    <div className="sv-cluster-list">
+      {items.map((item, i) => (
+        <div key={i} className="sv-cluster-item">
+          <div className="sv-cluster-top">
+            <span className="sv-cluster-rank">{i + 1}</span>
+            <span className="sv-cluster-label">{item.label}</span>
+            <span className="sv-cluster-count">{item.count}명</span>
+          </div>
+          {item.text && item.text !== item.label && (
+            <div className="sv-cluster-text">{item.text}</div>
+          )}
+          <div className="sv-bar-track">
+            <div className="sv-bar-fill" style={{ width: `${Math.round((item.count / maxCount) * 100)}%` }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SummaryView({ run }: { run: ExperimentRunState }) {
+  const summary = run.discoverySummary
+
+  const blindSpots = (summary?.merged_blind_spots ?? []).map(i => ({ label: i.label, text: i.text, count: i.agent_ids.length })).sort((a,b) => b.count - a.count)
+  const complaints = (summary?.merged_complaints ?? []).map(i => ({ label: i.short_label ?? i.label, text: i.label, count: i.agent_ids.length })).sort((a,b) => b.count - a.count)
+  const reframings = (summary?.merged_reframings ?? []).map(i => ({ label: i.label, text: i.text, count: i.agent_ids.length })).sort((a,b) => b.count - a.count)
+  const allCounts = [...blindSpots, ...complaints, ...reframings].map(i => i.count)
+  const maxCount = Math.max(1, ...allCounts)
+
+  return (
+    <div className="summary-view">
+      <div className="summary-view-meta">
+        {run.discoverySummaryPrompt && <span>모델 <strong>{run.discoverySummaryPrompt.model}</strong></span>}
+        {run.summaryStatus === "started" && <span className="llm-state">취합 중…</span>}
+        {run.summaryStatus === "completed" && <span className="llm-state completed">완료</span>}
+        {run.summaryStatus === "failed" && <span className="llm-state failed">실패</span>}
+      </div>
+      <div className="summary-toggles">
+        {run.discoverySummaryPrompt && (
+          <details className="agent-detail">
+            <summary>▶ 프롬프트 ({run.discoverySummaryPrompt.messages.length} messages)</summary>
+            <pre>{JSON.stringify(run.discoverySummaryPrompt.messages, null, 2)}</pre>
+          </details>
+        )}
+        {summary?.raw_output && (
+          <details className="agent-detail">
+            <summary>▶ 원본 출력</summary>
+            <pre>{summary.raw_output}</pre>
+          </details>
+        )}
+      </div>
+      {summary && (
+        <div className="sv-columns">
+          {blindSpots.length > 0 && (
+            <div className="sv-column sv-column-blind">
+              <div className="sv-column-header">
+                <span className="sv-column-icon">🔍</span>
+                <span className="sv-column-title">사각지대</span>
+                <span className="sv-column-total">{blindSpots.length}개 유형</span>
+              </div>
+              <SummaryClusterList items={blindSpots} maxCount={maxCount} />
+            </div>
+          )}
+          {complaints.length > 0 && (
+            <div className="sv-column sv-column-complaint">
+              <div className="sv-column-header">
+                <span className="sv-column-icon">📋</span>
+                <span className="sv-column-title">예상 민원</span>
+                <span className="sv-column-total">{complaints.length}개 유형</span>
+              </div>
+              <SummaryClusterList items={complaints} maxCount={maxCount} />
+            </div>
+          )}
+          {reframings.length > 0 && (
+            <div className="sv-column sv-column-reframe">
+              <div className="sv-column-header">
+                <span className="sv-column-icon">💬</span>
+                <span className="sv-column-title">정책 전제 반문</span>
+                <span className="sv-column-total">{reframings.length}개 유형</span>
+              </div>
+              <SummaryClusterList items={reframings} maxCount={maxCount} />
+            </div>
+          )}
+        </div>
+      )}
+      {summary && (
+        <div className="summary-clusters" style={{ display: "none" }}>
+          {summary.error && <p className="llm-error">{summary.error}</p>}
+        </div>
+      )}
     </div>
   )
 }
@@ -1400,6 +1724,7 @@ export function pageFromPathname(pathname: string): Page {
   return "home"
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DiscoveryTrace({ aggregate, summary }: { aggregate: DiscoveryAggregate; summary: DiscoverySummary | null }) {
   const axisRows = Object.entries(aggregate.axes).flatMap(([axis, categories]) =>
     Object.entries(categories).map(([category, cell]) => ({ axis, category, cell })),
@@ -1449,6 +1774,94 @@ function DiscoveryTrace({ aggregate, summary }: { aggregate: DiscoveryAggregate;
   )
 }
 
+function parseProfileField(content: string, field: string): string {
+  const regex = new RegExp(`^${field}:\\s*(.+)$`, "m")
+  const match = content.match(regex)
+  return match ? match[1].trim() : ""
+}
+
+function parseNarrativeField(content: string, field: string): string {
+  const regex = new RegExp(`${field}:\\s*(.+?)(?=\\n\\w|\\n\\[|$)`, "s")
+  const match = content.match(regex)
+  return match ? match[1].trim() : ""
+}
+
+function parseNameFromNarrative(content: string): string {
+  const match = content.match(/([가-힣]{2,4})\s*씨/)
+  return match ? match[1] : ""
+}
+
+function PersonaTable({ agents, prompts }: { agents: AgentSampledEvent[]; prompts: LlmPromptEvent[] }) {
+  const promptMap = new Map(prompts.map((p) => [p.agent_id, p]))
+
+  return (
+    <div className="persona-table-wrap">
+      <table className="persona-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>이름</th>
+            <th>나이</th>
+            <th>성별</th>
+            <th>시/도</th>
+            <th>지역구</th>
+            <th>직업</th>
+            <th>가족형태</th>
+            <th>혼인 상태</th>
+            <th>주거 유형</th>
+            <th>학력</th>
+            <th>전공</th>
+            <th>직업 서사</th>
+            <th>가족 서사</th>
+            <th>페르소나</th>
+            <th>목표 및 포부</th>
+          </tr>
+        </thead>
+        <tbody>
+          {agents.map((agent) => {
+            const userContent = promptMap.get(agent.agent_id)?.messages[1]?.content ?? ""
+            const profileStart = userContent.indexOf("[Structured Profile]")
+            const narrativeStart = userContent.indexOf("[Narrative Context]")
+            const profileBlock = profileStart >= 0 ? userContent.slice(profileStart, narrativeStart >= 0 ? narrativeStart : undefined) : ""
+            const narrativeBlock = narrativeStart >= 0 ? userContent.slice(narrativeStart) : ""
+
+            const name = parseNameFromNarrative(narrativeBlock)
+            const maritalStatus = parseProfileField(profileBlock, "marital_status")
+            const housingType = parseProfileField(profileBlock, "housing_type")
+            const educationLevel = parseProfileField(profileBlock, "education_level")
+            const bachelorsField = parseProfileField(profileBlock, "bachelors_field")
+            const professional = parseNarrativeField(narrativeBlock, "professional_persona")
+            const family = parseNarrativeField(narrativeBlock, "family_persona")
+            const persona = parseNarrativeField(narrativeBlock, "persona")
+            const goals = parseNarrativeField(narrativeBlock, "career_goals_and_ambitions")
+
+            return (
+              <tr key={agent.agent_id}>
+                <td className="pt-id">#{agent.agent_id}</td>
+                <td className="pt-name">{name || "—"}</td>
+                <td className="pt-num">{agent.age}세</td>
+                <td>{GENDER_LABELS[agent.gender]}</td>
+                <td className="pt-region">{agent.province ?? "—"}</td>
+                <td className="pt-region">{agent.district ?? agent.region}</td>
+                <td className="pt-job">{agent.job}</td>
+                <td className="pt-family">{agent.family_type ?? "—"}</td>
+                <td className="pt-family">{maritalStatus || "—"}</td>
+                <td className="pt-family">{housingType || "—"}</td>
+                <td className="pt-family">{educationLevel || "—"}</td>
+                <td className="pt-family">{bachelorsField || "—"}</td>
+                <td className="pt-text"><div className="pt-text-inner">{professional || "—"}</div></td>
+                <td className="pt-text"><div className="pt-text-inner">{family || "—"}</div></td>
+                <td className="pt-text"><div className="pt-text-inner">{persona || "—"}</div></td>
+                <td className="pt-text"><div className="pt-text-inner">{goals || "—"}</div></td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function SamplingPlanView({ plan }: { plan: SamplingPlanEvent }) {
   const visibleCells = plan.cells.filter((cell) => (cell.quota ?? 0) > 0 || cell.sampled > 0)
   const isRandom = plan.mode === "uniform_random"
@@ -1490,166 +1903,6 @@ function SamplingPlanView({ plan }: { plan: SamplingPlanEvent }) {
       </div>
     </div>
   )
-}
-
-function Breakdown({ title, data, labelMap }: { title: string; data: Record<string, StanceCounts>; labelMap: Record<string, string> }) {
-  return (
-    <div className="table-block">
-      <h3>{title}</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>구분</th>
-            <th>찬성</th>
-            <th>반대</th>
-            <th>중립</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.entries(data).map(([group, counts]) => (
-            <tr key={group}>
-              <td>{labelMap[group] ?? group}</td>
-              <td>{counts.support}</td>
-              <td>{counts.oppose}</td>
-              <td>{counts.neutral}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-function ClusterList({ title, clusters }: { title: string; clusters: { label: string; count: number; examples: string[] }[] }) {
-  return (
-    <div className="cluster-block">
-      <h3>{title}</h3>
-      {clusters.length === 0 ? (
-        <p className="empty compact">요약 없음</p>
-      ) : (
-        clusters.map((cluster, index) => (
-          <article key={`${cluster.label}-${index}`} className="cluster-item">
-            <div>
-              <strong>{cluster.label}</strong>
-              <span>{cluster.count}명</span>
-            </div>
-            <p>{cluster.examples.join(" · ")}</p>
-          </article>
-        ))
-      )}
-    </div>
-  )
-}
-
-function BlindSpotMap({ clusters }: { clusters: { affected_group: string; count: number; blind_spot_examples: string[] }[] }) {
-  if (clusters.length === 0) return null
-  return (
-    <div className="blind-spot-map">
-      <h3>정책 사각지대</h3>
-      <p>예상치 못한 피해 집단</p>
-      <div className="blind-spot-list">
-        {clusters.map((cluster, index) => (
-          <article key={`${cluster.affected_group}-${index}`} className="blind-spot-item">
-            <div>
-              <strong>
-                {index + 1}. {cluster.affected_group}
-              </strong>
-              <span>{cluster.count}명</span>
-            </div>
-            {cluster.blind_spot_examples.map((example, exampleIndex) => (
-              <p key={`${cluster.affected_group}-${exampleIndex}`}>"{example}"</p>
-            ))}
-          </article>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function ReframingList({ items }: { items: { text: string; age_group: string; gender: string; region_group: string }[] }) {
-  if (items.length === 0) return null
-  return (
-    <div className="reframing-list">
-      <h3>정책 전제에 대한 반문 (L3)</h3>
-      {items.map((item, index) => (
-        <article key={`${item.text}-${index}`} className="reframing-item">
-          <p>"{item.text}"</p>
-          <span>
-            {(AGE_LABELS[item.age_group as AgeGroup] ?? item.age_group) || "연령 미상"} ·{" "}
-            {(GENDER_LABELS[item.gender as Gender] ?? item.gender) || "성별 미상"} ·{" "}
-            {(REGION_LABELS[item.region_group as RegionGroup] ?? item.region_group) || "지역 미상"}
-          </span>
-        </article>
-      ))}
-    </div>
-  )
-}
-
-function safeCounts(value: unknown): StanceCounts {
-  if (!value || typeof value !== "object") return EMPTY_COUNTS
-  const counts = value as Partial<Record<Stance, unknown>>
-  return {
-    support: Number(counts.support) || 0,
-    oppose: Number(counts.oppose) || 0,
-    neutral: Number(counts.neutral) || 0,
-  }
-}
-
-function safeBreakdown(value: unknown): Record<string, StanceCounts> {
-  if (!value || typeof value !== "object") return {}
-  return Object.fromEntries(
-    Object.entries(value as Record<string, unknown>).map(([key, counts]) => [key, safeCounts(counts)]),
-  )
-}
-
-function safeClusters(value: unknown): { label: string; count: number; examples: string[] }[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter((cluster) => cluster && typeof cluster === "object")
-    .map((cluster) => {
-      const item = cluster as { label?: unknown; count?: unknown; examples?: unknown }
-      return {
-        label: typeof item.label === "string" && item.label.trim() ? item.label : "기타",
-        count: Number(item.count) || 0,
-        examples: Array.isArray(item.examples) ? item.examples.map(String) : [],
-      }
-    })
-}
-
-function getActiveLevels(): number[] {
-  return [1, 2, 3]
-}
-
-function safeBlindSpotClusters(value: unknown): { affected_group: string; count: number; blind_spot_examples: string[] }[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter((cluster) => cluster && typeof cluster === "object")
-    .map((cluster) => {
-      const item = cluster as { affected_group?: unknown; count?: unknown; blind_spot_examples?: unknown }
-      return {
-        affected_group: typeof item.affected_group === "string" && item.affected_group.trim() ? item.affected_group : "기타",
-        count: Number(item.count) || 0,
-        blind_spot_examples: Array.isArray(item.blind_spot_examples) ? item.blind_spot_examples.map(String) : [],
-      }
-    })
-}
-
-function safeReframingList(value: unknown): { text: string; age_group: string; gender: string; region_group: string }[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .filter((item) => item && typeof item === "object")
-    .flatMap((value) => {
-      const reframing = value as { text?: unknown; age_group?: unknown; gender?: unknown; region_group?: unknown }
-      if (typeof reframing.text !== "string" || !reframing.text.trim()) return []
-      return [
-        {
-          text: reframing.text.trim(),
-          age_group: typeof reframing.age_group === "string" ? reframing.age_group : "",
-          gender: typeof reframing.gender === "string" ? reframing.gender : "",
-          region_group: typeof reframing.region_group === "string" ? reframing.region_group : "",
-        },
-      ]
-    })
 }
 
 function phaseLabel(phase: Phase, progress: number) {

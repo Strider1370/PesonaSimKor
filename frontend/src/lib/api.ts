@@ -214,6 +214,7 @@ export type DiscoveryMergedBlindSpot = {
 export type DiscoveryMergedItem = {
   label: string
   short_label?: string
+  text?: string
   agent_ids: number[]
 }
 

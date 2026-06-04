@@ -41,6 +41,7 @@ export type DashboardPersona = {
   affectedGroup: string | null
   grounding: "direct" | "inferred" | null
   expectedComplaint: string | null
+  reframing: string | null
 }
 
 export type DashboardPolicyHeader = {
@@ -235,10 +236,10 @@ function blindSpotRows(summary: DiscoverySummary): DashboardCluster[] {
   }))
 }
 
-function mergedRows(items: Array<{ label: string; short_label?: string; agent_ids: number[] }>): DashboardCluster[] {
+function mergedRows(items: Array<{ label: string; short_label?: string; text?: string; agent_ids: number[] }>): DashboardCluster[] {
   return items.map((item) => ({
     label: item.short_label ?? item.label,
-    quote: item.label,
+    quote: item.text ?? item.label,
     count: item.agent_ids.length,
     denominator: null,
     inferredBased: false,
@@ -284,12 +285,14 @@ function representativePersonaRows(responses: AgentRespondedEvent[], summary: Di
     selected.add(response.agent_id)
     output.push(response)
   }
+  // 1순위: blind_spot / complaint 신호가 있는 페르소나
   signalIds.forEach((agentId) => add(responses.find((response) => response.agent_id === agentId)))
+  // 2순위: 스탠스별 대표 1명 (신호 없어도 찬성·반대·중립 각 1명은 보장)
   ;(["oppose", "neutral", "support"] as Stance[]).forEach((stance) => {
     if (output.some((response) => response.stance === stance)) return
     add(responses.find((response) => response.stance === stance))
   })
-  responses.forEach((response) => add(response))
+  // 신호 없는 나머지는 포함하지 않음
   return output.map(personaRow)
 }
 
@@ -320,6 +323,7 @@ function personaRow(response: AgentRespondedEvent): DashboardPersona {
     affectedGroup: textValue(response.affected_group),
     grounding: response.grounding ?? null,
     expectedComplaint: textValue(response.expected_complaint),
+    reframing: textValue(response.reframing),
   }
 }
 
@@ -335,28 +339,41 @@ const AXIS_CATEGORY_ORDER: Record<string, string[]> = {
   region_group: ["capital", "yeongnam", "honam", "chungcheong", "gangwon", "jeju", "other"],
 }
 
-function buildStanceAxes(responses: AgentRespondedEvent[], aggregate: DiscoveryAggregate): DashboardStanceAxis[] {
-  const stanceMap = new Map<number, "support" | "neutral" | "oppose">()
-  responses.forEach((r) => stanceMap.set(r.agent_id, r.stance))
+const RESPONSE_AXIS_KEY: Record<string, keyof AgentRespondedEvent> = {
+  age_band: "age_band",
+  gender: "gender",
+  occupation_stratum: "occupation_stratum",
+  region_group: "region_group",
+}
 
+function buildStanceAxes(responses: AgentRespondedEvent[], _aggregate: DiscoveryAggregate): DashboardStanceAxis[] {
   return STANCE_AXIS_KEYS.flatMap((axis) => {
-    const axisData = aggregate.axes[axis] ?? {}
+    const responseKey = RESPONSE_AXIS_KEY[axis]
     const order = AXIS_CATEGORY_ORDER[axis] ?? []
-    const rows = Object.entries(axisData).map(([category, cell]) => {
-      const counts = { support: 0, neutral: 0, oppose: 0 }
-      cell.agent_ids.forEach((id) => {
-        const stance = stanceMap.get(id)
-        if (stance) counts[stance]++
-      })
-      return { category, ...counts, total: cell.agent_ids.length }
-    }).sort((a, b) => {
-      const ai = order.indexOf(a.category)
-      const bi = order.indexOf(b.category)
-      if (ai === -1 && bi === -1) return b.total - a.total
-      if (ai === -1) return 1
-      if (bi === -1) return -1
-      return ai - bi
+
+    // aggregate.axes의 agent_ids는 blind_spot 보유자만 포함하므로
+    // responses에서 직접 집계
+    const grouped = new Map<string, { support: number; neutral: number; oppose: number; total: number }>()
+    responses.forEach((r) => {
+      const category = r[responseKey] as string | undefined
+      if (!category) return
+      const existing = grouped.get(category) ?? { support: 0, neutral: 0, oppose: 0, total: 0 }
+      existing[r.stance]++
+      existing.total++
+      grouped.set(category, existing)
     })
+
+    const rows = Array.from(grouped.entries())
+      .map(([category, counts]) => ({ category, ...counts }))
+      .sort((a, b) => {
+        const ai = order.indexOf(a.category)
+        const bi = order.indexOf(b.category)
+        if (ai === -1 && bi === -1) return b.total - a.total
+        if (ai === -1) return 1
+        if (bi === -1) return -1
+        return ai - bi
+      })
+
     return rows.length > 0 ? [{ axis, rows }] : []
   })
 }

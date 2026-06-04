@@ -19,6 +19,7 @@ describe("VoiceCard", () => {
           affectedGroup: "night-shift workers",
           grounding: "inferred",
           expectedComplaint: "Where can I apply offline?",
+          reframing: null,
         }}
       />,
     )

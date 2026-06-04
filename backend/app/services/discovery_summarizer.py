@@ -38,9 +38,13 @@ def _normalize_label_items(items) -> list[dict]:
         if not isinstance(item, dict):
             continue
         label = _text(item.get("label"))
+        text = _text(item.get("text"))
         agent_ids = _agent_ids(item.get("agent_ids"))
         if label and agent_ids:
-            normalized.append({"label": label, "agent_ids": agent_ids})
+            result: dict = {"label": label, "agent_ids": agent_ids}
+            if text:
+                result["text"] = text
+            normalized.append(result)
     return normalized
 
 
@@ -101,7 +105,7 @@ def build_discovery_summary_payload(aggregate: dict, responses: list[dict], mode
                     "items without agent_ids will be discarded:\n"
                     '{"merged_blind_spots":[{"label":"짧은 제목","text":"대표 문장","agent_ids":[0,4],'
                     '"grounding":"direct|inferred"}],'
-                    '"merged_reframings":[{"label":"반문 요지","agent_ids":[2]}],'
+                    '"merged_reframings":[{"label":"반문 핵심 질문 (의문문 형태)","text":"이 반문이 제기되는 맥락과 핵심 논지를 1~2문장으로 설명","agent_ids":[2]}],'
                     '"merged_complaints":[{"short_label":"6-10자 핵심 제목","label":"민원 요지 전문","agent_ids":[1]}],'
                     '"featured_axis_rationale":"왜 이 축이 발굴 가치 있는지 한국어 한 줄"}\n'
                     "Use ONLY integer agent_id values present in the input. Do not invent ids. "

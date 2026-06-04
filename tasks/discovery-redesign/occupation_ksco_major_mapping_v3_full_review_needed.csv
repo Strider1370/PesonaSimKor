@@ -1,0 +1,313 @@
+﻿occupation,count,share,cumulative_share,ksco_major_code,ksco_major_label,rule_hit,confidence,needs_review,previous_code,previous_rule_hit,rationale
+건물 청소원,18253,0.018253,0.385602,9,???? ???,kept:contains:청소,medium,yes,9,contains:청소,kept from draft; no stronger correction rule
+건물 경비원,17473,0.017473,0.403075,9,???? ???,kept:contains:경비원,medium,yes,9,contains:경비원,kept from draft; no stronger correction rule
+사무 보조원,13630,0.01363,0.432851,3,?? ???,kept:exact,medium,yes,3,exact,kept from draft; no stronger correction rule
+시설 경비원,10897,0.010897,0.454959,9,???? ???,kept:contains:경비원,medium,yes,9,contains:경비원,kept from draft; no stronger correction rule
+하역 및 적재 관련 단순 종사원,9160,0.00916,0.475014,9,???? ???,kept:contains:단순,medium,yes,9,contains:단순,kept from draft; no stronger correction rule
+주방 보조원,7542,0.007542,0.499321,4,??? ???,exact:?? ???,high,yes,3,suffix:보조원,kitchen/service assistant
+그 외 서비스 관련 단순 종사원,5947,0.005947,0.539871,9,???? ???,exact:??? ?? ???,high,yes,4,contains:서비스,explicit simple labor
+음식 서비스 종사원,5332,0.005332,0.562374,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+그 외 하역 및 적재 단순 종사원,3657,0.003657,0.619789,9,???? ???,kept:contains:단순,medium,yes,9,contains:단순,kept from draft; no stronger correction rule
+음료 서비스 종사원,2572,0.002572,0.66583,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+그 외 돌봄 및 보건 서비스 종사원,2538,0.002538,0.670916,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+단말기 및 통신 서비스 판매원,2268,0.002268,0.682829,5,?? ???,exact:??? ???,high,yes,4,contains:서비스,sales beats service
+건설 단순 종사원,2171,0.002171,0.689463,9,???? ???,exact:?? ?? ???,high,yes,7,contains:건설,explicit simple labor
+그 외 택배원,1984,0.001984,0.70384,9,???? ???,exact:???,medium,yes,8,contains:택배,delivery worker; review exact KSCO
+우편집배원,1915,0.001915,0.709638,9,???? ???,exact:?????,medium,yes,8,exact,postal delivery worker; review exact KSCO
+노인 및 장애인 돌봄 서비스 종사원,1906,0.001906,0.715364,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+보육 관련 시설 서비스 종사원,1863,0.001863,0.717227,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+운송장비 청소원,1691,0.001691,0.725949,9,???? ???,kept:contains:청소,medium,yes,9,contains:청소,kept from draft; no stronger correction rule
+그 외 제조 관련 단순 종사원,1192,0.001192,0.768873,9,???? ???,kept:contains:단순,medium,yes,9,contains:단순,kept from draft; no stronger correction rule
+위험 관리원,1179,0.001179,0.770052,2,??? ? ?? ???,kept:exact,medium,yes,2,exact,kept from draft; no stronger correction rule
+농업 단순 종사원,1173,0.001173,0.772401,6,????? ?? ???,kept:contains:농업,medium,yes,6,contains:농업,kept from draft; no stronger correction rule
+주차 관리원,1163,0.001163,0.773564,2,??? ? ?? ???,kept:suffix:관리원,medium,yes,2,suffix:관리원,kept from draft; no stronger correction rule
+산불 감시원,995,0.000995,0.790911,4,??? ???,exact:?? ???,medium,yes,other,no_rule,protective monitoring service
+그 외 음식 서비스 종사원,970,0.00097,0.794849,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+택배원,848,0.000848,0.805844,9,???? ???,exact:???,medium,yes,8,contains:택배,delivery worker; review exact KSCO
+소규모 상점 일선 관리 종사원,760,0.00076,0.820114,1,???,exact:?? ??,medium,yes,other,no_rule,front-line manager
+그 외 배달원,742,0.000742,0.824632,9,???? ???,exact:???,medium,yes,8,contains:배달,delivery worker; review exact KSCO
+그 외 판매 관련 단순 종사원,702,0.000702,0.827503,5,?? ???,kept:contains:판매,medium,yes,5,contains:판매,kept from draft; no stronger correction rule
+음식 배달원,689,0.000689,0.830989,9,???? ???,exact:???,medium,yes,8,contains:배달,delivery worker; review exact KSCO
+청소년 지도사,655,0.000655,0.835006,2,??? ? ?? ???,exact:??? ???,high,yes,9,contains:청소,"youth counselor/instructor, not cleaner"
+그 외 시설 및 특수 경비원,642,0.000642,0.836946,9,???? ???,kept:contains:경비원,medium,yes,9,contains:경비원,kept from draft; no stronger correction rule
+제품 단순 선별원,563,0.000563,0.851325,9,???? ???,kept:contains:단순,medium,yes,9,contains:단순,kept from draft; no stronger correction rule
+교사 교육 보조원,557,0.000557,0.854117,3,?? ???,kept:suffix:보조원,medium,yes,3,suffix:보조원,kept from draft; no stronger correction rule
+그 외 산업 안전 및 위험 관리원,539,0.000539,0.856286,2,??? ? ?? ???,kept:exact,medium,yes,2,exact,kept from draft; no stronger correction rule
+호송 경비원,482,0.000482,0.867495,9,???? ???,kept:contains:경비원,medium,yes,9,contains:경비원,kept from draft; no stronger correction rule
+구급 요원,470,0.00047,0.871306,4,??? ???,exact:?? ??,medium,yes,other,no_rule,emergency service worker
+특수 경비원,459,0.000459,0.872231,9,???? ???,kept:contains:경비원,medium,yes,9,contains:경비원,kept from draft; no stronger correction rule
+기계 경비원,438,0.000438,0.876215,9,???? ???,kept:contains:경비원,medium,yes,9,contains:경비원,kept from draft; no stronger correction rule
+주류 서비스 종사원,418,0.000418,0.880446,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+그 외 미용 관련 서비스 종사원,410,0.00041,0.881683,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+언어재활사,406,0.000406,0.882089,2,??? ? ?? ???,v2:재활사,high,yes,other,no_rule,professional/associate professional
+농약 및 비료 시험원,388,0.000388,0.884483,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+아파트 경비원,384,0.000384,0.886022,9,???? ???,kept:contains:경비원,medium,yes,9,contains:경비원,kept from draft; no stronger correction rule
+음료 배달원,379,0.000379,0.886783,4,??? ???,kept:contains:음료,medium,yes,4,contains:음료,kept from draft; no stronger correction rule
+유통 및 매장 감시원,331,0.000331,0.901308,4,??? ???,exact:?? ???,medium,yes,other,no_rule,protective/store monitoring
+화학 시험원,301,0.000301,0.906666,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+그 외 건물 관리원,286,0.000286,0.909892,2,??? ? ?? ???,kept:suffix:관리원,medium,yes,2,suffix:관리원,kept from draft; no stronger correction rule
+호텔 서비스원,269,0.000269,0.913773,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+양복 제조원,263,0.000263,0.916163,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 피부 및 체형 관리 종사원,263,0.000263,0.916426,4,??? ???,v2:피부,medium,yes,other,no_rule,personal/protective service
+어업 단순 종사원,250,0.00025,0.920784,6,????? ?? ???,kept:contains:어업,medium,yes,6,contains:어업,kept from draft; no stronger correction rule
+밑반찬 제조 종사원,245,0.000245,0.922762,7,??? ? ?? ?? ???,v2:제조 종사원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+환경 검사원,235,0.000235,0.927075,2,??? ? ?? ???,v2:검사원,high,yes,other,no_rule,professional/associate professional
+장례 지도사,234,0.000234,0.927778,4,??? ???,exact:?? ???,high,yes,other,no_rule,personal service
+의복 수선원,232,0.000232,0.928709,7,??? ? ?? ?? ???,v2:수선원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 공학 관련 기술자 및 시험원,231,0.000231,0.92894,2,??? ? ?? ???,v2:기술자,high,yes,other,no_rule,professional/associate professional
+스포츠 감독,223,0.000223,0.930984,2,??? ? ?? ???,v3:스포츠 감독,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+손톱 관리사,212,0.000212,0.933144,4,??? ???,v2:손톱,medium,yes,other,no_rule,personal/protective service
+출판물 편집자,212,0.000212,0.933356,2,??? ? ?? ???,v2:편집자,high,yes,other,no_rule,professional/associate professional
+계기 검침원,209,0.000209,0.934406,9,???? ???,exact:?? ???,medium,yes,other,no_rule,field manual meter reader
+건축 석공,205,0.000205,0.936266,7,??? ? ?? ?? ???,v2:석공,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 청소원,202,0.000202,0.937282,9,???? ???,kept:contains:청소,medium,yes,9,contains:청소,kept from draft; no stronger correction rule
+농업 시험원,200,0.0002,0.938887,6,????? ?? ???,kept:contains:농업,medium,yes,6,contains:농업,kept from draft; no stronger correction rule
+김치 제조 종사원,199,0.000199,0.939086,7,??? ? ?? ?? ???,v2:제조 종사원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 생명과학 시험원,195,0.000195,0.940068,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+직물 패턴사,194,0.000194,0.940457,7,??? ? ?? ?? ???,v2:패턴사,high,yes,other,no_rule,craft/construction/manufacturing skilled
+번역가,185,0.000185,0.942366,2,??? ? ?? ???,v2:번역가,high,yes,other,no_rule,professional/associate professional
+방송 및 시나리오 작가,185,0.000185,0.942551,2,??? ? ?? ???,v2:작가,high,yes,other,no_rule,professional/associate professional
+석재 부설원,183,0.000183,0.943284,7,??? ? ?? ?? ???,v2:부설원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+연예인 매니저,182,0.000182,0.943466,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+금속공학 시험원,181,0.000181,0.94401,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+떡 제조원,180,0.00018,0.94455,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+구두 미화원,175,0.000175,0.945254,9,???? ???,exact:?? ???,medium,yes,other,no_rule,manual personal service/labor
+기자,173,0.000173,0.945951,2,??? ? ?? ???,v2:기자,high,yes,other,no_rule,professional/associate professional
+스포츠 매니저,162,0.000162,0.948447,2,??? ? ?? ???,v3:스포츠 매니저,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+의료 서비스 상담 종사원,161,0.000161,0.948769,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+미장공,160,0.00016,0.948929,7,??? ? ?? ?? ???,v2:미장공,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 금속 및 재료 공학 시험원,158,0.000158,0.950042,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+복지시설 생활 지도원,151,0.000151,0.950806,2,??? ? ?? ???,v3:지도원,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+그 외 귀금속 및 보석 세공원,151,0.000151,0.950957,7,??? ? ?? ?? ???,v2:세공원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+통역가,151,0.000151,0.951108,2,??? ? ?? ???,v2:통역가,high,yes,other,no_rule,professional/associate professional
+조경원,150,0.00015,0.951258,6,????? ?? ???,v2:조경원,medium,yes,other,no_rule,agriculture/forestry/fishery skilled
+유원시설 및 테마파크 서비스원,150,0.00015,0.951408,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+거리 미화원,149,0.000149,0.951856,9,???? ???,exact:?? ???,high,yes,other,no_rule,street cleaner
+경량 철골공,146,0.000146,0.952741,7,??? ? ?? ?? ???,v2:철골공,high,yes,other,no_rule,craft/construction/manufacturing skilled
+기계공학 시험원,145,0.000145,0.953322,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+콘크리트 타설원,140,0.00014,0.955034,7,??? ? ?? ?? ???,v2:타설원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+직업 운동선수,137,0.000137,0.956559,2,??? ? ?? ???,v3:운동선수,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+그 외 판매 및 고객 서비스 관리자,136,0.000136,0.956695,1,???,kept:contains:관리자,medium,yes,1,contains:관리자,kept from draft; no stronger correction rule
+치료사 보조원,136,0.000136,0.956831,2,??? ? ?? ???,kept:contains:치료사,medium,yes,2,contains:치료사,kept from draft; no stronger correction rule
+건물 해체원,136,0.000136,0.956967,7,??? ? ?? ?? ???,v2:해체원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+타일 부착원,135,0.000135,0.957237,7,??? ? ?? ?? ???,v2:부착원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+목형원,133,0.000133,0.957771,7,??? ? ?? ?? ???,v2:목형원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+방역원,132,0.000132,0.958169,4,??? ???,v2:방역원,medium,yes,other,no_rule,personal/protective service
+조적공,131,0.000131,0.9583,7,??? ? ?? ?? ???,v2:조적공,high,yes,other,no_rule,craft/construction/manufacturing skilled
+철로 보수원,128,0.000128,0.959725,7,??? ? ?? ?? ???,v3:보수원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+치과기공사,124,0.000124,0.960854,2,??? ? ?? ???,v2:기공사,high,yes,other,no_rule,professional/associate professional
+전통 건물 건축원,124,0.000124,0.960978,7,??? ? ?? ?? ???,v3:건축원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+카지노 딜러,122,0.000122,0.961589,4,??? ???,exact:??? ??,high,yes,other,no_rule,recreation service
+비계공,121,0.000121,0.961831,7,??? ? ?? ?? ???,v2:비계공,high,yes,other,no_rule,craft/construction/manufacturing skilled
+대리석 부착원,118,0.000118,0.962668,7,??? ? ?? ?? ???,v2:부착원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+스포츠 강사 및 트레이너,118,0.000118,0.962786,2,??? ? ?? ???,v3:트레이너,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+유치원 원장,115,0.000115,0.963714,1,???,v3:원장,medium,yes,other,no_rule,manager/executive/institution head
+도배공,112,0.000112,0.964166,7,??? ? ?? ?? ???,v2:도배공,high,yes,other,no_rule,craft/construction/manufacturing skilled
+신용 추심원,111,0.000111,0.964277,3,?? ???,v3:신용 추심원,medium,yes,other,no_rule,administrative/clerical
+섬유공학 시험원,111,0.000111,0.964499,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+비행기 조종사,108,0.000108,0.96559,8,????? ?? ? ?? ???,exact:??? ???,medium,yes,other,no_rule,transport operator
+도축원,107,0.000107,0.965697,7,??? ? ?? ?? ???,v3:도축원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+사진작가,105,0.000105,0.965908,2,??? ? ?? ???,v2:작가,high,yes,other,no_rule,professional/associate professional
+금속 주입원,105,0.000105,0.966118,7,??? ? ?? ?? ???,v2:금속 주입원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+가스 및 에너지 시험원,105,0.000105,0.966223,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+대여 제품 방문 점검원,104,0.000104,0.966327,5,?? ???,v3:대여 제품,medium,yes,other,no_rule,rental/sales service
+보건 위생 검사원,104,0.000104,0.966431,2,??? ? ?? ???,v2:검사원,high,yes,other,no_rule,professional/associate professional
+단조원,103,0.000103,0.966534,7,??? ? ?? ?? ???,v2:단조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+기술 감독,102,0.000102,0.967046,2,??? ? ?? ???,v3:감독,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+비파괴 검사원,101,0.000101,0.967552,2,??? ? ?? ???,v2:검사원,high,yes,other,no_rule,professional/associate professional
+구두 수선원,101,0.000101,0.967653,7,??? ? ?? ?? ???,v2:수선원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+수동 상표 부착원,100,0.0001,0.967854,7,??? ? ?? ?? ???,v2:부착원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+식품공학 시험원,96,9.6e-05,0.969033,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+문화 관광 및 숲·자연환경 해설사,96,9.6e-05,0.969129,4,??? ???,v2:해설사,medium,yes,other,no_rule,personal/protective service
+그 외 조적공 및 석재 부설원,95,9.5e-05,0.969224,7,??? ? ?? ?? ???,v2:부설원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+보험 심사원,95,9.5e-05,0.969509,3,?? ???,v3:보험 심사원,medium,yes,other,no_rule,administrative/clerical
+항해사,93,9.3e-05,0.96979,8,????? ?? ? ?? ???,exact:???,medium,yes,other,no_rule,ship/navigation operator
+전자공학 시험원,93,9.3e-05,0.969976,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+그 외 환경공학 관련 시험원,93,9.3e-05,0.970255,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+피부 관리사,93,9.3e-05,0.970348,4,??? ???,v2:피부,medium,yes,other,no_rule,personal/protective service
+수날염원,91,9.1e-05,0.971176,7,??? ? ?? ?? ???,v3:날염원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+방사선사,88,8.8e-05,0.971716,2,??? ? ?? ???,v2:방사선사,high,yes,other,no_rule,professional/associate professional
+문학작가,87,8.7e-05,0.971978,2,??? ? ?? ???,v2:작가,high,yes,other,no_rule,professional/associate professional
+시멘트공학 시험원,87,8.7e-05,0.972065,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+석유화학 시험원,86,8.6e-05,0.972325,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+석 공예원,85,8.5e-05,0.972496,7,??? ? ?? ?? ???,v2:공예원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+의료과학 시험원,85,8.5e-05,0.972581,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+카펫 및 가발 제조원,84,8.4e-05,0.972665,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+수의사 보조원,83,8.3e-05,0.973083,3,?? ???,kept:suffix:보조원,medium,yes,3,suffix:보조원,kept from draft; no stronger correction rule
+대학 행정조교,82,8.2e-05,0.973828,3,?? ???,v3:행정조교,medium,yes,other,no_rule,administrative/clerical
+경기 심판,80,8e-05,0.974395,2,??? ? ?? ???,v3:심판,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+전기공학 시험원,78,7.8e-05,0.974867,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+감독 및 연출가,78,7.8e-05,0.975023,2,??? ? ?? ???,v3:감독,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+반려동물 훈련사,77,7.7e-05,0.975254,4,??? ???,v2:훈련사,medium,yes,other,no_rule,personal/protective service
+평론가,77,7.7e-05,0.975716,2,??? ? ?? ???,v2:평론가,high,yes,other,no_rule,professional/associate professional
+헤드헌터,75,7.5e-05,0.976397,2,??? ? ?? ???,v3:헤드헌터,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+주형원,74,7.4e-05,0.976621,7,??? ? ?? ?? ???,v2:주형원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+귀금속 세공원,72,7.2e-05,0.977059,7,??? ? ?? ?? ???,v2:세공원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+요업 및 세라믹 공학 시험원,68,6.8e-05,0.977828,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+화장품 및 비누제품 시험원,68,6.8e-05,0.977896,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+목 공예원,68,6.8e-05,0.9781,7,??? ? ?? ?? ???,v2:공예원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+한복 제조원,67,6.7e-05,0.978167,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+어업 시험원,67,6.7e-05,0.978301,6,????? ?? ???,kept:contains:어업,medium,yes,6,contains:어업,kept from draft; no stronger correction rule
+손해 사정사,65,6.5e-05,0.97863,2,??? ? ?? ???,v2:손해 사정사,high,yes,other,no_rule,professional/associate professional
+수질 환경 시험원,64,6.4e-05,0.978952,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+그 외 자산 운용가,63,6.3e-05,0.979079,2,??? ? ?? ???,v3:자산 운용가,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+생물학 시험원,62,6.2e-05,0.979579,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+양장 제조원,62,6.2e-05,0.979641,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+메이크업 아티스트,60,6e-05,0.980245,4,??? ???,v2:메이크업,medium,yes,other,no_rule,personal/protective service
+신부,59,5.9e-05,0.980717,2,??? ? ?? ???,exact:???,medium,yes,other,no_rule,religious professional
+경기 기록원,58,5.8e-05,0.980892,3,?? ???,v3:기록원,medium,yes,other,no_rule,administrative/clerical
+점화·발파 및 화약 관리원,57,5.7e-05,0.981237,2,??? ? ?? ???,kept:suffix:관리원,medium,yes,2,suffix:관리원,kept from draft; no stronger correction rule
+음식 서비스 관련 관리자,56,5.6e-05,0.981631,1,???,kept:contains:관리자,medium,yes,1,contains:관리자,kept from draft; no stronger correction rule
+그 외 숙박시설 서비스원,55,5.5e-05,0.981852,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+그 외 자연과학 시험원,55,5.5e-05,0.982017,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+그 외 수제 식품 제조 종사원,54,5.4e-05,0.982181,7,??? ? ?? ?? ???,v2:제조 종사원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+학예사,54,5.4e-05,0.982343,2,??? ? ?? ???,v2:학예사,high,yes,other,no_rule,professional/associate professional
+신발 및 구두 재단사,54,5.4e-05,0.982451,7,??? ? ?? ?? ???,v2:재단사,high,yes,other,no_rule,craft/construction/manufacturing skilled
+노래방 서비스원,52,5.2e-05,0.982767,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+임업 단순 종사원,52,5.2e-05,0.982871,6,????? ?? ???,kept:contains:임업,medium,yes,6,contains:임업,kept from draft; no stronger correction rule
+경비 관련 관리자,52,5.2e-05,0.983027,1,???,kept:contains:관리자,medium,yes,1,contains:관리자,kept from draft; no stronger correction rule
+섬유 및 펠트 관련 선별원,50,5e-05,0.983634,9,???? ???,v2:선별원,high,yes,other,no_rule,simple/manual labor
+지휘자,49,4.9e-05,0.98393,2,??? ? ?? ???,v3:지휘자,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+승려,49,4.9e-05,0.983979,2,??? ? ?? ???,exact:???,medium,yes,other,no_rule,religious professional
+대학 교육 조교,48,4.8e-05,0.984124,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+고무 및 플라스틱 시험원,48,4.8e-05,0.984364,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+스포츠 코치,48,4.8e-05,0.984556,2,??? ? ?? ???,v3:코치,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+등대원,48,4.8e-05,0.984604,4,??? ???,v3:등대원,medium,yes,other,no_rule,service/care/monitoring/rental
+기록물 관리사,47,4.7e-05,0.984651,3,?? ???,v3:기록물 관리사,medium,yes,other,no_rule,administrative/clerical
+그 외 외선 전기원,46,4.6e-05,0.985351,7,??? ? ?? ?? ???,v2:전기원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+보석 세공원,45,4.5e-05,0.985396,7,??? ? ?? ?? ???,v2:세공원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+만화영화 작가,45,4.5e-05,0.985576,2,??? ? ?? ???,v2:작가,high,yes,other,no_rule,professional/associate professional
+선장,44,4.4e-05,0.985928,8,????? ?? ? ?? ???,v3:선장,medium,yes,other,no_rule,ship operator/captain
+문화재 보존원,44,4.4e-05,0.985972,2,??? ? ?? ???,v3:보존원,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+무대의상 관리원,43,4.3e-05,0.986015,2,??? ? ?? ???,kept:suffix:관리원,medium,yes,2,suffix:관리원,kept from draft; no stronger correction rule
+전도사,43,4.3e-05,0.986058,2,??? ? ?? ???,v3:전도사,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+외환 딜러,43,4.3e-05,0.986316,2,??? ? ?? ???,v3:외환 딜러,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+체형 관리사,42,4.2e-05,0.986442,4,??? ???,v2:체형 관리,medium,yes,other,no_rule,personal/protective service
+과수작물 재배원,41,4.1e-05,0.986609,6,????? ?? ???,v3:재배원,medium,yes,other,no_rule,agriculture/livestock skilled
+오락 및 스포츠용품 대여원,41,4.1e-05,0.986814,4,??? ???,v3:대여원,medium,yes,other,no_rule,service/care/monitoring/rental
+그 외 공예원,40,4e-05,0.986975,7,??? ? ?? ?? ???,v2:공예원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+폐기물 처리 시험원,39,3.9e-05,0.987489,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+목사,39,3.9e-05,0.987606,2,??? ? ?? ???,v3:목사,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+그 외 종교 관련 종사원,38,3.8e-05,0.987644,2,??? ? ?? ???,v3:종교,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+민속신앙 관련 종사원,38,3.8e-05,0.987682,2,??? ? ?? ???,v3:민속신앙,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+금융자산 운용가,38,3.8e-05,0.987872,2,??? ? ?? ???,v3:자산 운용가,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+개인 생활 서비스 종사원,37,3.7e-05,0.988098,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+보험 인수 심사원,37,3.7e-05,0.988246,3,?? ???,v3fix:clerical/inspection record work,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+중앙정부 고위 공무원,36,3.6e-05,0.988466,1,???,v3:고위 공무원,medium,yes,other,no_rule,manager/executive/institution head
+소음 진동 시험원,36,3.6e-05,0.988538,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+목욕 관리사,36,3.6e-05,0.98861,4,??? ???,v3:목욕 관리사,medium,yes,other,no_rule,service/care/monitoring/rental
+그 외 감독 및 연출가,36,3.6e-05,0.988718,2,??? ? ?? ???,v3:감독,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+식품 등급원,35,3.5e-05,0.98907,3,?? ???,v3fix:clerical/inspection record work,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+환경 영향 평가원,35,3.5e-05,0.989245,2,??? ? ?? ???,v3:평가원,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+가죽 및 모피 수선원,34,3.4e-05,0.989349,7,??? ? ?? ?? ???,v2:수선원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 화학공학 시험원,33,3.3e-05,0.989788,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+직물 재봉사,33,3.3e-05,0.989887,7,??? ? ?? ?? ???,v3:재봉사,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+점술가,33,3.3e-05,0.98992,2,??? ? ?? ???,v3:점술가,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+수녀 및 수사,33,3.3e-05,0.990052,2,??? ? ?? ???,v3:수녀,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+자동차 튜닝원,32,3.2e-05,0.99018,7,??? ? ?? ?? ???,v3:튜닝원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+삽화가,31,3.1e-05,0.990369,2,??? ? ?? ???,v3:삽화가,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+지중 전력설비 전기원,31,3.1e-05,0.990431,7,??? ? ?? ?? ???,v2:전기원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+물리학 시험원,31,3.1e-05,0.990524,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+전기케이블 접속원,30,3e-05,0.99074,7,??? ? ?? ?? ???,v3:접속원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+석재 절단원,30,3e-05,0.9908,7,??? ? ?? ?? ???,v3:절단원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+광원,30,3e-05,0.99101,7,??? ? ?? ?? ???,v3:광원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+환경 영향 시험원,28,2.8e-05,0.991469,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+건설자재 시험원,28,2.8e-05,0.991609,7,??? ? ?? ?? ???,kept:contains:건설,medium,yes,7,contains:건설,kept from draft; no stronger correction rule
+가죽 패턴사,28,2.8e-05,0.991665,7,??? ? ?? ?? ???,v2:패턴사,high,yes,other,no_rule,craft/construction/manufacturing skilled
+임업 시험원,27,2.7e-05,0.991832,6,????? ?? ???,kept:contains:임업,medium,yes,6,contains:임업,kept from draft; no stronger correction rule
+돼지 사육자,27,2.7e-05,0.991859,6,????? ?? ???,v3:사육자,medium,yes,other,no_rule,agriculture/livestock skilled
+그 외 전문 서비스 관리자,26,2.6e-05,0.992072,1,???,kept:contains:관리자,medium,yes,1,contains:관리자,kept from draft; no stronger correction rule
+조율사,26,2.6e-05,0.992176,7,??? ? ?? ?? ???,v3:조율사,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 작가,26,2.6e-05,0.992228,2,??? ? ?? ???,v2:작가,high,yes,other,no_rule,professional/associate professional
+대학교 총장 및 대학 학장,26,2.6e-05,0.99228,1,???,v3:총장,medium,yes,other,no_rule,manager/executive/institution head
+만화가,26,2.6e-05,0.992332,2,??? ? ?? ???,v3:만화가,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+그 외 수선원,26,2.6e-05,0.992358,7,??? ? ?? ?? ???,v2:수선원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+가구 제조원,26,2.6e-05,0.992384,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 목제품 제조 관련 종사원,26,2.6e-05,0.992436,7,??? ? ?? ?? ???,v3:제조 관련 종사원,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+환경 감시원,25,2.5e-05,0.992486,4,??? ???,v3:환경 감시원,medium,yes,other,no_rule,service/care/monitoring/rental
+그 외 연극·영화 및 영상 관련 종사원,25,2.5e-05,0.992686,2,??? ? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+항공교통 관제사,25,2.5e-05,0.992761,2,??? ? ?? ???,v3:관제사,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+소품 관리원,24,2.4e-05,0.992956,2,??? ? ?? ???,kept:suffix:관리원,medium,yes,2,suffix:관리원,kept from draft; no stronger correction rule
+배우,24,2.4e-05,0.993028,2,??? ? ?? ???,v3:배우,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+건축가,24,2.4e-05,0.993076,2,??? ? ?? ???,v3:건축가,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+보조 연기자,23,2.3e-05,0.993379,2,??? ? ?? ???,v2:기자,high,yes,other,no_rule,professional/associate professional
+건강원 및 탕제원 종사원,20,2e-05,0.99397,7,??? ? ?? ?? ???,v3fix:craft/production/manual skilled,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+방송 및 영화연출 보조원,20,2e-05,0.99399,3,?? ???,kept:suffix:보조원,medium,yes,3,suffix:보조원,kept from draft; no stronger correction rule
+채석원,20,2e-05,0.99401,7,??? ? ?? ?? ???,v3fix:craft/production/manual skilled,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+혼례 종사원,19,1.9e-05,0.994248,4,??? ???,v3fix:service/enforcement work,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+시트 제품 제조원,19,1.9e-05,0.994324,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+성악가,19,1.9e-05,0.994362,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+모피 패턴사,19,1.9e-05,0.994438,7,??? ? ?? ?? ???,v2:패턴사,high,yes,other,no_rule,craft/construction/manufacturing skilled
+로봇공학 시험원,19,1.9e-05,0.99459,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+그 외 오락시설 서비스원,18,1.8e-05,0.99488,4,??? ???,kept:contains:서비스,medium,yes,4,contains:서비스,kept from draft; no stronger correction rule
+투자 인수 심사원,18,1.8e-05,0.994898,3,?? ???,v3fix:clerical/inspection record work,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+무용가,17,1.7e-05,0.994933,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+그 외 재봉사,17,1.7e-05,0.99495,7,??? ? ?? ?? ???,v3:재봉사,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+초등학교 교장 및 교감,17,1.7e-05,0.995052,1,???,v3fix:institution/political manager,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+가죽 및 모피 재봉사,17,1.7e-05,0.995188,7,??? ? ?? ?? ???,v3:재봉사,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+도료제품 시험원,17,1.7e-05,0.995256,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+목재케이스 및 나무상자 제조원,16,1.6e-05,0.995352,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+송배전설비 전기원,16,1.6e-05,0.995464,7,??? ? ?? ?? ???,v2:전기원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+천일염 생산 종사원,15,1.5e-05,0.99557,7,??? ? ?? ?? ???,v3fix:craft/production/manual skilled,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+그 외 시각 및 공연 예술가,14,1.4e-05,0.995904,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+대기 환경 시험원,14,1.4e-05,0.995946,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+토양 환경 시험원,14,1.4e-05,0.995988,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+집행관,14,1.4e-05,0.996058,3,?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+그 외 패턴사,13,1.3e-05,0.996127,7,??? ? ?? ?? ???,v2:패턴사,high,yes,other,no_rule,craft/construction/manufacturing skilled
+도서 및 영상 기록 매체 대여원,13,1.3e-05,0.996179,4,??? ???,v3:대여원,medium,yes,other,no_rule,service/care/monitoring/rental
+소아청소년과 전문 의사,13,1.3e-05,0.996257,2,??? ? ?? ???,kept:suffix:의사,medium,yes,2,suffix:의사,kept from draft; no stronger correction rule
+중·고등학교 교장 및 교감,13,1.3e-05,0.99627,1,???,v3fix:institution/political manager,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+헬리콥터 조종사,12,1.2e-05,0.996474,8,????? ?? ? ?? ???,v3fix:vehicle/aircraft operator,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+가수,12,1.2e-05,0.996486,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+그 외 재단사,12,1.2e-05,0.99651,7,??? ? ?? ?? ???,v2:재단사,high,yes,other,no_rule,craft/construction/manufacturing skilled
+개그맨 및 코미디언,12,1.2e-05,0.996522,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+청소 관련 관리자,12,1.2e-05,0.996546,1,???,kept:contains:관리자,medium,yes,1,contains:관리자,kept from draft; no stronger correction rule
+도자기 공예원,12,1.2e-05,0.996762,7,??? ? ?? ?? ???,v2:공예원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 아나운서 및 리포터,11,1.1e-05,0.996873,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+그 외 상품 대여원,11,1.1e-05,0.996917,4,??? ???,v3:대여원,medium,yes,other,no_rule,service/care/monitoring/rental
+지방의회 의원 및 교육 의원,11,1.1e-05,0.997027,1,???,v3fix:institution/political manager,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+인력 공급 및 알선 서비스 관리자,11,1.1e-05,0.997071,1,???,kept:contains:관리자,medium,yes,1,contains:관리자,kept from draft; no stronger correction rule
+곡식작물 재배원,10,1e-05,0.997112,6,????? ?? ???,v3:재배원,medium,yes,other,no_rule,agriculture/livestock skilled
+자동차 대여원,10,1e-05,0.997132,4,??? ???,v3:대여원,medium,yes,other,no_rule,service/care/monitoring/rental
+연주가,9,9e-06,0.997409,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+화훼작물 재배원,9,9e-06,0.997436,6,????? ?? ???,v3:재배원,medium,yes,other,no_rule,agriculture/livestock skilled
+제화원,9,9e-06,0.997544,7,??? ? ?? ?? ???,v3fix:craft/production/manual skilled,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+요금 정산원,9,9e-06,0.997724,3,?? ???,v3fix:clerical/inspection record work,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+교통영향 평가원,8,8e-06,0.997876,2,??? ? ?? ???,v3:평가원,medium,yes,other,no_rule,professional/sports/arts/religion/social guidance
+국악인,7,7e-06,0.998156,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+지구 및 기상 과학 시험원,7,7e-06,0.998212,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+지방정부 고위 공무원,7,7e-06,0.998247,1,???,v3:고위 공무원,medium,yes,other,no_rule,manager/executive/institution head
+육묘작물 재배원,7,7e-06,0.998394,6,????? ?? ???,v3:재배원,medium,yes,other,no_rule,agriculture/livestock skilled
+생활용품 대여원,6,6e-06,0.998456,4,??? ???,v3:대여원,medium,yes,other,no_rule,service/care/monitoring/rental
+가금 사육자,6,6e-06,0.998528,6,????? ?? ???,v3:사육자,medium,yes,other,no_rule,agriculture/livestock skilled
+의복 재단사,6,6e-06,0.998558,7,??? ? ?? ?? ???,v2:재단사,high,yes,other,no_rule,craft/construction/manufacturing skilled
+그 외 양식원,6,6e-06,0.998636,6,????? ?? ???,v3fix:aquaculture skilled,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+채소작물 재배원,6,6e-06,0.998642,6,????? ?? ???,v3:재배원,medium,yes,other,no_rule,agriculture/livestock skilled
+담배 등급원,6,6e-06,0.998666,3,?? ???,v3fix:clerical/inspection record work,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+천문 및 우주 과학 시험원,6,6e-06,0.998696,2,??? ? ?? ???,v2:시험원,high,yes,other,no_rule,professional/associate professional
+모델,6,6e-06,0.998714,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+주차 단속원,6,6e-06,0.99878,4,??? ???,v3fix:service/enforcement work,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+스크립터,6,6e-06,0.998786,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+안무가,5,5e-06,0.998808,2,??? ? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+아나운서,5,5e-06,0.998823,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+해녀,5,5e-06,0.998853,6,????? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+성우,5,5e-06,0.998868,2,??? ? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+신발 재봉사,5,5e-06,0.998883,7,??? ? ?? ?? ???,v3:재봉사,medium,yes,other,no_rule,craft/construction/manufacturing skilled
+모피 및 가죽 의복 제조원,4,4e-06,0.999056,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+관세사,4,4e-06,0.99924,2,??? ? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+모자 제조원,3,3e-06,0.999342,7,??? ? ?? ?? ???,v2:제조원,high,yes,other,no_rule,craft/construction/manufacturing skilled
+국악 연주가,3,3e-06,0.999453,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+그 외 사육 관련 종사원,3,3e-06,0.999495,6,????? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+도선사,3,3e-06,0.999522,8,????? ?? ? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+사무용품 대여원,3,3e-06,0.999594,4,??? ???,v3:대여원,medium,yes,other,no_rule,service/care/monitoring/rental
+원근해 어부,2,2e-06,0.999637,6,????? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+육우 사육자,2,2e-06,0.999725,6,????? ?? ???,v3:사육자,medium,yes,other,no_rule,agriculture/livestock skilled
+그 외 가축 사육 종사원,2,2e-06,0.999777,6,????? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+내수면 어부,2,2e-06,0.999817,6,????? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+국회의원,2,2e-06,0.999839,1,???,v3fix:institution/political manager,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+어패류 양식원,2,2e-06,0.999841,6,????? ?? ???,v3fix:aquaculture skilled,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+젖소 사육자,1,1e-06,0.999878,6,????? ?? ???,v3:사육자,medium,yes,other,no_rule,agriculture/livestock skilled
+해조류 양식원,1,1e-06,0.999891,6,????? ?? ???,v3fix:aquaculture skilled,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+리포터,1,1e-06,0.999911,2,??? ? ?? ???,v3fix:arts/media/education professional,medium,yes,other,no_rule,manual cleanup of low-confidence fallback
+판촉원,1,1e-06,0.999925,5,?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback
+동물 부화원,1,1e-06,0.999965,6,????? ?? ???,v3fix:final low cleanup,medium,yes,other,no_rule,manual cleanup of remaining tiny-tail fallback

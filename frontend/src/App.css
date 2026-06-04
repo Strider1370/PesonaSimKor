@@ -1132,3 +1132,927 @@ th {
     align-items: stretch;
   }
 }
+
+/* ════════════════════════════════════════════════
+   PIPELINE STEP LAYOUT
+   ════════════════════════════════════════════════ */
+
+.pipeline-steps {
+  display: grid;
+  gap: 0;
+  margin-top: 20px;
+  border: 1px solid #d5dde5;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 7%);
+}
+
+.step-block {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  border-bottom: 1px solid #d5dde5;
+}
+
+.step-block:last-child {
+  border-bottom: none;
+}
+
+.step-sidebar {
+  padding: 20px 16px;
+  background: #f4f6f8;
+  border-right: 1px solid #d5dde5;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.step-num {
+  font-size: 10px;
+  font-weight: 800;
+  color: #2563eb;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.step-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.step-hint {
+  font-size: 11px;
+  color: #8fa3b8;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.step-body {
+  padding: 20px;
+  min-width: 0;
+  background: #ffffff;
+}
+
+/* ── 페르소나 테이블 ───────────────────────────── */
+
+.persona-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 520px;
+  border: 1px solid #e5eaf0;
+  border-radius: 6px;
+}
+
+.persona-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.persona-table th {
+  position: sticky;
+  top: 0;
+  background: #f4f6f8;
+  color: #334e68;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 8px 12px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #d5dde5;
+}
+
+.persona-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f4f8;
+  vertical-align: top;
+  color: #1f2933;
+}
+
+.persona-table tr:last-child td {
+  border-bottom: none;
+}
+
+.persona-table tr:hover td {
+  background: #f8fafc;
+}
+
+.pt-id     { color: #94a3b8; font-weight: 700; white-space: nowrap; width: 36px; }
+.pt-name   { font-weight: 700; color: #111827; width: 80px; white-space: nowrap; }
+.pt-num    { white-space: nowrap; width: 42px; }
+.pt-region { width: 58px; word-break: keep-all; line-height: 1.4; }
+.pt-job    { width: 80px; word-break: keep-all; line-height: 1.4; }
+.pt-family { width: 78px; word-break: keep-all; line-height: 1.4; }
+.pt-text {
+  max-width: 200px;
+  min-width: 140px;
+  line-height: 1.55;
+  color: #374151;
+}
+
+.pt-text-inner {
+  max-height: 100px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* ── STEP 1: 정책 입력 ─────────────────────────── */
+
+.policy-display-text {
+  background: #f8fafc;
+  border: 1px solid #e5eaf0;
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  white-space: pre-wrap;
+  line-height: 1.7;
+  color: #243b53;
+  font-size: 14px;
+}
+
+.settings-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.settings-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  font-size: 12px;
+  color: #4338ca;
+}
+
+.settings-chip-label {
+  color: #6366f1;
+  font-weight: 500;
+}
+
+.settings-chip-value {
+  font-weight: 800;
+  color: #1d4ed8;
+}
+
+/* ── STEP 2: 정책 구조화 ─────────────────────────── */
+
+.sp-grid {
+  display: grid;
+  gap: 0;
+}
+
+.sp-row {
+  display: grid;
+  grid-template-columns: 88px 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.sp-row:last-child {
+  border-bottom: none;
+}
+
+.sp-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8fa3b8;
+}
+
+.sp-value {
+  font-size: 14px;
+  color: #111827;
+  line-height: 1.5;
+}
+
+.sp-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.sp-badge.stated   { background: #dcfce7; color: #166534; }
+.sp-badge.inferred { background: #fef3c7; color: #92400e; }
+
+.sp-fields-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #e5eaf0;
+}
+
+.sp-fields-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8fa3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 8px;
+}
+
+.sp-field-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sp-field-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── STEP 4-A: 프롬프트 원칙 ─────────────────────── */
+
+.prompt-principles {
+  display: grid;
+  gap: 18px;
+}
+
+.pp-section {
+  display: grid;
+  gap: 8px;
+}
+
+.pp-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: 0;
+}
+
+.pp-content {
+  font-size: 13px;
+  color: #334e68;
+  line-height: 1.55;
+}
+
+.pp-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pp-pill {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  border: 1px solid transparent;
+}
+
+.pp-pill.support { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+.pp-pill.oppose  { background: #fff1f2; color: #991b1b; border-color: #fecaca; }
+.pp-pill.neutral { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+
+.pp-pill code {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pp-conditions {
+  display: grid;
+  gap: 6px;
+}
+
+.pp-condition {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e5eaf0;
+}
+
+.pp-condition-num {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 1px;
+}
+
+.pp-condition-body strong {
+  display: block;
+  font-size: 13px;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.pp-condition-body span {
+  font-size: 12px;
+  color: #627d98;
+  line-height: 1.4;
+}
+
+.pp-schema {
+  background: #0f172a;
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pp-schema code {
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+/* ── STEP 4-B: 에이전트 카드 ─────────────────────── */
+
+.agent-card-list {
+  display: grid;
+  gap: 8px;
+  max-height: 640px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.agent-card {
+  border: 1px solid #e5eaf0;
+  border-left: 3px solid #d5dde5;
+  border-radius: 6px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.agent-card.support { border-left-color: #16a34a; }
+.agent-card.oppose  { border-left-color: #dc2626; }
+.agent-card.neutral { border-left-color: #64748b; }
+
+.agent-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: #f8fafc;
+  border-bottom: 1px solid #eef2f5;
+  flex-wrap: wrap;
+}
+
+.agent-num {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  min-width: 26px;
+}
+
+.agent-persona-label {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 600;
+  flex: 1;
+}
+
+.agent-family-label {
+  font-size: 11px;
+  color: #8fa3b8;
+}
+
+.agent-card-body {
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.agent-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.agent-detail {
+  border: 1px solid #e5eaf0;
+  border-radius: 5px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 140px;
+}
+
+.agent-detail summary {
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  user-select: none;
+  background: #f8fafc;
+  list-style: none;
+}
+
+.agent-detail summary::marker { display: none; }
+.agent-detail summary::-webkit-details-marker { display: none; }
+
+.agent-detail pre {
+  max-height: 220px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-top: 1px solid #1e293b;
+}
+
+.agent-response {
+  display: grid;
+  gap: 8px;
+}
+
+.agent-stance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 800;
+  align-self: start;
+}
+
+.agent-stance-badge.support { background: #f0fdf4; color: #166534; }
+.agent-stance-badge.oppose  { background: #fff1f2; color: #991b1b; }
+.agent-stance-badge.neutral { background: #f8fafc; color: #475569; }
+
+.agent-fields {
+  display: grid;
+  gap: 6px;
+}
+
+.agent-field-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 8px;
+  font-size: 13px;
+  align-items: baseline;
+}
+
+.agent-field-key {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  padding-top: 2px;
+}
+
+.agent-field-val {
+  color: #1f2933;
+  line-height: 1.5;
+}
+
+.agent-field-null {
+  color: #c4cdd6;
+  font-style: italic;
+}
+
+.blind-spot-checks {
+  display: flex;
+  gap: 5px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.bs-check {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.agent-field-sub {
+  font-size: 11px;
+  color: #8fa3b8;
+  margin-top: 2px;
+}
+
+/* ── STEP 5: 1차 취합 ────────────────────────────── */
+
+.discovery-view {
+  display: grid;
+  gap: 14px;
+}
+
+.featured-axis-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.featured-axis-row .fa-label {
+  font-size: 11px;
+  color: #60a5fa;
+  font-weight: 700;
+}
+
+.featured-axis-row strong {
+  color: #1d4ed8;
+}
+
+.featured-axis-row .fa-sep {
+  color: #93c5fd;
+  margin: 0 2px;
+}
+
+.axis-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.axis-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.axis-row-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8fa3b8;
+}
+
+.axis-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.axis-cat {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.axis-cat.present {
+  background: #fff1f2;
+  color: #991b1b;
+  border-color: #fecaca;
+  font-weight: 700;
+}
+
+/* ── STEP 6: 2차 취합 ────────────────────────────── */
+
+.summary-view {
+  display: grid;
+  gap: 16px;
+}
+
+.sv-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.sv-column {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5eaf0;
+}
+
+.sv-column-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e5eaf0;
+}
+
+.sv-column-blind    { border-top: 3px solid #dc2626; }
+.sv-column-complaint { border-top: 3px solid #2563eb; }
+.sv-column-reframe  { border-top: 3px solid #7c3aed; }
+
+.sv-column-blind    .sv-column-header { background: #fff5f5; }
+.sv-column-complaint .sv-column-header { background: #eff6ff; }
+.sv-column-reframe  .sv-column-header { background: #f5f3ff; }
+
+.sv-column-icon { font-size: 14px; }
+
+.sv-column-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  flex: 1;
+}
+
+.sv-column-total {
+  font-size: 11px;
+  color: #8fa3b8;
+  font-weight: 500;
+}
+
+.sv-cluster-list {
+  display: flex;
+  flex-direction: column;
+  padding: 6px 0;
+  background: #ffffff;
+}
+
+.sv-cluster-item {
+  padding: 7px 14px;
+  border-bottom: 1px solid #f4f6f8;
+}
+
+.sv-cluster-item:last-child { border-bottom: none; }
+
+.sv-cluster-top {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 4px;
+}
+
+.sv-cluster-rank {
+  font-size: 10px;
+  font-weight: 800;
+  color: #c4cdd6;
+  min-width: 14px;
+}
+
+.sv-cluster-text {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 3px 0 4px 20px;
+}
+
+.sv-cluster-label {
+  flex: 1;
+  font-size: 13px;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.sv-cluster-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.sv-bar-track {
+  height: 3px;
+  background: #f0f4f8;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sv-column-blind    .sv-bar-fill { background: #dc2626; }
+.sv-column-complaint .sv-bar-fill { background: #2563eb; }
+.sv-column-reframe  .sv-bar-fill { background: #7c3aed; }
+
+.sv-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.summary-view-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #8fa3b8;
+}
+
+.summary-view-meta strong {
+  color: #243b53;
+}
+
+.summary-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary-clusters {
+  display: grid;
+  gap: 14px;
+}
+
+.cluster-group {
+  display: grid;
+  gap: 6px;
+}
+
+.cluster-group-title {
+  font-size: 10px;
+  font-weight: 800;
+  color: #8fa3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #e5eaf0;
+}
+
+.cluster-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f4f8;
+  font-size: 13px;
+}
+
+.cluster-row:last-child { border-bottom: none; }
+
+.cluster-row-label { color: #243b53; line-height: 1.45; }
+.cluster-row-count { flex-shrink: 0; font-weight: 700; color: #8fa3b8; }
+
+/* ── STEP 7: 결과 ─────────────────────────────────── */
+
+.result-step {
+  display: grid;
+  gap: 16px;
+}
+
+.result-stance-row {
+  display: flex;
+  gap: 10px;
+}
+
+.result-stance-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid #e5eaf0;
+  background: #f8fafc;
+  min-width: 76px;
+}
+
+.result-stance-tile strong {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.result-stance-tile span {
+  font-size: 12px;
+  color: #627d98;
+  margin-top: 3px;
+}
+
+.result-stance-tile.support strong { color: #16a34a; }
+.result-stance-tile.oppose  strong { color: #dc2626; }
+.result-stance-tile.neutral strong { color: #64748b; }
+
+.result-stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.result-stat-divider {
+  width: 1px;
+  background: #e5eaf0;
+  align-self: stretch;
+  margin: 0 4px;
+}
+
+.result-stat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 18px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e5eaf0;
+  text-align: center;
+  gap: 2px;
+  min-width: 90px;
+}
+
+.result-stat-tile strong {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.1;
+}
+
+.result-stat-tile span {
+  font-size: 12px;
+  color: #627d98;
+  font-weight: 600;
+}
+
+.result-stat-tile small {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.result-stat-support strong { color: #16a34a; }
+.result-stat-oppose  strong { color: #dc2626; }
+.result-stat-neutral strong { color: #64748b; }
+.result-stat-axis    strong { font-size: 16px; color: #2563eb; }
+
+.pipeline-result-btns {
+  display: flex;
+  gap: 10px;
+  padding: 20px 0 8px;
+}
+
+.result-step-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Persona depth guide ─────────────────────────────────── */
+.persona-depth-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.pdg-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.pdg-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.pdg-item.pdg-active {
+  background: #eff6ff;
+}
+
+.pdg-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  letter-spacing: 0.03em;
+  min-width: 38px;
+  text-align: center;
+}
+
+.pdg-minimal  { background: #f1f5f9; color: #475569; }
+.pdg-standard { background: #dbeafe; color: #1d4ed8; }
+.pdg-full     { background: #faf5ff; color: #7c3aed; }
+
+.pdg-item.pdg-active .pdg-badge.pdg-minimal  { background: #cbd5e1; color: #1e293b; }
+.pdg-item.pdg-active .pdg-badge.pdg-standard { background: #3b82f6; color: #fff; }
+.pdg-item.pdg-active .pdg-badge.pdg-full     { background: #7c3aed; color: #fff; }
+
+.pdg-desc {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.5;
+}
