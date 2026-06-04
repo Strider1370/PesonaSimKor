@@ -296,8 +296,14 @@ export type LoadedProjectCsvExport = {
 
 type ParsedEvent = { type: string; data: unknown }
 
+// 개발 모드(Vite dev server, 보통 :5173)에서는 별도 백엔드 포트(:8000)를 직접 호출하고,
+// 운영(nginx가 /api/ 를 백엔드로 프록시)에서는 같은 출처의 상대경로를 사용한다.
+// VITE_API_BASE_URL 이 명시되면 항상 그것을 우선한다.
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || `${globalThis.location?.protocol ?? "http:"}//${globalThis.location?.hostname ?? "127.0.0.1"}:8000`
+  import.meta.env.VITE_API_BASE_URL ??
+  (globalThis.location?.port === "5173"
+    ? `${globalThis.location?.protocol ?? "http:"}//${globalThis.location?.hostname ?? "127.0.0.1"}:8000`
+    : "")
 
 export function parseSseChunk(chunk: string, previousBuffer: string): { events: ParsedEvent[]; buffer: string } {
   const text = previousBuffer + chunk
