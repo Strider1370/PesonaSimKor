@@ -17,7 +17,8 @@ echo ">> [1/5] git pull"
 git pull --ff-only
 
 echo ">> [2/5] backend deps"
-./backend/.venv/bin/pip install -q -r backend/requirements.txt
+# pip 콘솔스크립트는 venv 경로 이동 시 shebang이 깨질 수 있으므로 python -m pip 사용
+./backend/.venv/bin/python -m pip install -q -r backend/requirements.txt
 
 echo ">> [3/5] frontend build"
 ( cd frontend && npm ci --no-audit --no-fund && npm run build )
