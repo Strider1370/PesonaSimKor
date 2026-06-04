@@ -1,0 +1,167 @@
+# KSCO Major Occupation Mapping Final Reviewed Summary
+
+Final project-level KSCO major mapping candidate. All 2,120 unique occupation strings are assigned to one major group or the project `unemployed` bucket. No `other` and no `needs_review` remain.
+
+- Total rows: 1,000,000
+- Distinct occupations: 2,120
+- Remaining `other`: 0 rows (0.00%), 0 distinct
+- Needs review: 0 distinct / 0 rows (0.00%)
+- Changed from v3 after final review: 39 distinct / 40,942 rows (4.09%)
+- Changed from original draft: 281 distinct / 80,027 rows (8.00%)
+
+## Distribution
+- 1 ???: 19,892 rows (1.99%), 80 distinct
+- 2 ??? ? ?? ???: 130,527 rows (13.05%), 388 distinct
+- 3 ?? ???: 119,290 rows (11.93%), 53 distinct
+- 4 ??? ???: 106,149 rows (10.61%), 98 distinct
+- 5 ?? ???: 45,300 rows (4.53%), 45 distinct
+- 6 ????? ?? ???: 350 rows (0.03%), 21 distinct
+- 7 ??? ? ?? ?? ???: 51,974 rows (5.20%), 183 distinct
+- 8 ????? ?? ? ?? ???: 73,717 rows (7.37%), 228 distinct
+- 9 ???? ???: 55,957 rows (5.60%), 30 distinct
+- A ??: 5,282 rows (0.53%), 12 distinct
+- unemployed ??/?????: 391,562 rows (39.16%), 982 distinct
+- other ??/??: 0 rows (0.00%), 0 distinct
+
+## Top Final Review Changes From v3
+- 건물 경비원 (17,473): v3 changed to 4 ??? ??? / final:service/protective/personal service
+- 시설 경비원 (10,897): v3 changed to 4 ??? ??? / final:service/protective/personal service
+- 강구조물 건립원 (2,154): v3 changed to 7 ??? ? ?? ?? ??? / finalfix:steel structure construction craft worker
+- 정보 보안 전문가 (1,212): v3 changed to 2 ??? ? ?? ??? / finalfix:information security professional
+- 농업 단순 종사원 (1,173): v3 changed to 9 ???? ??? / final:explicit simple labor
+- 주차 관리원 (1,163): v3 changed to 4 ??? ??? / final:parking service attendant
+- 그 외 판매 관련 단순 종사원 (702): v3 changed to 9 ???? ??? / final:explicit simple labor
+- 그 외 시설 및 특수 경비원 (642): v3 changed to 4 ??? ??? / final:service/protective/personal service
+- 소방시설 공사 기술자 및 연구원 (621): v3 changed to 2 ??? ? ?? ??? / finalfix:fire-safety engineering technical professional
+- 교사 교육 보조원 (557): v3 changed to 2 ??? ? ?? ??? / final:education/health/media assistant
+- 호송 경비원 (482): v3 changed to 4 ??? ??? / final:service/protective/personal service
+- 특수 경비원 (459): v3 changed to 4 ??? ??? / final:service/protective/personal service
+- 기계 경비원 (438): v3 changed to 4 ??? ??? / final:service/protective/personal service
+- 소방설계 기술자 및 연구원 (384): v3 changed to 2 ??? ? ?? ??? / finalfix:fire-safety engineering technical professional
+- 아파트 경비원 (384): v3 changed to 4 ??? ??? / final:service/protective/personal service
+- 음료 배달원 (379): v3 changed to 9 ???? ??? / final:delivery/postal field labor
+- 그 외 건물 관리원 (286): v3 changed to 9 ???? ??? / final:building caretaker/manual facilities work
+- 어업 단순 종사원 (250): v3 changed to 9 ???? ??? / final:explicit simple labor
+- 강구조물 가공원 (241): v3 changed to 7 ??? ? ?? ?? ??? / finalfix:steel structure processing craft worker
+- 농업 시험원 (200): v3 changed to 2 ??? ? ?? ??? / final:technical testing/inspection professional
+- 건축구조 기술자 (115): v3 changed to 2 ??? ? ?? ??? / finalfix:engineering technician
+- 대여 제품 방문 점검원 (104): v3 changed to 4 ??? ??? / samplefix:rental-product field inspection service
+- 수의사 보조원 (83): v3 changed to 2 ??? ? ?? ??? / final:education/health/media assistant
+- 토목구조 설계 기술자 (76): v3 changed to 2 ??? ? ?? ??? / finalfix:engineering technician
+- 어업 시험원 (67): v3 changed to 2 ??? ? ?? ??? / final:technical testing/inspection professional
+- 임업 단순 종사원 (52): v3 changed to 9 ???? ??? / final:explicit simple labor
+- 소방 관리자 (48): v3 changed to 1 ??? / finalfix:fire service manager
+- 농업기계 조립원 (44): v3 changed to 8 ????? ?? ? ?? ??? / final:transport/machine operator or assembler
+- 그 외 음료 제조 관련 기계 조작원 (38): v3 changed to 8 ????? ?? ? ?? ??? / final:transport/machine operator or assembler
+- 그 외 소방공학 기술자 및 연구원 (29): v3 changed to 2 ??? ? ?? ??? / samplefix:fire-safety engineering technical professional
+- 알코올성 음료 제조기 조작원 (29): v3 changed to 8 ????? ?? ? ?? ??? / final:transport/machine operator or assembler
+- 건설자재 시험원 (28): v3 changed to 2 ??? ? ?? ??? / final:technical testing/inspection professional
+- 임업 시험원 (27): v3 changed to 2 ??? ? ?? ??? / final:technical testing/inspection professional
+- 소방 공사 감리 기술자 및 연구원 (25): v3 changed to 2 ??? ? ?? ??? / finalfix:fire-safety engineering technical professional
+- 보조 연기자 (23): v3 changed to 2 ??? ? ?? ??? / samplefix:performing arts support worker
+- 방송 및 영화연출 보조원 (20): v3 changed to 2 ??? ? ?? ??? / final:education/health/media assistant
+- 비알코올성 음료 제조기 조작원 (19): v3 changed to 8 ????? ?? ? ?? ??? / final:transport/machine operator or assembler
+- 집행관 (14): v3 changed to 2 ??? ? ?? ??? / samplefix:legal enforcement associate professional
+- 그 외 배관 세정원 및 방역원 (4): v3 changed to 4 ??? ??? / final:service/protective/personal service
+
+## Top Changes From Original Draft
+- 건물 경비원 (17,473): 9 -> 4 / final:service/protective/personal service
+- 시설 경비원 (10,897): 9 -> 4 / final:service/protective/personal service
+- 주방 보조원 (7,542): 3 -> 4 / final:kitchen service assistant
+- 그 외 서비스 관련 단순 종사원 (5,947): 4 -> 9 / final:explicit simple labor
+- 단말기 및 통신 서비스 판매원 (2,268): 4 -> 5 / final:sales title
+- 건설 단순 종사원 (2,171): 7 -> 9 / final:explicit simple labor
+- 그 외 택배원 (1,984): 8 -> 9 / final:delivery/postal field labor
+- 우편집배원 (1,915): 8 -> 9 / final:delivery/postal field labor
+- 농업 단순 종사원 (1,173): 6 -> 9 / final:explicit simple labor
+- 주차 관리원 (1,163): 2 -> 4 / final:parking service attendant
+- 산불 감시원 (995): other -> 4 / final:service/protective/personal service
+- 택배원 (848): 8 -> 9 / final:delivery/postal field labor
+- 소규모 상점 일선 관리 종사원 (760): other -> 1 / exact:?? ??
+- 그 외 배달원 (742): 8 -> 9 / final:delivery/postal field labor
+- 그 외 판매 관련 단순 종사원 (702): 5 -> 9 / final:explicit simple labor
+- 음식 배달원 (689): 8 -> 9 / final:delivery/postal field labor
+- 청소년 지도사 (655): 9 -> 2 / exact:??? ???
+- 그 외 시설 및 특수 경비원 (642): 9 -> 4 / final:service/protective/personal service
+- 교사 교육 보조원 (557): 3 -> 2 / final:education/health/media assistant
+- 호송 경비원 (482): 9 -> 4 / final:service/protective/personal service
+- 구급 요원 (470): other -> 4 / final:service/protective/personal service
+- 특수 경비원 (459): 9 -> 4 / final:service/protective/personal service
+- 기계 경비원 (438): 9 -> 4 / final:service/protective/personal service
+- 언어재활사 (406): other -> 2 / v2:재활사
+- 농약 및 비료 시험원 (388): other -> 2 / final:technical testing/inspection professional
+- 아파트 경비원 (384): 9 -> 4 / final:service/protective/personal service
+- 음료 배달원 (379): 4 -> 9 / final:delivery/postal field labor
+- 유통 및 매장 감시원 (331): other -> 4 / final:service/protective/personal service
+- 화학 시험원 (301): other -> 2 / final:technical testing/inspection professional
+- 그 외 건물 관리원 (286): 2 -> 9 / final:building caretaker/manual facilities work
+- 양복 제조원 (263): other -> 7 / final:craft/construction/manufacturing skilled
+- 그 외 피부 및 체형 관리 종사원 (263): other -> 4 / v2:피부
+- 어업 단순 종사원 (250): 6 -> 9 / final:explicit simple labor
+- 밑반찬 제조 종사원 (245): other -> 7 / final:craft/construction/manufacturing skilled
+- 환경 검사원 (235): other -> 2 / final:technical testing/inspection professional
+- 장례 지도사 (234): other -> 4 / final:service/protective/personal service
+- 의복 수선원 (232): other -> 7 / final:craft/construction/manufacturing skilled
+- 그 외 공학 관련 기술자 및 시험원 (231): other -> 2 / final:technical testing/inspection professional
+- 스포츠 감독 (223): other -> 2 / v3:스포츠 감독
+- 손톱 관리사 (212): other -> 4 / v2:손톱
+- 출판물 편집자 (212): other -> 2 / v2:편집자
+- 계기 검침원 (209): other -> 9 / final:manual/simple labor
+- 건축 석공 (205): other -> 7 / final:craft/construction/manufacturing skilled
+- 농업 시험원 (200): 6 -> 2 / final:technical testing/inspection professional
+- 김치 제조 종사원 (199): other -> 7 / final:craft/construction/manufacturing skilled
+- 그 외 생명과학 시험원 (195): other -> 2 / final:technical testing/inspection professional
+- 직물 패턴사 (194): other -> 7 / final:craft/construction/manufacturing skilled
+- 번역가 (185): other -> 2 / v2:번역가
+- 방송 및 시나리오 작가 (185): other -> 2 / v2:작가
+- 석재 부설원 (183): other -> 7 / final:craft/construction/manufacturing skilled
+- 연예인 매니저 (182): other -> 2 / v3fix:arts/media/education professional
+- 금속공학 시험원 (181): other -> 2 / final:technical testing/inspection professional
+- 떡 제조원 (180): other -> 7 / final:craft/construction/manufacturing skilled
+- 구두 미화원 (175): other -> 9 / final:manual/simple labor
+- 기자 (173): other -> 2 / v2:기자
+- 스포츠 매니저 (162): other -> 2 / v3:스포츠 매니저
+- 미장공 (160): other -> 7 / final:craft/construction/manufacturing skilled
+- 그 외 금속 및 재료 공학 시험원 (158): other -> 2 / final:technical testing/inspection professional
+- 복지시설 생활 지도원 (151): other -> 2 / v3:지도원
+- 그 외 귀금속 및 보석 세공원 (151): other -> 7 / final:craft/construction/manufacturing skilled
+- 통역가 (151): other -> 2 / v2:통역가
+- 조경원 (150): other -> 6 / final:agriculture/forestry/fishery skilled
+- 거리 미화원 (149): other -> 9 / final:manual/simple labor
+- 경량 철골공 (146): other -> 7 / final:craft/construction/manufacturing skilled
+- 기계공학 시험원 (145): other -> 2 / final:technical testing/inspection professional
+- 콘크리트 타설원 (140): other -> 7 / final:craft/construction/manufacturing skilled
+- 직업 운동선수 (137): other -> 2 / v3:운동선수
+- 건물 해체원 (136): other -> 7 / final:craft/construction/manufacturing skilled
+- 타일 부착원 (135): other -> 7 / final:craft/construction/manufacturing skilled
+- 목형원 (133): other -> 7 / final:craft/construction/manufacturing skilled
+- 방역원 (132): other -> 4 / final:service/protective/personal service
+- 조적공 (131): other -> 7 / final:craft/construction/manufacturing skilled
+- 철로 보수원 (128): other -> 7 / final:craft/construction/manufacturing skilled
+- 치과기공사 (124): other -> 2 / v2:기공사
+- 전통 건물 건축원 (124): other -> 7 / final:craft/construction/manufacturing skilled
+- 카지노 딜러 (122): other -> 4 / final:service/protective/personal service
+- 비계공 (121): other -> 7 / final:craft/construction/manufacturing skilled
+- 대리석 부착원 (118): other -> 7 / final:craft/construction/manufacturing skilled
+- 스포츠 강사 및 트레이너 (118): other -> 2 / v3:트레이너
+- 유치원 원장 (115): other -> 1 / final:institution head/elected official/manager
+- 도배공 (112): other -> 7 / final:craft/construction/manufacturing skilled
+- 신용 추심원 (111): other -> 3 / v3:신용 추심원
+- 섬유공학 시험원 (111): other -> 2 / final:technical testing/inspection professional
+- 비행기 조종사 (108): other -> 8 / final:transport/machine operator or assembler
+- 도축원 (107): other -> 7 / v3:도축원
+- 사진작가 (105): other -> 2 / v2:작가
+- 금속 주입원 (105): other -> 7 / v2:금속 주입원
+- 가스 및 에너지 시험원 (105): other -> 2 / final:technical testing/inspection professional
+- 대여 제품 방문 점검원 (104): other -> 4 / samplefix:rental-product field inspection service
+- 보건 위생 검사원 (104): other -> 2 / final:technical testing/inspection professional
+- 단조원 (103): other -> 7 / final:craft/construction/manufacturing skilled
+- 기술 감독 (102): other -> 2 / v3:감독
+- 비파괴 검사원 (101): other -> 2 / final:technical testing/inspection professional
+- 구두 수선원 (101): other -> 7 / final:craft/construction/manufacturing skilled
+- 수동 상표 부착원 (100): other -> 7 / final:craft/construction/manufacturing skilled
+- 식품공학 시험원 (96): other -> 2 / final:technical testing/inspection professional
+- 문화 관광 및 숲·자연환경 해설사 (96): other -> 4 / final:service/protective/personal service
+- 그 외 조적공 및 석재 부설원 (95): other -> 7 / final:craft/construction/manufacturing skilled
+- 보험 심사원 (95): other -> 3 / v3:보험 심사원
+- 항해사 (93): other -> 8 / final:transport/machine operator or assembler

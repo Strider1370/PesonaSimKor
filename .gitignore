@@ -1,0 +1,15 @@
+backend/.venv/
+.env
+backend/.env
+/data/
+frontend/node_modules/
+node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+**/__pycache__/
+*.pyc
+**/.pytest_cache/
+.superpowers/
+exports/

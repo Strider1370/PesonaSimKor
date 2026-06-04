@@ -1,0 +1,1063 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>KoreanSim · 메인 결과 목업 (실데이터: 전세_1)</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1d2130;
+    --line: #262b3a;
+    --text: #e7eaf0;
+    --muted: #8c93a5;
+    --accent: #6ea8ff;
+    --support: #5bd9a6;
+    --oppose: #ff7a7a;
+    --neutral: #b8bfd1;
+    --warn: #f5b663;
+    --reframe: #b48bff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Pretendard", "Apple SD Gothic Neo",
+                 "Segoe UI", "Noto Sans KR", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .page { max-width: 1280px; margin: 0 auto; padding: 16px 24px 32px; }
+
+  /* HEADER */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 14px;
+  }
+  .brand { font-weight: 700; margin-right: 18px; letter-spacing: -0.2px; }
+  .policy-chip {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 12px;
+    max-width: 620px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: text;
+  }
+  .meta { color: var(--muted); font-size: 12px; margin-left: 12px; }
+  .header-actions { display: flex; gap: 8px; }
+  .btn {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn-primary { background: var(--accent); color: #0b1020; border-color: var(--accent); font-weight: 600; }
+
+  /* HERO */
+  .hero {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-bottom: 14px;
+  }
+  .hero-row {
+    display: flex;
+    align-items: baseline;
+    gap: 22px;
+    flex-wrap: wrap;
+  }
+  .stat { display: flex; align-items: baseline; gap: 6px; }
+  .stat .num { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .stat .lbl { color: var(--muted); font-size: 13px; }
+  .stat.support .num { color: var(--support); }
+  .stat.oppose .num { color: var(--oppose); }
+  .stat.neutral .num { color: var(--neutral); }
+  .stat.blind .num { color: var(--warn); }
+  .stat.reframe .num { color: var(--reframe); }
+  .divider { width: 1px; align-self: stretch; background: var(--line); margin: 0 4px; }
+  .stat.push { margin-left: auto; }
+  .stacked-bar {
+    margin-top: 14px;
+    display: flex;
+    height: 8px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--panel-2);
+  }
+  .stacked-bar > div { height: 100%; }
+  .seg-support { background: var(--support); }
+  .seg-oppose  { background: var(--oppose); }
+  .seg-neutral { background: var(--neutral); opacity: .6; }
+  .hero-foot {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 12px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .synth {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--panel-2);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .synth .label {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  /* GRID — vertical stack of sections */
+  .grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .blind-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .reframe-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  /* DIVERGING BARS — demographics */
+  .dbar-section { margin-bottom: 14px; }
+  .dbar-section:last-child { margin-bottom: 0; }
+  .dbar-section h3 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+  }
+  .dbar-row {
+    display: grid;
+    grid-template-columns: 52px 22px 1fr 22px;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    font-size: 12px;
+  }
+  .dbar-row .cat { color: var(--text); }
+  .dbar-row .num-l {
+    color: var(--support);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .dbar-row .num-r {
+    color: var(--oppose);
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .dbar-row .num-l.zero, .dbar-row .num-r.zero { color: var(--muted); opacity: .4; font-weight: 400; }
+  .bar-area {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    align-items: center;
+    height: 14px;
+  }
+  .bar-area .center {
+    background: var(--line);
+    height: 100%;
+  }
+  .half-l, .half-r { height: 100%; display: flex; align-items: center; }
+  .half-l { justify-content: flex-end; }
+  .half-r { justify-content: flex-start; }
+  .dbar { height: 10px; border-radius: 2px; }
+  .dbar.oppose  { background: var(--oppose); }
+  .dbar.support { background: var(--support); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .panel h2 {
+    margin: 0 0 14px;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel h2 .hint { color: var(--muted); font-weight: 400; font-size: 12px; }
+
+  /* BLIND SPOT CARDS */
+  .blind-card {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--warn);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .blind-card:hover { border-color: var(--warn); }
+  .blind-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .blind-title { font-weight: 600; font-size: 14.5px; }
+  .blind-count { color: var(--warn); font-weight: 700; font-size: 13px; }
+  .blind-source { color: var(--muted); font-size: 11.5px; font-weight: 400; margin-left: 6px; }
+  .blind-ex {
+    font-size: 13px;
+    margin: 3px 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--line);
+    color: #c8cdda;
+  }
+
+  /* OPINION LIST */
+  .opinion-group { margin-bottom: 18px; }
+  .opinion-group:last-child { margin-bottom: 0; }
+  .opinion-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .opinion-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .opinion-item:last-child { border-bottom: none; }
+  .opinion-item:hover .opinion-text { color: var(--accent); }
+  .opinion-text { font-size: 13px; padding-right: 10px; }
+  .opinion-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  .dot-support { background: var(--support); }
+  .dot-oppose  { background: var(--oppose); }
+  .opinion-count {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+  }
+
+  /* TOGGLES */
+  .toggles {
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+    color: var(--muted);
+    font-size: 12.5px;
+    flex-wrap: wrap;
+  }
+  .toggles span {
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .toggles span:hover { color: var(--text); border-color: var(--accent); }
+
+  .small-warn {
+    color: var(--warn);
+    font-size: 11.5px;
+  }
+
+  /* SUB METRICS (보조 지표) */
+  .sub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .sub-panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .sub-panel h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* TABLE */
+  table.kv {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.kv th, table.kv td {
+    text-align: right;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+  }
+  table.kv th { color: var(--muted); font-weight: 500; }
+  table.kv th.row-label, table.kv td.row-label { text-align: left; color: var(--text); }
+  table.kv td.sup { color: var(--support); }
+  table.kv td.opp { color: var(--oppose); }
+  table.kv td.zero { color: var(--muted); opacity: .4; }
+  table.kv tr:last-child td { border-bottom: none; }
+
+  /* HEATMAP */
+  .heat-grid {
+    display: grid;
+    grid-template-columns: 70px repeat(3, 1fr);
+    gap: 2px;
+    font-size: 12px;
+  }
+  .heat-cell {
+    padding: 10px 6px;
+    text-align: center;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+    background: var(--panel-2);
+    color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  .heat-cell.head { background: transparent; color: var(--muted); border: none; padding: 4px; }
+  .heat-cell.row-head { text-align: right; color: var(--text); padding-right: 8px; background: transparent; border: none; }
+  /* support intensity (green) */
+  .heat-s0 { background: #1d2130; color: var(--muted); }
+  .heat-s1 { background: rgba(91,217,166,.25); color: var(--text); }
+  .heat-s2 { background: rgba(91,217,166,.55); color: #06170f; font-weight:600; }
+  /* oppose intensity (red) */
+  .heat-o0 { background: #1d2130; color: var(--muted); }
+  .heat-o1 { background: rgba(255,122,122,.25); color: var(--text); }
+  .heat-o2 { background: rgba(255,122,122,.55); color: #2a0808; font-weight:600; }
+
+  /* MINI BARS */
+  .mini-row {
+    display: grid;
+    grid-template-columns: 56px 1fr 44px;
+    align-items: center;
+    gap: 8px;
+    margin: 7px 0;
+    font-size: 12.5px;
+  }
+  .mini-row .lab { color: var(--text); }
+  .mini-row .count { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .mini-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--panel-2);
+  }
+  .mini-bar > .s { background: var(--support); height: 100%; }
+  .mini-bar > .o { background: var(--oppose); height: 100%; }
+
+  .note {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.5;
+  }
+
+  /* OPINION LANDSCAPE GRAPH — x: stance, y: count */
+  .map-panel { padding: 18px 20px 20px; }
+  .map-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1.3 / 1;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .y-axis {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 44px;
+    border-right: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 10.5px;
+    z-index: 2;
+  }
+  .y-tick {
+    position: absolute;
+    right: 6px;
+    transform: translateY(-50%);
+    font-variant-numeric: tabular-nums;
+  }
+  .y-tick::after {
+    content: "";
+    position: absolute;
+    right: -7px;
+    top: 50%;
+    width: 4px;
+    height: 1px;
+    background: var(--line);
+  }
+  /* PLOT AREA — coordinate space for badges, lines, labels */
+  .plot-area {
+    position: absolute;
+    left: 44px; right: 0; top: 0; bottom: 0;
+  }
+  .plot-area .center-vline {
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    width: 1px;
+    background: var(--line);
+  }
+  .y-grid {
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: var(--line);
+    opacity: .35;
+  }
+  .x-label {
+    position: absolute;
+    bottom: 6px;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  .badge {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    padding: 5px 9px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    background: var(--panel);
+    transition: transform .12s, box-shadow .12s;
+    white-space: nowrap;
+    max-width: 160px;
+    overflow: hidden;
+    z-index: 3;
+  }
+  .badge:hover {
+    transform: translate(-50%, -50%) scale(1.06);
+    z-index: 20;
+    max-width: 340px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.45);
+  }
+  .badge .lab {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .badge .cnt {
+    background: rgba(255,255,255,0.08);
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .badge.support  { border-color: var(--support); color: var(--support); }
+  .badge.support  .cnt { background: rgba(91,217,166,.18); }
+  .badge.oppose   { border-color: var(--oppose);  color: var(--oppose); }
+  .badge.oppose   .cnt { background: rgba(255,122,122,.18); }
+  .badge.blind    { border-style: dashed; border-color: var(--warn); color: var(--warn); }
+  .badge.blind    .cnt { background: rgba(245,182,99,.18); }
+
+  /* size variants by count */
+  .badge.sz-1 { font-size: 11.5px; padding: 4px 8px; }
+  .badge.sz-2 { font-size: 12px;   padding: 5px 9px; }
+  .badge.sz-3 { font-size: 13px;   padding: 6px 11px; }
+  .badge.sz-5 { font-size: 14px;   padding: 7px 13px; font-weight: 600; }
+
+  /* RIGHT SIDE BLIND CARDS — smaller variant */
+  .side .blind-card { margin-bottom: 8px; padding: 12px 14px; }
+  .side .blind-title { font-size: 13px; }
+  .side .blind-ex { font-size: 12px; }
+
+  /* REFRAMING LIST */
+  .reframe-list { margin-top: 18px; }
+  .reframe-list h3 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .reframe-list h3 .hint {
+    color: var(--muted); font-weight: 400; font-size: 11.5px;
+  }
+  .reframe-item {
+    padding: 9px 12px;
+    margin-bottom: 6px;
+    background: var(--panel-2);
+    border-left: 2px solid var(--reframe);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .reframe-item:hover .reframe-text { color: var(--reframe); }
+  .reframe-text {
+    font-size: 12.5px;
+    color: #c8cdda;
+    line-height: 1.55;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .reframe-meta {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 14px;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .legend .key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend .swatch {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1.5px solid;
+  }
+  .legend .swatch.s { border-color: var(--support); }
+  .legend .swatch.o { border-color: var(--oppose); }
+  .legend .swatch.b { border-color: var(--warn); border-style: dashed; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div style="display:flex; align-items:center; min-width:0;">
+      <span class="brand">KoreanSim</span>
+      <span class="policy-chip" title="전세 제도를 단계적으로 폐지하고 월세 전환을 지원한다">
+        정책: 전세 제도를 단계적으로 폐지하고 월세 전환을 지원한다
+      </span>
+    </div>
+    <div class="header-actions">
+      <button class="btn">실험으로 보내기 →</button>
+      <button class="btn">디버그 ▾</button>
+      <button class="btn btn-primary">재실행</button>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-row">
+      <div class="stat support"><span class="num">5</span><span class="lbl">찬성</span></div>
+      <div class="stat oppose"><span class="num">25</span><span class="lbl">반대</span></div>
+      <div class="stat neutral"><span class="num">0</span><span class="lbl">중립</span></div>
+      <div class="divider"></div>
+      <div class="stat blind"><span class="num">15</span><span class="lbl">사각지대</span></div>
+      <div class="stat reframe"><span class="num">19</span><span class="lbl">반문</span></div>
+
+      <div class="stat push"><span class="num" style="color:var(--accent)">30</span><span class="lbl">표본수</span></div>
+      <div class="stat"><span class="num" style="color:var(--accent)">gpt-5-mini</span><span class="lbl">모델</span></div>
+    </div>
+    <div class="stacked-bar" aria-hidden="true">
+      <div class="seg-support" style="width:16.7%"></div>
+      <div class="seg-oppose"  style="width:83.3%"></div>
+      <div class="seg-neutral" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- 2-COL GRID: LEFT = MAP, RIGHT = BLIND SPOT CARDS -->
+  <div class="grid">
+
+    <!-- 1) OPINION GRAPH + DEMOGRAPHIC BARS (side-by-side) -->
+    <div class="top-row">
+
+    <div class="panel map-panel">
+      <h2>의견 지형도 <span class="hint">— 찬반 × 언급 수</span></h2>
+
+      <div class="map-wrap">
+        <div class="y-axis">
+          <div class="y-tick" style="top: 8%;">30</div>
+          <div class="y-tick" style="top: 22.7%;">25</div>
+          <div class="y-tick" style="top: 37.3%;">20</div>
+          <div class="y-tick" style="top: 52%;">15</div>
+          <div class="y-tick" style="top: 66.7%;">10</div>
+          <div class="y-tick" style="top: 81.3%;">5</div>
+          <div class="y-tick" style="top: 96%;">0</div>
+        </div>
+
+        <div class="plot-area">
+          <div class="center-vline"></div>
+
+          <!-- y grid lines (subtle) -->
+          <div class="y-grid" style="top: 22.7%;"></div>
+          <div class="y-grid" style="top: 52%;"></div>
+          <div class="y-grid" style="top: 81.3%;"></div>
+
+          <!-- support_clusters (좌측, 찬성) -->
+          <div class="badge support sz-3" style="left: 36%; top: 80.5%;" title="전세사기·보증금 리스크 감소 (안전성 향상) · 5명">
+            <span class="lab">전세사기↓</span><span class="cnt">5</span>
+          </div>
+          <div class="badge support sz-2" style="left: 14%; top: 83.4%;" title="유동성·현금흐름 개선 (목돈 부담 경감, 지출 예측 용이) · 4명">
+            <span class="lab">현금흐름↑</span><span class="cnt">4</span>
+          </div>
+
+          <!-- concern_clusters (우측, 반대) -->
+          <div class="badge oppose sz-5" style="left: 72%; top: 25.4%;" title="월세로 인한 월별 부담 증가 (노인·저소득·무직 등 취약층 생활불안) · 24명">
+            <span class="lab">월별 부담↑</span><span class="cnt">24</span>
+          </div>
+          <div class="badge oppose sz-5" style="left: 65%; top: 54.4%;" title="전세 보증금(목돈)의 역할 상실 — 창업·저축·비상금 마련 어려움 · 14명">
+            <span class="lab">보증금 역할↓</span><span class="cnt">14</span>
+          </div>
+          <div class="badge oppose sz-3" style="left: 86%; top: 60.2%;" title="보증금 반환·전세사기 우려와 안전망 부족 (분쟁·지연 위험) · 12명">
+            <span class="lab">반환 안전망↓</span><span class="cnt">12</span>
+          </div>
+          <div class="badge oppose sz-3" style="left: 68%; top: 66%;" title="동네 공동체·상권·주거환경 변화 (젠트리피케이션·이웃관계 붕괴) · 10명">
+            <span class="lab">공동체 붕괴</span><span class="cnt">10</span>
+          </div>
+
+          <span class="x-label" style="left: 25%;">찬성 측</span>
+          <span class="x-label" style="left: 75%;">반대 측</span>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span class="key"><span class="swatch s"></span>찬성 cluster</span>
+        <span class="key"><span class="swatch o"></span>반대 cluster</span>
+        <span style="margin-left:auto;">y축 = 언급한 응답 수 / 뱃지 크기도 비례</span>
+      </div>
+
+      <div class="toggles">
+        <span>▾ 응답 30개 모두 보기</span>
+      </div>
+    </div>
+
+    <!-- DEMOGRAPHIC DIVERGING BARS -->
+    <div class="panel">
+      <h2>인구 분포별 찬반 <span class="hint">— 좌(반대) · 우(찬성)</span></h2>
+
+      <div class="dbar-section">
+        <h3>연령</h3>
+        <div class="dbar-row">
+          <span class="cat">20대</span>
+          <span class="num-l">1</span>
+          <div class="bar-area">
+            <div class="half-l"><div class="dbar support" style="width: 6.25%"></div></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 25%"></div></div>
+          </div>
+          <span class="num-r">4</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">30대</span>
+          <span class="num-l">1</span>
+          <div class="bar-area">
+            <div class="half-l"><div class="dbar support" style="width: 6.25%"></div></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 18.75%"></div></div>
+          </div>
+          <span class="num-r">3</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">40대</span>
+          <span class="num-l">2</span>
+          <div class="bar-area">
+            <div class="half-l"><div class="dbar support" style="width: 12.5%"></div></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 18.75%"></div></div>
+          </div>
+          <span class="num-r">3</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">50대</span>
+          <span class="num-l">1</span>
+          <div class="bar-area">
+            <div class="half-l"><div class="dbar support" style="width: 6.25%"></div></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 31.25%"></div></div>
+          </div>
+          <span class="num-r">5</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">60대</span>
+          <span class="num-l zero">0</span>
+          <div class="bar-area">
+            <div class="half-l"></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 31.25%"></div></div>
+          </div>
+          <span class="num-r">5</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">70대+</span>
+          <span class="num-l zero">0</span>
+          <div class="bar-area">
+            <div class="half-l"></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 31.25%"></div></div>
+          </div>
+          <span class="num-r">5</span>
+        </div>
+      </div>
+
+      <div class="dbar-section">
+        <h3>성별</h3>
+        <div class="dbar-row">
+          <span class="cat">남성</span>
+          <span class="num-l">2</span>
+          <div class="bar-area">
+            <div class="half-l"><div class="dbar support" style="width: 12.5%"></div></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 100%"></div></div>
+          </div>
+          <span class="num-r">16</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">여성</span>
+          <span class="num-l">3</span>
+          <div class="bar-area">
+            <div class="half-l"><div class="dbar support" style="width: 18.75%"></div></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 56.25%"></div></div>
+          </div>
+          <span class="num-r">9</span>
+        </div>
+      </div>
+
+      <div class="dbar-section">
+        <h3>지역</h3>
+        <div class="dbar-row">
+          <span class="cat">수도권</span>
+          <span class="num-l">4</span>
+          <div class="bar-area">
+            <div class="half-l"><div class="dbar support" style="width: 25%"></div></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 93.75%"></div></div>
+          </div>
+          <span class="num-r">15</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">영남</span>
+          <span class="num-l">1</span>
+          <div class="bar-area">
+            <div class="half-l"><div class="dbar support" style="width: 6.25%"></div></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 31.25%"></div></div>
+          </div>
+          <span class="num-r">5</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">충청</span>
+          <span class="num-l zero">0</span>
+          <div class="bar-area">
+            <div class="half-l"></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 18.75%"></div></div>
+          </div>
+          <span class="num-r">3</span>
+        </div>
+        <div class="dbar-row">
+          <span class="cat">호남</span>
+          <span class="num-l zero">0</span>
+          <div class="bar-area">
+            <div class="half-l"></div>
+            <div class="center"></div>
+            <div class="half-r"><div class="dbar oppose" style="width: 12.5%"></div></div>
+          </div>
+          <span class="num-r">2</span>
+        </div>
+      </div>
+
+      <div class="legend" style="margin-top:12px;">
+        <span class="key"><span class="swatch s"></span>찬성</span>
+        <span class="key"><span class="swatch o"></span>반대</span>
+        <span style="margin-left:auto;">막대 길이 = 응답자 수 (max=16)</span>
+      </div>
+    </div>
+
+    </div>
+    <!-- end top-row -->
+
+    <!-- 2) BLIND SPOT GRID (full width below graph) -->
+    <div class="panel">
+      <h2>🔍 사각지대 <span class="hint">— 15건 (각 1명이 발견)</span></h2>
+
+      <div class="blind-grid">
+        <div class="blind-card">
+          <div class="blind-head"><div class="blind-title">한부모 세입자 자녀 정착</div></div>
+          <div class="blind-ex">"월세 계약 기간이 짧아지면 이사 빈도가 늘어 아이들이 학교·지역에 정착할 시간이 줄어 돌봄이 불안정"</div>
+          <div class="reframe-meta" style="margin-top:8px;">50대 여 · 수도권</div>
+        </div>
+
+        <div class="blind-card">
+          <div class="blind-head"><div class="blind-title">다세대주택 유지·보수 자금</div></div>
+          <div class="blind-ex">"독산동 집주인들이 전세금을 건물 수리비로 쓰는데 전세가 사라지면 부모님 사는 다세대주택 환경이 악화"</div>
+          <div class="reframe-meta" style="margin-top:8px;">20대 남 · 수도권</div>
+        </div>
+
+        <div class="blind-card">
+          <div class="blind-head"><div class="blind-title">고령자 마을 네트워크</div></div>
+          <div class="blind-ex">"이웃들이 떠나면 목욕탕·노인복지관 일상과 인적 네트워크가 깨져 외로움과 생활 불편이 늘어남"</div>
+          <div class="reframe-meta" style="margin-top:8px;">70대+ 여 · 수도권 (은평)</div>
+        </div>
+
+        <div class="blind-card">
+          <div class="blind-head"><div class="blind-title">예비 창업자 시드머니</div></div>
+          <div class="blind-ex">"전세 보증금을 창업 초기 자금으로 활용하던 청년 프리랜서는 초기 자금 조달 경로를 잃음"</div>
+          <div class="reframe-meta" style="margin-top:8px;">20대 남 · 수도권</div>
+        </div>
+
+        <div class="blind-card">
+          <div class="blind-head"><div class="blind-title">영세 점포주 운영자금</div></div>
+          <div class="blind-ex">"전통시장 영세 점포주는 보증금이 줄면 가게 수선·재고 구입 같은 급한 자금을 해결할 통로가 사라짐"</div>
+          <div class="reframe-meta" style="margin-top:8px;">50대 여 · 수도권</div>
+        </div>
+
+        <div class="blind-card">
+          <div class="blind-head"><div class="blind-title">평택 산단 가족 세입자</div></div>
+          <div class="blind-ex">"단기·이주 근로자 수요가 많은 산업단지 주변에선 단기 월세가 늘어 가족 단위 장기 거주용 주택을 찾기 어려워짐"</div>
+          <div class="reframe-meta" style="margin-top:8px;">40대 남 · 수도권 (평택)</div>
+        </div>
+      </div>
+
+      <div class="toggles" style="margin-top:10px;">
+        <span>▾ 사각지대 9건 더 보기</span>
+      </div>
+    </div>
+
+    <!-- 3) REFRAMINGS (full width below blind spots) -->
+    <div class="panel">
+      <h2>💬 정책 전제에 대한 반문 <span class="hint">— 19건 / 30명 (63%가 정책 방향 자체를 다시 물음)</span></h2>
+
+      <div class="reframe-grid">
+        <div class="reframe-item" title="전세사기 문제 해결이 목표라면 전세를 단계적으로 없애기보다 보증금 반환보증 등 전세 안전망을 먼저 확충하는 쪽이 더 합리적이지 않나요?">
+          <div class="reframe-text">"전세사기 해결이 목표라면 단계적 폐지보다 보증금 반환보증 등 안전망 확충이 더 합리적이지 않나?"</div>
+          <div class="reframe-meta">20대 여 · 충청</div>
+        </div>
+
+        <div class="reframe-item" title="월세 중심으로 바꾸면 우리 같은 고령의 저소득 근로자들이 매달 생활비를 어떻게 감당하라는 건가요?">
+          <div class="reframe-text">"월세로 바꾸면 우리 같은 고령 저소득 근로자들이 매달 생활비를 어떻게 감당하라는 건가?"</div>
+          <div class="reframe-meta">70대+ 남 · 영남</div>
+        </div>
+
+        <div class="reframe-item" title="전세 제도를 단계적으로 폐지하면 예비 창업자들이 목돈을 모아 사업을 시작할 수 있는 수단과, 다세대주택 거주자의 건물 유지·관리 자금은 어떻게 보장하실 건가요?">
+          <div class="reframe-text">"전세 폐지하면 예비 창업자의 시드머니와 다세대주택 유지·관리 자금은 어떻게 보장할 건가?"</div>
+          <div class="reframe-meta">20대 남 · 수도권</div>
+        </div>
+
+        <div class="reframe-item" title="전세 문제를 월세 전환으로만 풀려 하는데, 보증금 반환 안전장치 강화 같은 다른 대안은 왜 먼저 고려하지 않나요?">
+          <div class="reframe-text">"월세 전환만으로 풀려 하는데, 보증금 반환 안전장치 강화 같은 다른 대안은 왜 먼저 고려 안 하나?"</div>
+          <div class="reframe-meta">40대 남 · 영남</div>
+        </div>
+
+        <div class="reframe-item" title="월세 전환을 추진한다면 월세 상승을 통제할 구체적이고 실효성 있는 장치는 무엇인가요?">
+          <div class="reframe-text">"월세 전환을 추진한다면 월세 상승을 통제할 구체적이고 실효성 있는 장치는 무엇인가?"</div>
+          <div class="reframe-meta">20대 남 · 수도권</div>
+        </div>
+
+        <div class="reframe-item" title="전세를 단계적으로 폐지하면 우리 같은 저소득 한부모의 주거 안정이 어떻게 더 나아지는지 구체적으로 설명해 달라.">
+          <div class="reframe-text">"전세 폐지하면 우리 같은 저소득 한부모의 주거 안정이 어떻게 더 나아지는지 구체적으로 설명해 달라."</div>
+          <div class="reframe-meta">50대 여 · 수도권</div>
+        </div>
+      </div>
+
+      <div class="toggles" style="margin-top:10px;">
+        <span>▾ 반문 13건 더 보기</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SUB METRICS (제거됨 — 의견 지형도가 대체) -->
+  <div class="sub-grid" style="display:none;">
+
+    <!-- ① 표 -->
+    <div class="sub-panel">
+      <h3>표</h3>
+      <table class="kv">
+        <thead>
+          <tr><th class="row-label">연령</th><th>찬</th><th>반</th><th>중</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-label">20대</td><td class="sup">1</td><td class="zero">0</td><td class="zero">0</td></tr>
+          <tr><td class="row-label">40대</td><td class="sup">1</td><td class="opp">1</td><td class="zero">0</td></tr>
+          <tr><td class="row-label">50대</td><td class="sup">1</td><td class="opp">1</td><td class="zero">0</td></tr>
+        </tbody>
+      </table>
+      <table class="kv" style="margin-top:10px;">
+        <thead>
+          <tr><th class="row-label">성별</th><th>찬</th><th>반</th><th>중</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-label">남성</td><td class="sup">3</td><td class="opp">1</td><td class="zero">0</td></tr>
+          <tr><td class="row-label">여성</td><td class="zero">0</td><td class="opp">1</td><td class="zero">0</td></tr>
+        </tbody>
+      </table>
+      <table class="kv" style="margin-top:10px;">
+        <thead>
+          <tr><th class="row-label">지역</th><th>찬</th><th>반</th><th>중</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-label">수도권</td><td class="sup">3</td><td class="opp">1</td><td class="zero">0</td></tr>
+          <tr><td class="row-label">호남</td><td class="zero">0</td><td class="opp">1</td><td class="zero">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ② 히트맵 -->
+    <div class="sub-panel">
+      <h3>히트맵</h3>
+      <div class="heat-grid">
+        <div class="heat-cell head"></div>
+        <div class="heat-cell head">찬</div>
+        <div class="heat-cell head">반</div>
+        <div class="heat-cell head">중</div>
+
+        <div class="heat-cell row-head">20대</div>
+        <div class="heat-cell heat-s1">1</div>
+        <div class="heat-cell heat-o0">0</div>
+        <div class="heat-cell heat-o0">0</div>
+
+        <div class="heat-cell row-head">40대</div>
+        <div class="heat-cell heat-s1">1</div>
+        <div class="heat-cell heat-o1">1</div>
+        <div class="heat-cell heat-o0">0</div>
+
+        <div class="heat-cell row-head">50대</div>
+        <div class="heat-cell heat-s1">1</div>
+        <div class="heat-cell heat-o1">1</div>
+        <div class="heat-cell heat-o0">0</div>
+      </div>
+
+      <div class="heat-grid" style="margin-top:10px;">
+        <div class="heat-cell head"></div>
+        <div class="heat-cell head">찬</div>
+        <div class="heat-cell head">반</div>
+        <div class="heat-cell head">중</div>
+
+        <div class="heat-cell row-head">남성</div>
+        <div class="heat-cell heat-s2">3</div>
+        <div class="heat-cell heat-o1">1</div>
+        <div class="heat-cell heat-o0">0</div>
+
+        <div class="heat-cell row-head">여성</div>
+        <div class="heat-cell heat-s0">0</div>
+        <div class="heat-cell heat-o1">1</div>
+        <div class="heat-cell heat-o0">0</div>
+      </div>
+
+      <div class="heat-grid" style="margin-top:10px;">
+        <div class="heat-cell head"></div>
+        <div class="heat-cell head">찬</div>
+        <div class="heat-cell head">반</div>
+        <div class="heat-cell head">중</div>
+
+        <div class="heat-cell row-head">수도권</div>
+        <div class="heat-cell heat-s2">3</div>
+        <div class="heat-cell heat-o1">1</div>
+        <div class="heat-cell heat-o0">0</div>
+
+        <div class="heat-cell row-head">호남</div>
+        <div class="heat-cell heat-s0">0</div>
+        <div class="heat-cell heat-o1">1</div>
+        <div class="heat-cell heat-o0">0</div>
+      </div>
+
+    </div>
+
+    <!-- ③ 100% Stacked Bar -->
+    <div class="sub-panel">
+      <h3>100% 막대</h3>
+      <div class="mini-row">
+        <div class="lab">20대</div>
+        <div class="mini-bar"><div class="s" style="width:100%"></div></div>
+        <div class="count">1명</div>
+      </div>
+      <div class="mini-row">
+        <div class="lab">40대</div>
+        <div class="mini-bar"><div class="s" style="width:50%"></div><div class="o" style="width:50%"></div></div>
+        <div class="count">2명</div>
+      </div>
+      <div class="mini-row">
+        <div class="lab">50대</div>
+        <div class="mini-bar"><div class="s" style="width:50%"></div><div class="o" style="width:50%"></div></div>
+        <div class="count">2명</div>
+      </div>
+
+      <div class="mini-row" style="margin-top:14px;">
+        <div class="lab">남성</div>
+        <div class="mini-bar"><div class="s" style="width:75%"></div><div class="o" style="width:25%"></div></div>
+        <div class="count">4명</div>
+      </div>
+      <div class="mini-row">
+        <div class="lab">여성</div>
+        <div class="mini-bar"><div class="o" style="width:100%"></div></div>
+        <div class="count">1명</div>
+      </div>
+
+      <div class="mini-row" style="margin-top:14px;">
+        <div class="lab">수도권</div>
+        <div class="mini-bar"><div class="s" style="width:75%"></div><div class="o" style="width:25%"></div></div>
+        <div class="count">4명</div>
+      </div>
+      <div class="mini-row">
+        <div class="lab">호남</div>
+        <div class="mini-bar"><div class="o" style="width:100%"></div></div>
+        <div class="count">1명</div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>
